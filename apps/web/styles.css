@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* Blueprint section 7 tokens. Spacing uses Tailwind's default 4px scale (1=4, 2=8, 3=12, 4=16, 6=24, 8=32, 12=48). */
+@theme {
+  --color-canvas: #f5f3ee;
+  --color-surface: #ffffff;
+  --color-inset: #eaefea;
+  --color-ink: #172b2b;
+  --color-ink-muted: #4b6262;
+  --color-brand: #00645c;
+  --color-brand-strong: #004f49;
+  --color-on-brand: #ffffff;
+  --color-available: #00645c;
+  --color-available-bg: #e3f1ef;
+  --color-occupied: #385b94;
+  --color-occupied-bg: #e6ecf6;
+  --color-warning: #805600;
+  --color-warning-bg: #fbf3e0;
+  --color-error: #a62b34;
+  --color-error-strong: #8a222a;
+  --color-error-bg: #fbebec;
+  --color-control: #718681;
+
+  --font-sans: "IBM Plex Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+  --text-dense: 14px;
+  --text-dense--line-height: 20px;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-section: 20px;
+  --text-section--line-height: 28px;
+  --text-page: 28px;
+  --text-page--line-height: 36px;
+  --text-count: 40px;
+  --text-count--line-height: 48px;
+
+  --radius-control: 6px;
+  --radius-panel: 10px;
+}
+
+@layer base {
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+    }
+  }
+}
