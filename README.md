@@ -1,0 +1,59 @@
+# Bayline — Parking Operations
+
+Independent portfolio edition of a multi-tenant parking operations platform. North Gate Parking and Riverside Parking are fictional organisations; all data is synthetic.
+
+- Specification: [docs/BLUEPRINT.md](docs/BLUEPRINT.md) (v1.1; the original v1.0 is kept at `02-parking-platform.md`)
+- Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
+- Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
+
+## Stack
+
+Django 5.2 LTS + DRF on PostgreSQL 17 · Vite + React 19 single-page app · Caddy same-origin gateway · background work as PostgreSQL rows (no Redis or Celery).
+
+## Requirements
+
+Node 24+, pnpm 10, Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker with Compose.
+
+## First run
+
+```bash
+pnpm setup:local
+```
+
+Creates `.env` with generated secrets, installs dependencies, starts PostgreSQL on `127.0.0.1:54330` and applies migrations.
+
+```bash
+pnpm dev
+```
+
+Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). Register an organisation at `/register`; the design tokens and components are at `/gallery`.
+
+To run the full containerised stack instead (Caddy on the same port, so stop `pnpm dev` first):
+
+```bash
+pnpm demo:up
+```
+
+## Checks
+
+| Command | What it runs |
+|---|---|
+| `pnpm lint` | Biome on the web app and scripts; Ruff check and format on the backend |
+| `pnpm typecheck` | TypeScript against the generated API types |
+| `pnpm test:unit` | Vitest, plus backend tests that need no database |
+| `pnpm test:integration` | pytest against a dedicated PostgreSQL test database (`TEST_DATABASE_URL`) |
+| `pnpm build` | Production SPA build |
+| `pnpm contracts:generate` | OpenAPI from Django → `contracts/openapi.yaml` → `apps/web/generated/schema.d.ts` |
+| `pnpm contracts:check` | Regenerates contracts and fails if committed ones differ |
+
+## Layout
+
+```text
+apps/web/            Vite React SPA (src/, generated/ API types, styles.css tokens)
+backend/config/      Settings, URL routing, API envelope/errors, clock, health
+backend/modules/     Django apps; M0 ships `accounts`
+contracts/           Generated OpenAPI schema
+infra/               Compose, Caddyfile, gateway image
+scripts/             Local setup
+docs/                Blueprint, progress, decisions
+```
