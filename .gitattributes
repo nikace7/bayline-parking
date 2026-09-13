@@ -1,0 +1,2 @@
+# core.autocrlf=true on the original machine; keep LF in the repository and in Linux containers.
+* text=auto eol=lf
