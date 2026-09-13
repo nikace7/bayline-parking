@@ -1,0 +1,25 @@
+{
+  "name": "bayline",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup:local": "node scripts/setup-local.mjs",
+    "db:up": "docker compose --env-file .env -f infra/compose.yaml up -d --wait db",
+    "db:migrate": "pnpm --filter backend migrate",
+    "dev": "pnpm --parallel --filter backend --filter web dev",
+    "demo:up": "docker compose --env-file .env -f infra/compose.yaml up -d --build --wait",
+    "contracts:generate": "pnpm --filter backend schema && pnpm --filter web contracts",
+    "contracts:check": "pnpm contracts:generate && git diff --exit-code -- contracts apps/web/generated",
+    "lint": "biome check apps/web/src apps/web/vite.config.ts scripts && pnpm --filter backend lint",
+    "typecheck": "pnpm --filter web typecheck",
+    "build": "pnpm --filter web build",
+    "test:unit": "pnpm --filter web test && pnpm --filter backend test:unit",
+    "test:integration": "pnpm --filter backend test:integration"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13"
+  }
+}
