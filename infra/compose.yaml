@@ -1,0 +1,51 @@
+name: bayline
+
+services:
+  db:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: bayline
+      POSTGRES_USER: bayline
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run pnpm setup:local first}
+    ports:
+      - "127.0.0.1:54330:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayline -d bayline"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ../backend
+    environment:
+      APP_ORIGIN: ${APP_ORIGIN}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "false"
+      DATABASE_URL: postgres://bayline:${POSTGRES_PASSWORD}@db:5432/bayline
+      LOCATION_TIMEZONE: ${LOCATION_TIMEZONE}
+      # Caddy is the only hop in front of the API and overwrites client-sent X-Forwarded-For.
+      TRUSTED_PROXY_COUNT: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    ports:
+      - "127.0.0.1:4330:4330"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:
