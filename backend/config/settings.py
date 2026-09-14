@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     "rest_framework",
     "drf_spectacular",
+    "config",  # Cross-module management commands (seed_demo); no models.
     "modules.accounts",
     "modules.sites",
 ]
