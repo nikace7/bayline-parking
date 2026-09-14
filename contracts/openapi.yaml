@@ -148,6 +148,185 @@ paths:
                   data:
                     $ref: '#/components/schemas/Health'
           description: ''
+  /api/v1/locations:
+    get:
+      operationId: locations_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - locations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLocationList'
+          description: ''
+    post:
+      operationId: locations_create
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Location'
+          description: ''
+  /api/v1/locations/{location_id}/bays:
+    get:
+      operationId: locations_bays_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBayList'
+          description: ''
+    post:
+      operationId: locations_bays_create
+      parameters:
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BayRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Bay'
+          description: ''
+  /api/v1/locations/{location_id}/tariffs:
+    get:
+      operationId: locations_tariffs_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTariffVersionList'
+          description: ''
+    post:
+      operationId: locations_tariffs_create
+      parameters:
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TariffPublishRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TariffVersion'
+          description: ''
   /api/v1/members:
     get:
       operationId: members_list
@@ -233,6 +412,71 @@ paths:
           description: ''
 components:
   schemas:
+    Bay:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+          pattern: ^[A-Z0-9-]{1,16}$
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        mode:
+          $ref: '#/components/schemas/BayModeEnum'
+        state:
+          allOf:
+          - $ref: '#/components/schemas/BayStateEnum'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - id
+      - label
+      - locationId
+      - mode
+      - state
+      - vehicleClass
+    BayModeEnum:
+      enum:
+      - WALK_IN
+      - RESERVABLE
+      type: string
+      description: |-
+        * `WALK_IN` - Walk In
+        * `RESERVABLE` - Reservable
+    BayRequest:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          pattern: ^[A-Z0-9-]{1,16}$
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        mode:
+          $ref: '#/components/schemas/BayModeEnum'
+      required:
+      - label
+      - mode
+      - vehicleClass
+    BayStateEnum:
+      enum:
+      - ACTIVE
+      - OUT_OF_SERVICE
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `OUT_OF_SERVICE` - Out Of Service
     Health:
       type: object
       properties:
@@ -240,6 +484,83 @@ components:
           type: string
       required:
       - status
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 240
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        receiptPrefix:
+          type: string
+          pattern: ^[A-Z0-9]{2,8}$
+        timezone:
+          type: string
+          readOnly: true
+        enabled:
+          type: boolean
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - address
+      - createdAt
+      - enabled
+      - id
+      - latitude
+      - longitude
+      - name
+      - receiptPrefix
+      - timezone
+    LocationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        address:
+          type: string
+          minLength: 1
+          maxLength: 240
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        receiptPrefix:
+          type: string
+          minLength: 1
+          pattern: ^[A-Z0-9]{2,8}$
+      required:
+      - address
+      - latitude
+      - longitude
+      - name
+      - receiptPrefix
     LoginRequest:
       type: object
       properties:
@@ -311,6 +632,50 @@ components:
       - organisationId
       - organisationName
       - roles
+    PaginatedBayList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bay'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedLocationList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
     PaginatedMemberList:
       type: object
       required:
@@ -321,6 +686,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Member'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedTariffVersionList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TariffVersion'
         page:
           type: object
           required:
@@ -426,6 +813,114 @@ components:
       - email
       - id
       - name
+    TariffPublishRequest:
+      type: object
+      properties:
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        effectiveFrom:
+          type: string
+          format: date-time
+        graceSeconds:
+          type: integer
+          maximum: 86400
+          minimum: 0
+        blockSeconds:
+          type: integer
+          maximum: 86400
+          minimum: 60
+        blockPaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 0
+        dailyCapPaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+          nullable: true
+        taxBps:
+          type: integer
+          maximum: 10000
+          minimum: 0
+          default: 0
+      required:
+      - blockPaisa
+      - blockSeconds
+      - graceSeconds
+      - vehicleClass
+    TariffStatusEnum:
+      enum:
+      - SCHEDULED
+      - CURRENT
+      - SUPERSEDED
+      type: string
+      description: |-
+        * `SCHEDULED` - Scheduled
+        * `CURRENT` - Current
+        * `SUPERSEDED` - Superseded
+    TariffVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        effectiveFrom:
+          type: string
+          format: date-time
+          readOnly: true
+        graceSeconds:
+          type: integer
+          readOnly: true
+        blockSeconds:
+          type: integer
+          readOnly: true
+        blockPaisa:
+          type: integer
+          readOnly: true
+        dailyCapPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        taxBps:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TariffStatusEnum'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - blockPaisa
+      - blockSeconds
+      - createdAt
+      - dailyCapPaisa
+      - effectiveFrom
+      - graceSeconds
+      - id
+      - locationId
+      - status
+      - taxBps
+      - vehicleClass
+    VehicleClassEnum:
+      enum:
+      - CAR
+      - MOTORBIKE
+      type: string
+      description: |-
+        * `CAR` - Car
+        * `MOTORBIKE` - Motorbike
   securitySchemes:
     cookieAuth:
       type: apiKey
