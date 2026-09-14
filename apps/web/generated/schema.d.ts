@@ -102,6 +102,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["locations_list"];
+        put?: never;
+        post: operations["locations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{location_id}/bays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["locations_bays_list"];
+        put?: never;
+        post: operations["locations_bays_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{location_id}/tariffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["locations_tariffs_list"];
+        put?: never;
+        post: operations["locations_tariffs_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members": {
         parameters: {
             query?: never;
@@ -138,8 +186,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Bay: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            label: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            mode: components["schemas"]["BayModeEnum"];
+            readonly state: components["schemas"]["BayStateEnum"];
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `WALK_IN` - Walk In
+         *     * `RESERVABLE` - Reservable
+         * @enum {string}
+         */
+        BayModeEnum: "WALK_IN" | "RESERVABLE";
+        BayRequest: {
+            label: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            mode: components["schemas"]["BayModeEnum"];
+        };
+        /**
+         * @description * `ACTIVE` - Active
+         *     * `OUT_OF_SERVICE` - Out Of Service
+         * @enum {string}
+         */
+        BayStateEnum: "ACTIVE" | "OUT_OF_SERVICE";
         Health: {
             status: string;
+        };
+        Location: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            address: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            receiptPrefix: string;
+            readonly timezone: string;
+            readonly enabled: boolean;
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        LocationRequest: {
+            name: string;
+            address: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            receiptPrefix: string;
         };
         LoginRequest: {
             /** Format: email */
@@ -164,8 +265,29 @@ export interface components {
             organisationName: string;
             roles: components["schemas"]["RoleEnum"][];
         };
+        PaginatedBayList: {
+            data: components["schemas"]["Bay"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedLocationList: {
+            data: components["schemas"]["Location"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
         PaginatedMemberList: {
             data: components["schemas"]["Member"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedTariffVersionList: {
+            data: components["schemas"]["TariffVersion"][];
             page: {
                 next: string | null;
                 previous: string | null;
@@ -209,6 +331,47 @@ export interface components {
             email: string;
             name: string;
         };
+        TariffPublishRequest: {
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: date-time */
+            effectiveFrom?: string;
+            graceSeconds: number;
+            blockSeconds: number;
+            blockPaisa: number;
+            dailyCapPaisa?: number | null;
+            /** @default 0 */
+            taxBps: number;
+        };
+        /**
+         * @description * `SCHEDULED` - Scheduled
+         *     * `CURRENT` - Current
+         *     * `SUPERSEDED` - Superseded
+         * @enum {string}
+         */
+        TariffStatusEnum: "SCHEDULED" | "CURRENT" | "SUPERSEDED";
+        TariffVersion: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: date-time */
+            readonly effectiveFrom: string;
+            readonly graceSeconds: number;
+            readonly blockSeconds: number;
+            readonly blockPaisa: number;
+            readonly dailyCapPaisa: number | null;
+            readonly taxBps: number;
+            readonly status: components["schemas"]["TariffStatusEnum"];
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `CAR` - Car
+         *     * `MOTORBIKE` - Motorbike
+         * @enum {string}
+         */
+        VehicleClassEnum: "CAR" | "MOTORBIKE";
     };
     responses: never;
     parameters: never;
@@ -369,6 +532,161 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Health"];
+                    };
+                };
+            };
+        };
+    };
+    locations_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedLocationList"];
+                };
+            };
+        };
+    };
+    locations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Location"];
+                    };
+                };
+            };
+        };
+    };
+    locations_bays_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedBayList"];
+                };
+            };
+        };
+    };
+    locations_bays_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BayRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Bay"];
+                    };
+                };
+            };
+        };
+    };
+    locations_tariffs_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedTariffVersionList"];
+                };
+            };
+        };
+    };
+    locations_tariffs_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffPublishRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["TariffVersion"];
                     };
                 };
             };
