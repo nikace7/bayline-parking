@@ -46,6 +46,8 @@ pnpm demo:up
 | `pnpm contracts:generate` | OpenAPI from Django → `contracts/openapi.yaml` → `apps/web/generated/schema.d.ts` |
 | `pnpm contracts:check` | Regenerates contracts and fails if committed ones differ |
 
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build and `contracts:check` on every pull request and every push to `main`.
+
 ## Layout
 
 ```text
