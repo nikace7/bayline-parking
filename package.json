@@ -9,6 +9,7 @@
     "setup:local": "node scripts/setup-local.mjs",
     "db:up": "docker compose --env-file .env -f infra/compose.yaml up -d --wait db",
     "db:migrate": "pnpm --filter backend migrate",
+    "db:seed": "pnpm --filter backend seed",
     "dev": "pnpm --parallel --filter backend --filter web dev",
     "demo:up": "docker compose --env-file .env -f infra/compose.yaml up -d --build --wait",
     "contracts:generate": "pnpm --filter backend schema && pnpm --filter web contracts",
