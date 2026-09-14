@@ -26,13 +26,13 @@ Creates `.env` with generated secrets (or adds any missing `DEMO_PASSWORD` to an
 pnpm db:seed
 ```
 
-Adds synthetic demo data through the domain services: North Gate Parking (two locations) and Riverside Parking (one), each location with 12 walk-in and 6 reservable bays and car/motorbike tariffs. Accounts `owner@northgate.test`, `manager@`, `operator@`, `cashier@`, `auditor@northgate.test` and `owner@riverside.test` all sign in with `DEMO_PASSWORD` from `.env`. Rerunning changes nothing.
+Adds synthetic demo data through the domain services: North Gate Parking (two locations) and Riverside Parking (one), each location with 12 walk-in and 6 reservable bays and car/motorbike tariffs. Accounts `owner@northgate.test`, `manager@`, `operator@`, `cashier@`, `auditor@northgate.test` and `owner@riverside.test` all sign in with `DEMO_PASSWORD` from `.env`. The operator and cashier are assigned to both North Gate locations. Rerunning changes nothing.
 
 ```bash
 pnpm dev
 ```
 
-Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). Register an organisation at `/register`; the design tokens and components are at `/gallery`.
+Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). Register an organisation at `/register`; the design tokens and components are at `/gallery`. Signed in as a seeded operator or cashier, `/operations` runs the gate: admit a vehicle to a bay, quote and confirm checkout, open a cash shift and take cash, then record the exit.
 
 To run the full containerised stack instead (Caddy on the same port, so stop `pnpm dev` first):
 
@@ -59,7 +59,7 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:loc
 ```text
 apps/web/            Vite React SPA (src/, generated/ API types, styles.css tokens)
 backend/config/      Settings, URL routing, API envelope/errors, clock, health, seed_demo command
-backend/modules/     Django apps: `accounts` (M0), `sites` (M1)
+backend/modules/     Django apps: `accounts` (M0), `sites` (M1), `parking` and `billing` (M2)
 contracts/           Generated OpenAPI schema
 fixtures/            Shared test vectors run by both pytest and Vitest (tariff calculator)
 infra/               Compose, Caddyfile, gateway image
