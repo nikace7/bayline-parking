@@ -1,6 +1,7 @@
 import {
 	LayoutGrid,
 	LogOut,
+	MapPin,
 	Palette,
 	SquareParking,
 	Users,
@@ -12,6 +13,7 @@ import { useSession, useSignOut, useSwitchOrganisation } from "./session";
 
 const NAV = [
 	{ to: "/operations", label: "Operations", Icon: LayoutGrid },
+	{ to: "/settings/sites", label: "Sites", Icon: MapPin },
 	{ to: "/settings/staff", label: "Staff", Icon: Users },
 	{ to: "/gallery", label: "UI gallery", Icon: Palette },
 ];
@@ -133,7 +135,7 @@ export function AppShell() {
 				aria-label="Main"
 				className="fixed inset-x-0 bottom-0 border-t border-inset bg-surface md:hidden"
 			>
-				<ul className="grid grid-cols-3">
+				<ul className="grid grid-cols-4">
 					{NAV.map(({ to, label, Icon }) => (
 						<li key={to}>
 							<NavLink
