@@ -18,6 +18,7 @@ import { GalleryPage } from "./pages/GalleryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OperationsPage } from "./pages/OperationsPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { SitesPage } from "./pages/SitesPage";
 import { StaffPage } from "./pages/StaffPage";
 import { NotFoundPage, RouteErrorPage } from "./pages/StatusPages";
 
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
 				children: [
 					{ index: true, element: <Navigate to="/operations" replace /> },
 					{ path: "operations", element: <OperationsPage /> },
+					{ path: "settings/sites", element: <SitesPage /> },
 					{ path: "settings/staff", element: <StaffPage /> },
 				],
 			},
