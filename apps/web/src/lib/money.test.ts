@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPaisa } from "./money";
+import { formatPaisa, parseRupees } from "./money";
 
 describe("formatPaisa", () => {
 	it("formats the blueprint shift fixture amounts", () => {
@@ -15,5 +15,19 @@ describe("formatPaisa", () => {
 	it("rejects non-integer amounts instead of rounding them", () => {
 		expect(() => formatPaisa(10.5)).toThrow(RangeError);
 		expect(() => formatPaisa(Number.MAX_SAFE_INTEGER + 2)).toThrow(RangeError);
+	});
+});
+
+describe("parseRupees", () => {
+	it("reads whole and fractional rupees as exact paisa", () => {
+		expect(parseRupees("1000")).toBe(100_000);
+		expect(parseRupees(" 1,000.5 ")).toBe(100_050);
+		expect(parseRupees("0.05")).toBe(5);
+	});
+
+	it("rejects anything that is not a plain amount", () => {
+		for (const text of ["", "-5", "1.234", "1e3", "abc", "1234567"]) {
+			expect(parseRupees(text)).toBeNull();
+		}
 	});
 });
