@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, tests, build and contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Fail instead of rewriting uv.lock; pnpm already refuses lockfile changes when CI is set.
+      UV_LOCKED: "1"
+    steps:
+      # Actions are pinned to release commit SHAs; the comment names the release.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # pnpm version comes from packageManager in package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+
+      # The same path a developer takes: generated .env, dependencies, PostgreSQL through Compose
+      # on 127.0.0.1:54330, migrations. Secrets are random per run and never printed.
+      - name: Set up local environment
+        run: pnpm setup:local
+
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test:unit
+      - name: Integration tests (PostgreSQL)
+        run: pnpm test:integration
+      - name: Build
+        run: pnpm build
+      - name: Contracts match the committed schema
+        run: pnpm contracts:check
