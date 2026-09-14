@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "modules.accounts",
+    "modules.sites",
 ]
 
 MIDDLEWARE = [
@@ -95,7 +96,13 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "COMPONENT_SPLIT_REQUEST": True,
-    "ENUM_NAME_OVERRIDES": {"RoleEnum": "modules.accounts.models.Role"},
+    "ENUM_NAME_OVERRIDES": {
+        "RoleEnum": "modules.accounts.models.Role",
+        "VehicleClassEnum": "modules.sites.models.VehicleClass",
+        "BayModeEnum": "modules.sites.models.BayMode",
+        "BayStateEnum": "modules.sites.models.BayState",
+        "TariffStatusEnum": "modules.sites.models.TariffStatus",
+    },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
         "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
