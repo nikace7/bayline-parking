@@ -1,5 +1,48 @@
 # Progress
 
+## M1 Sites and tariff core — built and verified (14 September 2026)
+
+Branch `feat/m1-sites-tariffs`. An independent code review (tenant isolation, Python/TypeScript calculator parity, database constraints, secret handling, React page) found no critical, high, medium or low issues.
+
+### Delivered
+
+- **`sites` app:** Location (receipt prefix unique per organisation, coordinates, organisation time zone), Bay (`WALK_IN`/`RESERVABLE`, `ACTIVE`/`OUT_OF_SERVICE`, label unique per location) and TariffVersion. Database checks: block divides 24 hours, cap positive, tax at most 10,000 bps, one version per location/class/instant, valid choices. Tariff versions reuse the append-only trigger; the first `sites` migration enables `btree_gist`.
+- **API:** `GET/POST /locations`, `/locations/:id/bays`, `/locations/:id/tariffs` (D20). All roles read; owners add locations; owners and managers add bays and publish tariffs. Foreign IDs return 404 before the role check; unique violations return `RECEIPT_PREFIX_TAKEN`, `BAY_LABEL_TAKEN` or `TARIFF_VERSION_EXISTS` (409). Version status is derived from `clock.now()` (D21); `tariff_at()` returns the version in force for M2 entry pinning. Every write records an audit event.
+- **Tariff calculator** in Python and TypeScript with `fixtures/tariff-vectors.json` (18 cases) run by both (P04, P25; rules pinned in D22).
+- **Seed:** `pnpm db:seed` builds both organisations through domain services (D23); `setup:local` generates `DEMO_PASSWORD`.
+- **Web:** read-only `/settings/sites` (location details, tariff versions by class with status, bays) and a Sites navigation entry.
+- **Accounts:** `add_member` service (seed and test fixtures no longer insert directly) and `ensure_roles` for post-scope role checks.
+
+### Verification (actual runs, Windows 11, Docker 29.7.2, PostgreSQL 17.11)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend unit | `pnpm test:unit` | 25 passed (18 shared vectors, negative discount, 6 from M0) |
+| Frontend unit | `pnpm test:unit` | 25 passed in 4 files (18 shared vectors, invalid discount, Sites page, 5 from M0) |
+| Backend integration on real PostgreSQL | `pnpm test:integration` | 29 passed (9 sites, 2 seed, 18 from M0) |
+| Lint | `pnpm lint` | Biome: 25 files, no issues. Ruff: all checks passed, 42 files formatted |
+| Typecheck | `pnpm typecheck` | No errors |
+| Build | `pnpm build` | JS 385.35 kB (119.97 kB gzip), CSS 25.81 kB |
+| Contracts | `pnpm contracts:generate` | No spectacular warnings; schema and types regenerated and committed |
+| Migrations and seed on the development database | `pnpm setup:local`, `pnpm db:seed` twice | `sites.0001`/`0002` applied; first run seeded, second run "nothing changed". Queried back: North Gate 5 staff, NGC and NGL; Riverside 1 staff, RVB; each location 12 walk-in + 6 reservable bays, car NPR 50.00 and motorbike NPR 20.00 per block, both `CURRENT` |
+| Containerised stack | `pnpm demo:up` (rebuilt api image) | db, api, gateway healthy. Through Caddy: `/api/v1/health/ready` 200; anonymous `/api/v1/locations` 403 `NOT_AUTHENTICATED` envelope; `/settings/sites` serves the SPA (200) |
+
+Acceptance matrix: P04 and P25 covered by shared vectors. P05 is partly covered (versions are immutable in the database and `tariff_at()` selects by time); pinning on a session arrives with M2. P01 now also covers locations, bays and tariffs. P02 moved to M2 (D24).
+
+### Found during M1
+
+- Docker Desktop had stopped between sessions, so the first integration run failed on connection timeouts, not on code; restarting it and running `pnpm db:up` cleared them. It also restarts other projects' containers.
+- Formatting only from Biome and Ruff; no functional bugs were found.
+
+### Not verified / known limitations
+
+- The Sites page was not exercised signed-in in a browser (agent browser policy forbids entering passwords). Its rendering is covered by a component test with mocked API responses; sign in as `owner@northgate.test` with `DEMO_PASSWORD` for a manual pass.
+- Setup is API-only: no forms yet to create locations, bays or tariffs.
+- No update endpoints: bay mode/state changes need the occupancy and reservation guards (M2/M4); location edits wait for a use.
+- Operators are not yet limited to allowed locations (arrives with entry in M2). ReceiptCounter waits for capture in M3.
+- The Sites page reads only the first 100 bays and tariff versions of a location.
+- A location's time zone is copied from its organisation; there is no time-zone input yet.
+
 ## M0 Foundation — built and verified (13 September 2026)
 
 An independent security-focused code review found no critical or high issues and one medium issue (auth throttle bypass through a forged `X-Forwarded-For`), which is fixed and covered by a regression test. See "Bugs found and fixed" below.
@@ -40,14 +83,14 @@ Acceptance matrix started, not complete: P01 is covered for staff membership end
 ### Not verified / known limitations
 
 - Authenticated browser flows (register, sign in, staff table) were not exercised in the browser, because the agent's browser policy forbids creating accounts or typing passwords. They are covered by API integration tests; a manual pass is still recommended.
-- `pnpm contracts:check` compares against Git, so it passes trivially until the generated files are committed.
+- ~~`pnpm contracts:check` passes trivially until the generated files are committed.~~ Resolved: the generated contracts were committed at the end of M0, so the check now detects drift.
 - No Playwright/axe suite, 360px/768px/200% zoom captures or screenshots yet (M8).
 - Biome does not lint `apps/web/styles.css`: its CSS parser rejects Tailwind `@theme` without a `biome.json` change, which the user's config-protection hook blocks.
 - Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a OneDrive-synced folder, so `node_modules` and `.venv` are synced too.
 
-## Next: M1 Sites and tariff core
+## Next: M2 Gate journey (cash)
 
-- `sites` app: Location, Bay (`WALK_IN`/`RESERVABLE`), immutable TariffVersion with `86400 % block_seconds = 0`, `btree_gist` extension.
-- Tariff calculator in Python plus `fixtures/tariff-vectors.json`, shared with a TypeScript port tested in Vitest (P04, P05, P25).
-- `pnpm db:seed` through domain services for both organisations.
-- Bay-lock groundwork for concurrent entry (P02).
+- `parking` app: Vehicle with normalised plate, ParkingSession with partial unique constraints (one `PARKED` session per bay and per plate).
+- Entry service locking bays in UUID order, pinning `tariff_at()` at server entry time; concurrent entry on separate connections (P02), same plate (P03), pinned tariff (P05).
+- Signed quote token, immutable invoice, cash capture, derived payment state, exit; idempotency record in the business transaction; retry on `40P01`/`40001`.
+- Operator allowed locations on OrgMember; bay mode/state changes guarded by occupancy.

@@ -164,7 +164,7 @@ Exit requires paid amount equal to total, verified under the invoice lock. Cash 
 
 Default synthetic car tariff: five free minutes, then NPR 50 per started 30-minute block. Motorbike: five free minutes, then NPR 20 per started 30-minute block. No daily cap by default. These are demo pricing choices, not market or tax advice.
 
-Billable seconds = max(0, cutoff-entry-grace). Blocks = integer ceiling of billable seconds/block seconds. Gross base charge = blocks × block paisa. Optional daily cap applies per rolling 24-hour segment of billable duration; calculate each segment separately. Block seconds must divide 86,400 exactly (database check) so no block straddles a segment boundary. Tariff versions freeze the chosen cap behavior.
+Billable seconds = max(0, whole elapsed seconds from entry to cutoff − grace); a sub-second remainder is dropped and never starts a block. Blocks = integer ceiling of billable seconds/block seconds. Gross base charge = blocks × block paisa. Optional daily cap applies per rolling 24-hour segment of billable duration; calculate each segment separately. Block seconds must divide 86,400 exactly (database check) so no block straddles a segment boundary. Tariff versions freeze the chosen cap behavior.
 
 Discounts are fixed authorised paisa adjustments capped at the base and include actor/reason; no operator-entered arbitrary total. Discount applies before tax: taxable = base − discount. Tax is an optional configurable demo rate in basis points, default zero, calculated once per invoice with integer half-up rounding: `tax = (taxable × bps + 5000) // 10000`. Do not describe a receipt as an approved fiscal invoice or claim current statutory compliance.
 
@@ -245,7 +245,7 @@ REST `/api/v1`; JSON camelCase with amounts as integer paisa, UUID strings and I
 | Endpoints | Core behavior |
 |---|---|
 | `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/session`; `/auth/customer/register`; `/members` | Organisation/session, customer identity and role management |
-| `/locations`, `/locations/:id/bays`, `/tariffs` | Scoped setup; publish immutable tariff versions |
+| `/locations`, `/locations/:id/bays`, `/locations/:id/tariffs` | Scoped setup; publish immutable tariff versions |
 | `/devices`, `/devices/:id/sync`, `/devices/:id/tariff-cache` | Device registration, offline event sync, cached immutable tariffs |
 | `/public/locations`, `/public/locations/:id/availability` | Safe discovery/capacity across organisations; no plates/customer details |
 | `/customer/reservations`; `/reservations/:id/confirm`, `/cancel`, `/relocate` | Own booking or staff-authorised management |
@@ -352,8 +352,8 @@ Seed two organisations, two locations in the first, 12 walk-in and 6 reservable 
 | Milestone | Work and exit evidence |
 |---|---|
 | M0 Foundation | Workspace, Compose (db, api, Caddy), settings, `accounts` (Organisation, User, OrgMember, AuditEvent), session auth with CSRF, response envelope and errors, organisation scoping, append-only trigger, clock, health, OpenAPI → TypeScript types, tokens/UI gallery; clean setup, lint, typecheck, build and tests |
-| M1 Sites and tariff core | Locations, bays, tariff versions, calculator with shared JSON vectors (pytest and Vitest), `btree_gist`, seed; concurrent-entry and boundary tests |
-| M2 Gate journey (cash) | Entry, signed quote, invoice, cash capture, derived payment state, exit, idempotency, lock order with retry; entry-to-cash-exit tested |
+| M1 Sites and tariff core | Locations, bays, tariff versions, calculator with shared JSON vectors (pytest and Vitest), `btree_gist`, seed; tariff boundary tests |
+| M2 Gate journey (cash) | Entry, signed quote, invoice, cash capture, derived payment state, exit, idempotency, lock order with retry; concurrent entry (P02) and entry-to-cash-exit tested |
 | M3 Shift, receipts, reports | Shifts and variance, receipt counters, 58/80mm print CSS, collections/vehicle log, streamed PDF/XLSX; **cash success journey complete** |
 | M4 Reservations | Global customer accounts, holds, exclusion constraint, arrivals, relocation, worker sweeps; race and overstay tests |
 | M5 Member passes | Pass-first lock order, entitlement, renewal invoices; concurrent pass usage tests |
