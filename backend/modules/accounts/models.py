@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.postgres.fields import ArrayField
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
@@ -111,3 +112,28 @@ class AuditEvent(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["organisation", "-created_at"])]
+
+
+class IdempotencyRecord(models.Model):
+    """Replay metadata for an Idempotency-Key write, inserted in the same transaction as the write.
+    Kept seven days for replays; financial uniqueness comes from ledger constraints, not here."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    actor = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    operation = models.CharField(max_length=64)
+    key = models.CharField(max_length=128)
+    payload_hash = models.CharField(max_length=64)
+    response_status = models.PositiveSmallIntegerField(null=True)
+    response_body = models.JSONField(null=True, encoder=DjangoJSONEncoder)
+    created_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organisation", "actor", "operation", "key"],
+                name="idempotency_key_unique",
+            ),
+        ]
+        indexes = [models.Index(fields=["expires_at"])]
