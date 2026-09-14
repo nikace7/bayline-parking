@@ -22,5 +22,6 @@ urlpatterns = [
     path("api/v1/health/ready", health.ReadyView.as_view()),
     path("api/v1/", include("modules.accounts.urls")),
     path("api/v1/", include("modules.sites.urls")),
+    path("api/v1/", include("modules.parking.urls")),
     re_path(r"^api/", UnknownRouteView.as_view()),
 ]
