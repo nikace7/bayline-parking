@@ -353,8 +353,8 @@ Seed two organisations, two locations in the first, 12 walk-in and 6 reservable 
 |---|---|
 | M0 Foundation | Workspace, Compose (db, api, Caddy), settings, `accounts` (Organisation, User, OrgMember, AuditEvent), session auth with CSRF, response envelope and errors, organisation scoping, append-only trigger, clock, health, OpenAPI → TypeScript types, tokens/UI gallery; clean setup, lint, typecheck, build and tests |
 | M1 Sites and tariff core | Locations, bays, tariff versions, calculator with shared JSON vectors (pytest and Vitest), `btree_gist`, seed; tariff boundary tests |
-| M2 Gate journey (cash) | Entry, signed quote, invoice, cash capture, derived payment state, exit, idempotency, lock order with retry; concurrent entry (P02) and entry-to-cash-exit tested |
-| M3 Shift, receipts, reports | Shifts and variance, receipt counters, 58/80mm print CSS, collections/vehicle log, streamed PDF/XLSX; **cash success journey complete** |
+| M2 Gate journey (cash) | Entry, signed quote, invoice, open cash shift, cash capture, derived payment state, exit, idempotency, lock order with retry; concurrent entry (P02) and entry-to-cash-exit tested |
+| M3 Shift, receipts, reports | Shift close and variance, receipt counters, 58/80mm print CSS, collections/vehicle log, streamed PDF/XLSX; **cash success journey complete** |
 | M4 Reservations | Global customer accounts, holds, exclusion constraint, arrivals, relocation, worker sweeps; race and overstay tests |
 | M5 Member passes | Pass-first lock order, entitlement, renewal invoices; concurrent pass usage tests |
 | M6 Payment integrity | QR fixture, Khalti sandbox adapter, lookup worker, abandon flow, refunds/voids; duplicate, expired, lost-initiation and late-completion outcomes tested |
