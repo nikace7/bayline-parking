@@ -1,6 +1,7 @@
-import { type InputHTMLAttributes, useId } from "react";
+import { type InputHTMLAttributes, type Ref, useId } from "react";
 
 type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
+	ref?: Ref<HTMLInputElement>;
 	label: string;
 	hint?: string;
 	error?: string;
