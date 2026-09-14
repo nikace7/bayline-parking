@@ -2,7 +2,6 @@ import pytest
 from rest_framework.test import APIClient
 
 from modules.accounts import services
-from modules.accounts.models import OrgMember, User
 from modules.accounts.permissions import SESSION_ORG_KEY
 
 PASSWORD = "correct-horse-battery-staple"
@@ -44,10 +43,16 @@ def other_owner():
 
 @pytest.fixture
 def make_member():
-    # ponytail: direct insert until the staff invitation service lands with StaffActionToken.
     def create(organisation, email, roles):
-        user = User.objects.create_user(email=email, password=PASSWORD, name=email.split("@")[0])
-        return OrgMember.objects.create(organisation=organisation, user=user, roles=roles)
+        return services.add_member(
+            organisation=organisation,
+            actor=None,
+            email=email,
+            name=email.split("@")[0],
+            password=PASSWORD,
+            roles=roles,
+            correlation_id="test",
+        )
 
     return create
 
