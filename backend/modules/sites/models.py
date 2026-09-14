@@ -130,3 +130,20 @@ class TariffVersion(models.Model):
                 condition=Q(tax_bps__lte=10_000), name="tariff_tax_bps_at_most_100_percent"
             ),
         ]
+
+
+class LocationAssignment(models.Model):
+    """Gate and cash staff act only at assigned locations; owners act everywhere."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="assignments")
+    member = models.ForeignKey("accounts.OrgMember", on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["location", "member"], name="assignment_unique"),
+        ]
