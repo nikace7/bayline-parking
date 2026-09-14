@@ -102,6 +102,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{invoice_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["invoices_payments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/locations": {
         parameters: {
             query?: never;
@@ -182,6 +198,134 @@ export interface paths {
         patch: operations["members_partial_update"];
         trace?: never;
     };
+    "/api/v1/parking/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["parking_entries_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parking/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["parking_sessions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parking/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["parking_sessions_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parking/sessions/{session_id}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["parking_sessions_checkout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parking/sessions/{session_id}/exit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["parking_sessions_exit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parking/sessions/{session_id}/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["parking_sessions_quote_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["shifts_current_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["shifts_open_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -215,9 +359,52 @@ export interface components {
          * @enum {string}
          */
         BayStateEnum: "ACTIVE" | "OUT_OF_SERVICE";
+        CashPaymentRequest: {
+            method: components["schemas"]["PaymentMethodEnum"];
+            amountPaisa: number;
+        };
+        CheckoutRequest: {
+            quoteToken: string;
+        };
+        CurrentShift: {
+            shift: components["schemas"]["Shift"] | null;
+        };
+        /**
+         * @description * `CAPTURE` - Capture
+         * @enum {string}
+         */
+        EntryKindEnum: "CAPTURE";
+        EntryRequest: {
+            /** Format: uuid */
+            locationId: string;
+            /** Format: uuid */
+            bayId: string;
+            plate: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+        };
         Health: {
             status: string;
         };
+        Invoice: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: date-time */
+            readonly cutoffAt: string;
+            readonly billableSeconds: number;
+            readonly blocks: number;
+            readonly basePaisa: number;
+            readonly discountPaisa: number;
+            readonly taxPaisa: number;
+            readonly totalPaisa: number;
+            readonly status: components["schemas"]["InvoiceStatusEnum"];
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `CONFIRMED` - Confirmed
+         * @enum {string}
+         */
+        InvoiceStatusEnum: "CONFIRMED";
         Location: {
             /** Format: uuid */
             readonly id: string;
@@ -286,12 +473,37 @@ export interface components {
                 previous: string | null;
             };
         };
+        PaginatedSessionSummaryList: {
+            data: components["schemas"]["SessionSummary"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
         PaginatedTariffVersionList: {
             data: components["schemas"]["TariffVersion"][];
             page: {
                 next: string | null;
                 previous: string | null;
             };
+        };
+        ParkingSession: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            /** Format: uuid */
+            readonly bayId: string;
+            readonly bayLabel: string;
+            readonly plate: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: uuid */
+            readonly tariffId: string;
+            readonly status: components["schemas"]["SessionStatusEnum"];
+            /** Format: date-time */
+            readonly enteredAt: string;
+            /** Format: date-time */
+            readonly exitedAt: string | null;
         };
         PatchedMemberUpdateRequest: {
             expectedRevision?: number;
@@ -301,6 +513,37 @@ export interface components {
         PatchedSwitchOrganisationRequest: {
             /** Format: uuid */
             activeOrganisationId?: string;
+        };
+        PaymentEntry: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly invoiceId: string;
+            /** Format: uuid */
+            readonly shiftId: string;
+            readonly kind: components["schemas"]["EntryKindEnum"];
+            readonly method: components["schemas"]["PaymentMethodEnum"];
+            readonly amountPaisa: number;
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `CASH` - Cash
+         * @enum {string}
+         */
+        PaymentMethodEnum: "CASH";
+        Quote: {
+            quoteToken: string;
+            /** Format: date-time */
+            cutoffAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            billableSeconds: number;
+            blocks: number;
+            basePaisa: number;
+            discountPaisa: number;
+            taxPaisa: number;
+            totalPaisa: number;
         };
         RegisterRequest: {
             organisationName: string;
@@ -324,12 +567,90 @@ export interface components {
             /** Format: uuid */
             activeOrganisationId: string | null;
         };
+        /** @description A visit with its gate stage, derived from the confirmed invoice and the ledger. */
+        SessionDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            /** Format: uuid */
+            readonly bayId: string;
+            readonly bayLabel: string;
+            readonly plate: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: uuid */
+            readonly tariffId: string;
+            readonly status: components["schemas"]["SessionStatusEnum"];
+            /** Format: date-time */
+            readonly enteredAt: string;
+            /** Format: date-time */
+            readonly exitedAt: string | null;
+            readonly stage: components["schemas"]["SessionStageEnum"];
+            readonly totalPaisa: number | null;
+            readonly paidPaisa: number;
+            readonly duePaisa: number | null;
+            readonly invoice: components["schemas"]["Invoice"] | null;
+        };
+        /**
+         * @description * `PARKED` - Parked
+         *     * `CHECKOUT_PENDING` - Checkout Pending
+         *     * `EXIT_READY` - Exit Ready
+         *     * `EXITED` - Exited
+         * @enum {string}
+         */
+        SessionStageEnum: "PARKED" | "CHECKOUT_PENDING" | "EXIT_READY" | "EXITED";
+        /**
+         * @description * `PARKED` - Parked
+         *     * `EXITED` - Exited
+         * @enum {string}
+         */
+        SessionStatusEnum: "PARKED" | "EXITED";
+        /** @description A visit with its gate stage, derived from the confirmed invoice and the ledger. */
+        SessionSummary: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            /** Format: uuid */
+            readonly bayId: string;
+            readonly bayLabel: string;
+            readonly plate: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: uuid */
+            readonly tariffId: string;
+            readonly status: components["schemas"]["SessionStatusEnum"];
+            /** Format: date-time */
+            readonly enteredAt: string;
+            /** Format: date-time */
+            readonly exitedAt: string | null;
+            readonly stage: components["schemas"]["SessionStageEnum"];
+            readonly totalPaisa: number | null;
+            readonly paidPaisa: number;
+            readonly duePaisa: number | null;
+        };
         SessionUser: {
             /** Format: uuid */
             id: string;
             /** Format: email */
             email: string;
             name: string;
+        };
+        Shift: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            readonly locationName: string;
+            readonly openingFloatPaisa: number;
+            /** Format: date-time */
+            readonly openedAt: string;
+            /** Format: date-time */
+            readonly closedAt: string | null;
+        };
+        ShiftOpenRequest: {
+            /** Format: uuid */
+            locationId: string;
+            openingFloatPaisa: number;
         };
         TariffPublishRequest: {
             vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -532,6 +853,36 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Health"];
+                    };
+                };
+            };
+        };
+    };
+    invoices_payments_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashPaymentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PaymentEntry"];
                     };
                 };
             };
@@ -761,6 +1112,212 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Member"];
+                    };
+                };
+            };
+        };
+    };
+    parking_entries_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ParkingSession"];
+                    };
+                };
+            };
+        };
+    };
+    parking_sessions_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+                locationId?: string;
+                /**
+                 * @description * `PARKED` - Parked
+                 *     * `EXITED` - Exited
+                 */
+                status?: "PARKED" | "EXITED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSessionSummaryList"];
+                };
+            };
+        };
+    };
+    parking_sessions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SessionDetail"];
+                    };
+                };
+            };
+        };
+    };
+    parking_sessions_checkout_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SessionDetail"];
+                    };
+                };
+            };
+        };
+    };
+    parking_sessions_exit_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SessionDetail"];
+                    };
+                };
+            };
+        };
+    };
+    parking_sessions_quote_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Quote"];
+                    };
+                };
+            };
+        };
+    };
+    shifts_current_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CurrentShift"];
+                    };
+                };
+            };
+        };
+    };
+    shifts_open_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftOpenRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Shift"];
                     };
                 };
             };
