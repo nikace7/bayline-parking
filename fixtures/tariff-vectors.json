@@ -1,0 +1,155 @@
+{
+  "about": "Blueprint section 4 tariff rules. Run by backend/modules/sites/tests/test_tariff.py and apps/web/src/lib/tariff.test.ts so the server and offline calculators cannot drift (P04, P25). Amounts are integer paisa; times are UTC.",
+  "tariffs": {
+    "car": { "graceSeconds": 300, "blockSeconds": 1800, "blockPaisa": 5000, "dailyCapPaisa": null, "taxBps": 0 },
+    "motorbike": { "graceSeconds": 300, "blockSeconds": 1800, "blockPaisa": 2000, "dailyCapPaisa": null, "taxBps": 0 },
+    "carCapped": { "graceSeconds": 300, "blockSeconds": 1800, "blockPaisa": 5000, "dailyCapPaisa": 60000, "taxBps": 0 },
+    "carTaxed": { "graceSeconds": 300, "blockSeconds": 3600, "blockPaisa": 3333, "dailyCapPaisa": null, "taxBps": 1300 }
+  },
+  "cases": [
+    {
+      "name": "five-minute stay is free",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T09:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 0, "blocks": 0, "basePaisa": 0, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 0 }
+    },
+    {
+      "name": "cutoff before entry is free",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T08:59:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 0, "blocks": 0, "basePaisa": 0, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 0 }
+    },
+    {
+      "name": "one second past grace starts a block",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T09:05:01Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 1, "blocks": 1, "basePaisa": 5000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 5000 }
+    },
+    {
+      "name": "blueprint example: 09:35:00 is one block",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T09:35:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 1800, "blocks": 1, "basePaisa": 5000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 5000 }
+    },
+    {
+      "name": "blueprint example: 09:35:01 is two blocks",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T09:35:01Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 1801, "blocks": 2, "basePaisa": 10000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 10000 }
+    },
+    {
+      "name": "sub-second remainder never starts a block",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00.000Z",
+      "cutoff": "2026-09-14T09:35:00.999Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 1800, "blocks": 1, "basePaisa": 5000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 5000 }
+    },
+    {
+      "name": "crossing Kathmandu midnight (18:15 UTC) counts elapsed time only",
+      "tariff": "car",
+      "entry": "2026-09-14T18:00:00Z",
+      "cutoff": "2026-09-14T18:45:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 2400, "blocks": 2, "basePaisa": 10000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 10000 }
+    },
+    {
+      "name": "motorbike rate",
+      "tariff": "motorbike",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T10:10:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 3900, "blocks": 3, "basePaisa": 6000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 6000 }
+    },
+    {
+      "name": "uncapped full day",
+      "tariff": "car",
+      "entry": "2026-09-14T00:00:00Z",
+      "cutoff": "2026-09-15T00:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 86400, "blocks": 48, "basePaisa": 240000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 240000 }
+    },
+    {
+      "name": "cap reached inside the first 24 hours",
+      "tariff": "carCapped",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T16:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 25200, "blocks": 14, "basePaisa": 60000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 60000 }
+    },
+    {
+      "name": "capped full day",
+      "tariff": "carCapped",
+      "entry": "2026-09-14T00:00:00Z",
+      "cutoff": "2026-09-15T00:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 86400, "blocks": 48, "basePaisa": 60000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 60000 }
+    },
+    {
+      "name": "one second into the second 24-hour segment starts a new block",
+      "tariff": "carCapped",
+      "entry": "2026-09-14T00:00:00Z",
+      "cutoff": "2026-09-15T00:05:01Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 86401, "blocks": 49, "basePaisa": 65000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 65000 }
+    },
+    {
+      "name": "second segment is capped separately",
+      "tariff": "carCapped",
+      "entry": "2026-09-14T00:00:00Z",
+      "cutoff": "2026-09-15T01:05:01Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 90001, "blocks": 51, "basePaisa": 75000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 75000 }
+    },
+    {
+      "name": "discount applies before tax",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T10:05:00Z",
+      "discountPaisa": 2500,
+      "expected": { "billableSeconds": 3600, "blocks": 2, "basePaisa": 10000, "discountPaisa": 2500, "taxPaisa": 0, "totalPaisa": 7500 }
+    },
+    {
+      "name": "discount is capped at the base charge",
+      "tariff": "car",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T09:20:00Z",
+      "discountPaisa": 8000,
+      "expected": { "billableSeconds": 900, "blocks": 1, "basePaisa": 5000, "discountPaisa": 5000, "taxPaisa": 0, "totalPaisa": 0 }
+    },
+    {
+      "name": "tax rounds down below half a paisa",
+      "tariff": "carTaxed",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T10:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 3600, "blocks": 1, "basePaisa": 3333, "discountPaisa": 0, "taxPaisa": 433, "totalPaisa": 3766 }
+    },
+    {
+      "name": "tax rounds up above half a paisa",
+      "tariff": "carTaxed",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T11:05:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 7200, "blocks": 2, "basePaisa": 6666, "discountPaisa": 0, "taxPaisa": 867, "totalPaisa": 7533 }
+    },
+    {
+      "name": "tax rounds exactly half a paisa up, after discount",
+      "tariff": "carTaxed",
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-14T10:05:00Z",
+      "discountPaisa": 3283,
+      "expected": { "billableSeconds": 3600, "blocks": 1, "basePaisa": 3333, "discountPaisa": 3283, "taxPaisa": 7, "totalPaisa": 57 }
+    }
+  ]
+}
