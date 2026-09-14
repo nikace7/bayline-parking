@@ -20,7 +20,13 @@ Node 24+, pnpm 10, Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker wit
 pnpm setup:local
 ```
 
-Creates `.env` with generated secrets, installs dependencies, starts PostgreSQL on `127.0.0.1:54330` and applies migrations.
+Creates `.env` with generated secrets (or adds any missing `DEMO_PASSWORD` to an existing one), installs dependencies, starts PostgreSQL on `127.0.0.1:54330` and applies migrations.
+
+```bash
+pnpm db:seed
+```
+
+Adds synthetic demo data through the domain services: North Gate Parking (two locations) and Riverside Parking (one), each location with 12 walk-in and 6 reservable bays and car/motorbike tariffs. Accounts `owner@northgate.test`, `manager@`, `operator@`, `cashier@`, `auditor@northgate.test` and `owner@riverside.test` all sign in with `DEMO_PASSWORD` from `.env`. Rerunning changes nothing.
 
 ```bash
 pnpm dev
@@ -52,9 +58,10 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:loc
 
 ```text
 apps/web/            Vite React SPA (src/, generated/ API types, styles.css tokens)
-backend/config/      Settings, URL routing, API envelope/errors, clock, health
-backend/modules/     Django apps; M0 ships `accounts`
+backend/config/      Settings, URL routing, API envelope/errors, clock, health, seed_demo command
+backend/modules/     Django apps: `accounts` (M0), `sites` (M1)
 contracts/           Generated OpenAPI schema
+fixtures/            Shared test vectors run by both pytest and Vitest (tariff calculator)
 infra/               Compose, Caddyfile, gateway image
 scripts/             Local setup
 docs/                Blueprint, progress, decisions
