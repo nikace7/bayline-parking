@@ -1,10 +1,19 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+from types import SimpleNamespace
+
 import pytest
 from rest_framework.test import APIClient
 
+from config import clock
 from modules.accounts import services
+from modules.accounts.models import Role
 from modules.accounts.permissions import SESSION_ORG_KEY
+from modules.sites import services as sites
+from modules.sites.models import BayMode, VehicleClass
 
 PASSWORD = "correct-horse-battery-staple"
+TARIFFS_FROM = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -67,3 +76,60 @@ def signed_in(api, csrf):
         return csrf(api)
 
     return sign_in
+
+
+@pytest.fixture
+def gate(owner, make_member):
+    """North Gate Central: walk-in car bays A01/A02, walk-in motorbike bay M01, reservable car bay
+    R01, tariffs in force since 2026 (car NPR 50, motorbike NPR 20 per started 30 minutes after five
+    free minutes), and an assigned operator and cashier."""
+    organisation, actor = owner.organisation, owner.user
+    location = sites.create_location(
+        organisation=organisation,
+        actor=actor,
+        name="North Gate Central",
+        address="Durbar Marg, Kathmandu",
+        latitude=Decimal("27.712000"),
+        longitude=Decimal("85.317800"),
+        receipt_prefix="NGC",
+        correlation_id="test",
+    )
+    bays = {
+        label: sites.create_bay(
+            location=location,
+            actor=actor,
+            label=label,
+            vehicle_class=vehicle_class,
+            mode=mode,
+            correlation_id="test",
+        )
+        for label, vehicle_class, mode in [
+            ("A01", VehicleClass.CAR, BayMode.WALK_IN),
+            ("A02", VehicleClass.CAR, BayMode.WALK_IN),
+            ("M01", VehicleClass.MOTORBIKE, BayMode.WALK_IN),
+            ("R01", VehicleClass.CAR, BayMode.RESERVABLE),
+        ]
+    }
+    with clock.frozen(TARIFFS_FROM):
+        for vehicle_class, block_paisa in [
+            (VehicleClass.CAR, 5000),
+            (VehicleClass.MOTORBIKE, 2000),
+        ]:
+            sites.publish_tariff(
+                location=location,
+                actor=actor,
+                vehicle_class=vehicle_class,
+                grace_seconds=300,
+                block_seconds=1800,
+                block_paisa=block_paisa,
+                daily_cap_paisa=None,
+                tax_bps=0,
+                correlation_id="test",
+            )
+    operator = make_member(organisation, "operator@northgate.test", [Role.OPERATOR])
+    cashier = make_member(organisation, "cashier@northgate.test", [Role.CASHIER])
+    for member in (operator, cashier):
+        sites.assign_member(location=location, member=member, actor=actor, correlation_id="test")
+    return SimpleNamespace(
+        location=location, bays=bays, owner=owner, operator=operator, cashier=cashier
+    )

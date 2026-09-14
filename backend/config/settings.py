@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "config",  # Cross-module management commands (seed_demo); no models.
     "modules.accounts",
     "modules.sites",
+    "modules.parking",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +104,7 @@ SPECTACULAR_SETTINGS = {
         "BayModeEnum": "modules.sites.models.BayMode",
         "BayStateEnum": "modules.sites.models.BayState",
         "TariffStatusEnum": "modules.sites.models.TariffStatus",
+        "SessionStatusEnum": "modules.parking.models.SessionStatus",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
