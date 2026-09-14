@@ -148,6 +148,45 @@ paths:
                   data:
                     $ref: '#/components/schemas/Health'
           description: ''
+  /api/v1/invoices/{invoice_id}/payments:
+    post:
+      operationId: invoices_payments_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: invoice_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - invoices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashPaymentRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PaymentEntry'
+          description: ''
   /api/v1/locations:
     get:
       operationId: locations_list
@@ -410,6 +449,250 @@ paths:
                   data:
                     $ref: '#/components/schemas/Member'
           description: ''
+  /api/v1/parking/entries:
+    post:
+      operationId: parking_entries_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      tags:
+      - parking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ParkingSession'
+          description: ''
+  /api/v1/parking/sessions:
+    get:
+      operationId: parking_sessions_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: status
+        schema:
+          enum:
+          - PARKED
+          - EXITED
+          type: string
+          minLength: 1
+        description: |-
+          * `PARKED` - Parked
+          * `EXITED` - Exited
+      tags:
+      - parking
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSessionSummaryList'
+          description: ''
+  /api/v1/parking/sessions/{session_id}:
+    get:
+      operationId: parking_sessions_retrieve
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - parking
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SessionDetail'
+          description: ''
+  /api/v1/parking/sessions/{session_id}/checkout:
+    post:
+      operationId: parking_sessions_checkout_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - parking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SessionDetail'
+          description: ''
+  /api/v1/parking/sessions/{session_id}/exit:
+    post:
+      operationId: parking_sessions_exit_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - parking
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SessionDetail'
+          description: ''
+  /api/v1/parking/sessions/{session_id}/quote:
+    post:
+      operationId: parking_sessions_quote_create
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - parking
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Quote'
+          description: ''
+  /api/v1/shifts/current:
+    get:
+      operationId: shifts_current_retrieve
+      tags:
+      - shifts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CurrentShift'
+          description: ''
+  /api/v1/shifts/open:
+    post:
+      operationId: shifts_open_create
+      tags:
+      - shifts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShiftOpenRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Shift'
+          description: ''
 components:
   schemas:
     Bay:
@@ -477,6 +760,61 @@ components:
       description: |-
         * `ACTIVE` - Active
         * `OUT_OF_SERVICE` - Out Of Service
+    CashPaymentRequest:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        amountPaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+      required:
+      - amountPaisa
+      - method
+    CheckoutRequest:
+      type: object
+      properties:
+        quoteToken:
+          type: string
+          minLength: 1
+          maxLength: 512
+      required:
+      - quoteToken
+    CurrentShift:
+      type: object
+      properties:
+        shift:
+          allOf:
+          - $ref: '#/components/schemas/Shift'
+          nullable: true
+      required:
+      - shift
+    EntryKindEnum:
+      enum:
+      - CAPTURE
+      type: string
+      description: '* `CAPTURE` - Capture'
+    EntryRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        bayId:
+          type: string
+          format: uuid
+        plate:
+          type: string
+          minLength: 1
+          maxLength: 16
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+      required:
+      - bayId
+      - locationId
+      - plate
+      - vehicleClass
     Health:
       type: object
       properties:
@@ -484,6 +822,59 @@ components:
           type: string
       required:
       - status
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        cutoffAt:
+          type: string
+          format: date-time
+          readOnly: true
+        billableSeconds:
+          type: integer
+          readOnly: true
+        blocks:
+          type: integer
+          readOnly: true
+        basePaisa:
+          type: integer
+          readOnly: true
+        discountPaisa:
+          type: integer
+          readOnly: true
+        taxPaisa:
+          type: integer
+          readOnly: true
+        totalPaisa:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - basePaisa
+      - billableSeconds
+      - blocks
+      - createdAt
+      - cutoffAt
+      - discountPaisa
+      - id
+      - status
+      - taxPaisa
+      - totalPaisa
+    InvoiceStatusEnum:
+      enum:
+      - CONFIRMED
+      type: string
+      description: '* `CONFIRMED` - Confirmed'
     Location:
       type: object
       properties:
@@ -698,6 +1089,28 @@ components:
             previous:
               type: string
               nullable: true
+    PaginatedSessionSummaryList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionSummary'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
     PaginatedTariffVersionList:
       type: object
       required:
@@ -720,6 +1133,59 @@ components:
             previous:
               type: string
               nullable: true
+    ParkingSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayLabel:
+          type: string
+          readOnly: true
+        plate:
+          type: string
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        tariffId:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SessionStatusEnum'
+          readOnly: true
+        enteredAt:
+          type: string
+          format: date-time
+          readOnly: true
+        exitedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - bayId
+      - bayLabel
+      - enteredAt
+      - exitedAt
+      - id
+      - locationId
+      - plate
+      - status
+      - tariffId
+      - vehicleClass
     PatchedMemberUpdateRequest:
       type: object
       properties:
@@ -739,6 +1205,82 @@ components:
         activeOrganisationId:
           type: string
           format: uuid
+    PaymentEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        invoiceId:
+          type: string
+          format: uuid
+          readOnly: true
+        shiftId:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/EntryKindEnum'
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        amountPaisa:
+          type: integer
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amountPaisa
+      - createdAt
+      - id
+      - invoiceId
+      - kind
+      - method
+      - shiftId
+    PaymentMethodEnum:
+      enum:
+      - CASH
+      type: string
+      description: '* `CASH` - Cash'
+    Quote:
+      type: object
+      properties:
+        quoteToken:
+          type: string
+        cutoffAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        billableSeconds:
+          type: integer
+        blocks:
+          type: integer
+        basePaisa:
+          type: integer
+        discountPaisa:
+          type: integer
+        taxPaisa:
+          type: integer
+        totalPaisa:
+          type: integer
+      required:
+      - basePaisa
+      - billableSeconds
+      - blocks
+      - cutoffAt
+      - discountPaisa
+      - expiresAt
+      - quoteToken
+      - taxPaisa
+      - totalPaisa
     RegisterRequest:
       type: object
       properties:
@@ -798,6 +1340,180 @@ components:
       - activeOrganisationId
       - memberships
       - user
+    SessionDetail:
+      type: object
+      description: A visit with its gate stage, derived from the confirmed invoice
+        and the ledger.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayLabel:
+          type: string
+          readOnly: true
+        plate:
+          type: string
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        tariffId:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SessionStatusEnum'
+          readOnly: true
+        enteredAt:
+          type: string
+          format: date-time
+          readOnly: true
+        exitedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        stage:
+          allOf:
+          - $ref: '#/components/schemas/SessionStageEnum'
+          readOnly: true
+        totalPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        paidPaisa:
+          type: integer
+          readOnly: true
+        duePaisa:
+          type: integer
+          nullable: true
+          readOnly: true
+        invoice:
+          allOf:
+          - $ref: '#/components/schemas/Invoice'
+          readOnly: true
+          nullable: true
+      required:
+      - bayId
+      - bayLabel
+      - duePaisa
+      - enteredAt
+      - exitedAt
+      - id
+      - invoice
+      - locationId
+      - paidPaisa
+      - plate
+      - stage
+      - status
+      - tariffId
+      - totalPaisa
+      - vehicleClass
+    SessionStageEnum:
+      enum:
+      - PARKED
+      - CHECKOUT_PENDING
+      - EXIT_READY
+      - EXITED
+      type: string
+      description: |-
+        * `PARKED` - Parked
+        * `CHECKOUT_PENDING` - Checkout Pending
+        * `EXIT_READY` - Exit Ready
+        * `EXITED` - Exited
+    SessionStatusEnum:
+      enum:
+      - PARKED
+      - EXITED
+      type: string
+      description: |-
+        * `PARKED` - Parked
+        * `EXITED` - Exited
+    SessionSummary:
+      type: object
+      description: A visit with its gate stage, derived from the confirmed invoice
+        and the ledger.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayLabel:
+          type: string
+          readOnly: true
+        plate:
+          type: string
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        tariffId:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SessionStatusEnum'
+          readOnly: true
+        enteredAt:
+          type: string
+          format: date-time
+          readOnly: true
+        exitedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        stage:
+          allOf:
+          - $ref: '#/components/schemas/SessionStageEnum'
+          readOnly: true
+        totalPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        paidPaisa:
+          type: integer
+          readOnly: true
+        duePaisa:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - bayId
+      - bayLabel
+      - duePaisa
+      - enteredAt
+      - exitedAt
+      - id
+      - locationId
+      - paidPaisa
+      - plate
+      - stage
+      - status
+      - tariffId
+      - totalPaisa
+      - vehicleClass
     SessionUser:
       type: object
       properties:
@@ -813,6 +1529,52 @@ components:
       - email
       - id
       - name
+    Shift:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        locationName:
+          type: string
+          readOnly: true
+        openingFloatPaisa:
+          type: integer
+          readOnly: true
+        openedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        closedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - closedAt
+      - id
+      - locationId
+      - locationName
+      - openedAt
+      - openingFloatPaisa
+    ShiftOpenRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        openingFloatPaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 0
+      required:
+      - locationId
+      - openingFloatPaisa
     TariffPublishRequest:
       type: object
       properties:
