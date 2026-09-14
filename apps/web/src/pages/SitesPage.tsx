@@ -2,19 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { components } from "../../generated/schema";
 import { api, unwrap } from "../api/client";
+import { type Location, useLocations } from "../app/gate";
+import { LocationSelect } from "../components/LocationSelect";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
+import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa } from "../lib/money";
 
 type Schemas = components["schemas"];
-type Location = Schemas["Location"];
 
 // ponytail: first page only; follow `page.next` once a location has more than 100 bays or versions.
 const FIRST_PAGE = { limit: 100 };
 
-const VEHICLE: Record<Schemas["VehicleClassEnum"], string> = {
-	CAR: "Car",
-	MOTORBIKE: "Motorbike",
-};
 const MODE: Record<Schemas["BayModeEnum"], string> = {
 	WALK_IN: "Walk-in",
 	RESERVABLE: "Reservable",
@@ -45,11 +43,7 @@ function LoadError({ what }: { what: string }) {
 
 export function SitesPage() {
 	const [selectedId, setSelectedId] = useState<string>();
-	const locations = useQuery({
-		queryKey: ["locations"],
-		queryFn: () =>
-			unwrap(api.GET("/api/v1/locations", { params: { query: FIRST_PAGE } })),
-	});
+	const locations = useLocations();
 	const location =
 		locations.data?.find((item) => item.id === selectedId) ??
 		locations.data?.[0];
@@ -60,21 +54,12 @@ export function SitesPage() {
 				<h1 id="sites-heading" className="text-page font-semibold">
 					Sites
 				</h1>
-				{location && locations.data && locations.data.length > 1 && (
-					<label className="flex items-center gap-2 text-dense">
-						<span className="text-ink-muted">Location</span>
-						<select
-							value={location.id}
-							onChange={(event) => setSelectedId(event.target.value)}
-							className="min-h-11 rounded-control border border-control bg-surface px-3"
-						>
-							{locations.data.map((item) => (
-								<option key={item.id} value={item.id}>
-									{item.name}
-								</option>
-							))}
-						</select>
-					</label>
+				{location && (
+					<LocationSelect
+						locations={locations.data ?? []}
+						value={location.id}
+						onChange={setSelectedId}
+					/>
 				)}
 			</div>
 
@@ -195,7 +180,7 @@ function LocationDetail({ location }: { location: Location }) {
 									.map((tariff) => (
 										<tr key={tariff.id} className="border-t border-inset">
 											<td className="px-4 py-3 font-medium">
-												{VEHICLE[tariff.vehicleClass]}
+												{VEHICLE_LABEL[tariff.vehicleClass]}
 											</td>
 											<td className="px-4 py-3">
 												{formatDuration(tariff.graceSeconds)}
@@ -247,7 +232,7 @@ function LocationDetail({ location }: { location: Location }) {
 							>
 								<span className="font-mono font-semibold">{bay.label}</span>
 								<span className="text-meta text-ink-muted">
-									{`${VEHICLE[bay.vehicleClass]} · ${MODE[bay.mode]}`}
+									{`${VEHICLE_LABEL[bay.vehicleClass]} · ${MODE[bay.mode]}`}
 								</span>
 								{bay.state === "OUT_OF_SERVICE" && (
 									<StatusBadge tone="warning">Out of service</StatusBadge>
