@@ -1,8 +1,10 @@
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
 from modules.accounts.models import OrgMember
 
 SESSION_ORG_KEY = "active_organisation_id"
+ROLE_DENIED = "Your role does not allow this action."
 
 
 def current_member(request) -> OrgMember | None:
@@ -28,10 +30,16 @@ def current_member(request) -> OrgMember | None:
 
 def require_roles(*roles: str) -> type[BasePermission]:
     class HasRole(BasePermission):
-        message = "Your role does not allow this action."
+        message = ROLE_DENIED
 
         def has_permission(self, request, view):
             member = current_member(request)
             return member is not None and not set(roles).isdisjoint(member.roles)
 
     return HasRole
+
+
+def ensure_roles(member: OrgMember, *roles: str) -> None:
+    """For a write checked after the object is scoped, so a foreign ID answers 404 before 403."""
+    if set(roles).isdisjoint(member.roles):
+        raise PermissionDenied(ROLE_DENIED)

@@ -18,16 +18,23 @@ def record_audit(*, organisation, actor, action, entity, summary, correlation_id
     )
 
 
+def _create_user(*, email, password, name, conflict_message) -> User:
+    try:
+        with transaction.atomic():
+            return User.objects.create_user(email=email, password=password, name=name)
+    except IntegrityError as exc:
+        raise ApiError(409, "EMAIL_IN_USE", conflict_message) from exc
+
+
 @transaction.atomic
 def register_owner(*, organisation_name, name, email, password, correlation_id) -> OrgMember:
     """Owner onboarding: user, organisation and owner membership commit together or not at all."""
-    try:
-        with transaction.atomic():
-            user = User.objects.create_user(email=email, password=password, name=name)
-    except IntegrityError as exc:
-        raise ApiError(
-            409, "EMAIL_IN_USE", "An account with this email already exists. Sign in instead."
-        ) from exc
+    user = _create_user(
+        email=email,
+        password=password,
+        name=name,
+        conflict_message="An account with this email already exists. Sign in instead.",
+    )
     organisation = Organisation.objects.create(
         name=organisation_name, timezone=settings.LOCATION_TIMEZONE
     )
@@ -38,6 +45,32 @@ def register_owner(*, organisation_name, name, email, password, correlation_id) 
         action="organisation.registered",
         entity=organisation,
         summary={"name": organisation.name},
+        correlation_id=correlation_id,
+    )
+    return member
+
+
+@transaction.atomic
+def add_member(*, organisation, actor, email, name, password, roles, correlation_id) -> OrgMember:
+    """Staff with a known password for seed data and tests.
+
+    Real staff will join through expiring one-use invitations (StaffActionToken) instead.
+    """
+    user = _create_user(
+        email=email,
+        password=password,
+        name=name,
+        conflict_message="An account with this email already exists.",
+    )
+    member = OrgMember.objects.create(
+        organisation=organisation, user=user, roles=sorted(set(roles))
+    )
+    record_audit(
+        organisation=organisation,
+        actor=actor,
+        action="member.added",
+        entity=member,
+        summary={"roles": member.roles},
         correlation_id=correlation_id,
     )
     return member
