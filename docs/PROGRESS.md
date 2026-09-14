@@ -1,5 +1,53 @@
 # Progress
 
+## M2 Gate journey (cash) — built and verified (14 September 2026)
+
+Branch `feat/m2-gate-journey`. An independent code review (authorisation and location access, lock order, double charge and double exit, idempotency replay, quote tokens, migrations, frontend retries) found no critical or high issues, one medium and one low; both are fixed. See "Found during M2" below.
+
+### Delivered
+
+- **Transactions and idempotency:** `retry_on_conflict` reruns a whole transaction on `40P01`/`40001` (three attempts); `conflict_on` maps named constraint violations to 409 codes. `IdempotencyRecord` is written in the business transaction: a repeated key replays the stored response (`Idempotent-Replayed: true`), a changed body answers `409 IDEMPOTENCY_KEY_REUSED` and a missing key `428 IDEMPOTENCY_KEY_REQUIRED` (D32).
+- **Location access:** `LocationAssignment`; owners act at every location, other staff only where assigned (D27).
+- **`parking` app:** Vehicle with a display plate and a matching key (D26); ParkingSession with one `PARKED` session per bay and per vehicle. `POST /parking/entries` locks the bay, rejects reservable, out-of-service, occupied and wrong-class bays, and pins the tariff in force at server entry time.
+- **`billing` app:** open cash shift (D25), signed 120-second quote (D29), confirmed invoice recalculated from the pinned tariff, full-amount cash capture against an open shift at the visit's location (D30), and exit after settlement (D31). Session list and detail derive the stage `PARKED`/`CHECKOUT_PENDING`/`EXIT_READY`/`EXITED` with total, paid and due (D28). Payment entries are append-only; invoice→session, entry→invoice and entry→shift use composite `(id, organisation)` foreign keys. Lock order: bay → vehicle → session → invoice → shift.
+- **Web:** `/operations` bay grid with occupancy refreshed every 5 seconds, plate entry for a free bay, a visit panel that steps through quote, checkout, cash and exit, and a cash shift bar for owners and cashiers. Each change keeps one Idempotency-Key across network and server-error retries.
+- **Seed:** the operator and cashier are assigned to both North Gate locations, including on databases seeded before M2.
+
+### Verification (actual runs, Windows 11, PostgreSQL 17.11)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend unit | `pnpm test:unit` | 33 passed (19 tariff and 6 database URL from M1/M0, 5 plate normalisation, 3 retry and conflict helpers) |
+| Frontend unit | `pnpm test:unit` | 32 passed in 6 files (adds visit panel, time formatting and rupee parsing) |
+| Backend integration on real PostgreSQL | `pnpm test:integration` | 51 passed (11 gate journey, 7 entry, 3 concurrency on separate connections, 1 idempotency key scope, 29 from M1) |
+| Lint | `pnpm lint` | Biome: 32 files, no issues. Ruff: all checks passed, 66 files formatted |
+| Typecheck | `pnpm typecheck` | No errors |
+| Build | `pnpm build` | JS 396.45 kB (122.80 kB gzip), CSS 27.87 kB |
+| Contracts | `pnpm contracts:generate` | No spectacular warnings; output identical to the updated committed files |
+| Migrations and seed on the development database | `pnpm db:migrate`, `pnpm db:seed` twice | `accounts.0003`, `sites.0003`, `parking.0001`, `billing.0001`/`0002` applied to the M1 database; the first seed run added 4 assignments, the second added nothing. After the review fix, `migrate accounts 0002` and `migrate` reapplied them and the seed added the 4 assignments again |
+| Containerised stack | `pnpm demo:up` (rebuilt api image) | db, api, gateway healthy. Through Caddy: `/api/v1/health/ready` 200; anonymous `/api/v1/parking/sessions` and `/api/v1/shifts/current` 403 `NOT_AUTHENTICATED`; `/operations` serves the SPA (200) |
+
+Acceptance matrix: P02 (four threads, one bay), P03 (one plate, two bays), P05 (tariff pinned across a new version), P06 (duplicate cash and a crash before the replay record is saved), P28 (cross-organisation composite foreign keys) and P29 (a real deadlock whose victim is rerun once, with no errors) are covered.
+
+### Found during M2
+
+- Review finding (medium): the idempotency unique key left out the organisation, so a member of two organisations reusing a key would get a spurious `IDEMPOTENCY_KEY_REUSED`. The constraint and the replay lookup now include it (D32). Before the development database was migrated again, its old constraint rejected the same key in a second organisation; `test_one_key_can_be_used_once_in_each_organisation` covers the new behaviour.
+- Review finding (low): opening a shift takes no Idempotency-Key, so a retried open showed `SHIFT_ALREADY_OPEN` as an error. The cash shift bar now refetches the current shift after any answer.
+- Some Devanagari letters (such as U+0958) are composition exclusions, so NFC expands them to two code points; plate columns are 32 characters for a 16-character input.
+- TypeScript types the recorded calls of the overloaded `api.POST` mock as `never`; the visit panel test casts them.
+- The database container was stopped when verification started; `pnpm db:up` started it.
+- Otherwise only Biome and Ruff formatting.
+
+### Not verified / known limitations
+
+- The gate screen was not exercised signed-in in a browser (agent browser policy forbids entering passwords). It is covered by component tests with a mocked API and by API integration tests; sign in as `operator@northgate.test`, then `cashier@northgate.test`, for a manual pass.
+- No API or screen manages location assignments; only the seed and tests create them.
+- No bay update endpoint yet: mode and state changes wait for the occupancy and reservation guards (M4).
+- No discount input; quotes always carry a zero discount.
+- Idempotency records expire after 7 days, but nothing purges them until the worker exists (M4).
+- The gate reads only the first 100 bays and parked visits of a location.
+- Shifts cannot be closed yet (M3), and the seed creates no sessions or shifts.
+
 ## M1 Sites and tariff core — built and verified (14 September 2026)
 
 Branch `feat/m1-sites-tariffs`. An independent code review (tenant isolation, Python/TypeScript calculator parity, database constraints, secret handling, React page) found no critical, high, medium or low issues.
@@ -39,7 +87,7 @@ Acceptance matrix: P04 and P25 covered by shared vectors. P05 is partly covered 
 - The Sites page was not exercised signed-in in a browser (agent browser policy forbids entering passwords). Its rendering is covered by a component test with mocked API responses; sign in as `owner@northgate.test` with `DEMO_PASSWORD` for a manual pass.
 - Setup is API-only: no forms yet to create locations, bays or tariffs.
 - No update endpoints: bay mode/state changes need the occupancy and reservation guards (M2/M4); location edits wait for a use.
-- Operators are not yet limited to allowed locations (arrives with entry in M2). ReceiptCounter waits for capture in M3.
+- ~~Operators are not yet limited to allowed locations (arrives with entry in M2).~~ Resolved in M2 (D27). ReceiptCounter waits for capture in M3.
 - The Sites page reads only the first 100 bays and tariff versions of a location.
 - A location's time zone is copied from its organisation; there is no time-zone input yet.
 
@@ -88,9 +136,9 @@ Acceptance matrix started, not complete: P01 is covered for staff membership end
 - Biome does not lint `apps/web/styles.css`: its CSS parser rejects Tailwind `@theme` without a `biome.json` change, which the user's config-protection hook blocks.
 - Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a OneDrive-synced folder, so `node_modules` and `.venv` are synced too.
 
-## Next: M2 Gate journey (cash)
+## Next: M3 Shift, receipts, reports
 
-- `parking` app: Vehicle with normalised plate, ParkingSession with partial unique constraints (one `PARKED` session per bay and per plate).
-- Entry service locking bays in UUID order, pinning `tariff_at()` at server entry time; concurrent entry on separate connections (P02), same plate (P03), pinned tariff (P05).
-- Signed quote token, immutable invoice, cash capture, derived payment state, exit; idempotency record in the business transaction; retry on `40P01`/`40001`.
-- Operator allowed locations on OrgMember; bay mode/state changes guarded by occupancy.
+- Shift close with counted cash, expected cash and variance under the shift lock; adjustment entries after close.
+- ReceiptCounter per location, incremented inside the capture transaction; 58/80 mm print CSS.
+- Collections and vehicle log reports; streamed PDF and XLSX.
+- Seed open and closed shifts and synthetic sessions in every stage.
