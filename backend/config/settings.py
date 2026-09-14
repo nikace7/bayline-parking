@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "modules.accounts",
     "modules.sites",
     "modules.parking",
+    "modules.billing",
 ]
 
 MIDDLEWARE = [
@@ -105,6 +106,10 @@ SPECTACULAR_SETTINGS = {
         "BayStateEnum": "modules.sites.models.BayState",
         "TariffStatusEnum": "modules.sites.models.TariffStatus",
         "SessionStatusEnum": "modules.parking.models.SessionStatus",
+        "SessionStageEnum": "modules.billing.models.SessionStage",
+        "InvoiceStatusEnum": "modules.billing.models.InvoiceStatus",
+        "PaymentMethodEnum": "modules.billing.models.PaymentMethod",
+        "EntryKindEnum": "modules.billing.models.EntryKind",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
