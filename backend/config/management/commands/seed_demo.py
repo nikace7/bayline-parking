@@ -1,7 +1,7 @@
 """Synthetic demo data built through domain services (blueprint section 8).
 
-Lives in `config` because it spans modules. Each milestone extends it as its services land;
-M1 seeds staff, locations, bays and tariffs.
+Lives in `config` because it spans modules. Each milestone extends it as its services land:
+M1 seeds staff, locations, bays and tariffs; M2 assigns gate staff to locations.
 """
 
 import os
@@ -11,9 +11,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from modules.accounts import services as accounts
-from modules.accounts.models import Role, User
+from modules.accounts.models import OrgMember, Role, User
 from modules.sites import services as sites
-from modules.sites.models import BayMode, VehicleClass
+from modules.sites.models import BayMode, Location, LocationAssignment, VehicleClass
 
 CORRELATION_ID = "seed-demo"
 MARKER_EMAIL = "owner@northgate.test"
@@ -59,16 +59,35 @@ class Command(BaseCommand):
                 "Set DEMO_PASSWORD (12+ characters) in .env; `pnpm setup:local` adds one."
             )
         if User.objects.filter(email=MARKER_EMAIL).exists():
-            self.stdout.write("Demo data already present; nothing changed.")
-            return
-        with transaction.atomic():
-            for spec in ORGANISATIONS:
-                self._seed_organisation(spec, password)
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Seeded demo data. Sign in as {MARKER_EMAIL} with DEMO_PASSWORD from .env."
+            self.stdout.write("Demo organisations already present.")
+        else:
+            with transaction.atomic():
+                for spec in ORGANISATIONS:
+                    self._seed_organisation(spec, password)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Seeded demo data. Sign in as {MARKER_EMAIL} with DEMO_PASSWORD from .env."
+                )
             )
+        if assigned := self._assign_gate_staff():
+            self.stdout.write(f"Added {assigned} gate staff location assignment(s).")
+
+    def _assign_gate_staff(self) -> int:
+        """Operators and cashiers act only at assigned locations. Idempotent, so databases seeded
+        before M2 gain the assignments too. Only synthetic `.test` accounts are touched."""
+        created = 0
+        gate_staff = OrgMember.objects.select_related("organisation").filter(
+            roles__overlap=[Role.OPERATOR, Role.CASHIER], user__email__endswith=".test"
         )
+        for member in gate_staff:
+            for location in Location.objects.for_org(member.organisation):
+                if LocationAssignment.objects.filter(location=location, member=member).exists():
+                    continue
+                sites.assign_member(
+                    location=location, member=member, actor=None, correlation_id=CORRELATION_ID
+                )
+                created += 1
+        return created
 
     def _seed_organisation(self, spec, password):
         domain = spec["domain"]
