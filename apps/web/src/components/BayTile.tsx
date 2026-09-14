@@ -42,15 +42,17 @@ type BayTileProps = {
 	state: BayState;
 	vehicleClass: VehicleClass;
 	duration?: string;
+	selected?: boolean;
 	onSelect?: () => void;
 };
 
-/** Fixed-size tile: focus and hover change outline and shade only, never dimensions. */
+/** Fixed-size tile: focus, hover and selection change outline and shade only, never dimensions. */
 export function BayTile({
 	label,
 	state,
 	vehicleClass,
 	duration,
+	selected,
 	onSelect,
 }: BayTileProps) {
 	const { word, Icon, className } = states[state];
@@ -69,7 +71,8 @@ export function BayTile({
 			type="button"
 			onClick={onSelect}
 			aria-label={description}
-			className={`flex h-24 w-28 flex-col justify-between rounded-panel border p-2 text-left transition-colors duration-120 hover:brightness-95 ${className}`}
+			aria-pressed={selected ?? undefined}
+			className={`flex h-24 w-28 flex-col justify-between rounded-panel border p-2 text-left transition-colors duration-120 hover:brightness-95 ${className} ${selected ? "ring-2 ring-brand ring-offset-2" : ""}`}
 		>
 			<span className="flex items-center justify-between">
 				<span className="font-mono text-dense font-medium text-ink">
