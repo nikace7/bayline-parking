@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/auth/customer/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A global account for booking parking, with no staff access. */
+        post: operations["auth_customer_register_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -68,6 +85,40 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["auth_session_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/customer/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in account's own reservations across organisations; holding one claims a bay. */
+        get: operations["customer_reservations_list"];
+        put?: never;
+        /** @description The signed-in account's own reservations across organisations; holding one claims a bay. */
+        post: operations["customer_reservations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/reservations/{reservation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["customer_reservations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/health/live": {
@@ -148,6 +199,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{location_id}/bays/{bay_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["locations_bays_partial_update"];
         trace?: never;
     };
     "/api/v1/locations/{location_id}/tariffs": {
@@ -294,6 +361,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Discovery across organisations for anyone, signed in or not. */
+        get: operations["public_locations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/locations/{location_id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["public_locations_availability_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/receipts/{receipt_id}": {
         parameters: {
             query?: never;
@@ -352,6 +452,72 @@ export interface paths {
         get: operations["reports_vehicle_log_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every reservation in the organisation, soonest first, flagged when a vehicle overstays. */
+        get: operations["reservations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{reservation_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The customer's own reservation, or any in the staff member's organisation with a reason. */
+        post: operations["reservations_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{reservation_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reservations_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{reservation_id}/relocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reservations_relocate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -443,6 +609,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Availability: {
+            /** Format: uuid */
+            locationId: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            availableBays: number;
+            /** Format: date-time */
+            asOf: string;
+        };
         Bay: {
             /** Format: uuid */
             readonly id: string;
@@ -452,6 +630,7 @@ export interface components {
             vehicleClass: components["schemas"]["VehicleClassEnum"];
             mode: components["schemas"]["BayModeEnum"];
             readonly state: components["schemas"]["BayStateEnum"];
+            readonly revision: number;
             /** Format: date-time */
             readonly createdAt: string;
         };
@@ -472,6 +651,10 @@ export interface components {
          * @enum {string}
          */
         BayStateEnum: "ACTIVE" | "OUT_OF_SERVICE";
+        CancelRequest: {
+            /** @default  */
+            reason: string;
+        };
         CashPaymentRequest: {
             method: components["schemas"]["PaymentMethodEnum"];
             amountPaisa: number;
@@ -501,6 +684,12 @@ export interface components {
         CurrentShift: {
             shift: components["schemas"]["Shift"] | null;
         };
+        CustomerRegisterRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+        };
         /**
          * @description * `CAPTURE` - Capture
          * @enum {string}
@@ -513,9 +702,21 @@ export interface components {
             bayId: string;
             plate: string;
             vehicleClass: components["schemas"]["VehicleClassEnum"];
+            /** Format: uuid */
+            reservationId?: string | null;
         };
         Health: {
             status: string;
+        };
+        HoldRequest: {
+            /** Format: uuid */
+            locationId: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            plate: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
         };
         Invoice: {
             /** Format: uuid */
@@ -610,6 +811,20 @@ export interface components {
                 previous: string | null;
             };
         };
+        PaginatedPublicLocationList: {
+            data: components["schemas"]["PublicLocation"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedReservationList: {
+            data: components["schemas"]["Reservation"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
         PaginatedSessionSummaryList: {
             data: components["schemas"]["SessionSummary"][];
             page: {
@@ -648,6 +863,11 @@ export interface components {
             readonly enteredAt: string;
             /** Format: date-time */
             readonly exitedAt: string | null;
+        };
+        PatchedBayUpdateRequest: {
+            expectedRevision?: number;
+            mode?: components["schemas"]["BayModeEnum"];
+            state?: components["schemas"]["BayStateEnum"];
         };
         PatchedMemberUpdateRequest: {
             expectedRevision?: number;
@@ -698,6 +918,19 @@ export interface components {
          * @enum {string}
          */
         PrinterPathEnum: "BROWSER" | "ANDROID_POS";
+        PublicLocation: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly name: string;
+            readonly organisationName: string;
+            readonly address: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            readonly timezone: string;
+            readonly reservableBays: number;
+        };
         Quote: {
             quoteToken: string;
             /** Format: date-time */
@@ -745,6 +978,11 @@ export interface components {
             email: string;
             password: string;
         };
+        RelocateRequest: {
+            /** Format: uuid */
+            bayId: string;
+            expectedRevision?: number;
+        };
         ReportScope: {
             organisationName: string;
             locationName: string | null;
@@ -756,6 +994,50 @@ export interface components {
             /** Format: date-time */
             asOf: string;
         };
+        Reservation: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly reference: string;
+            readonly organisationName: string;
+            /** Format: uuid */
+            readonly locationId: string;
+            readonly locationName: string;
+            readonly locationAddress: string;
+            readonly timezone: string;
+            /** Format: uuid */
+            readonly bayId: string;
+            readonly bayLabel: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            readonly plate: string;
+            readonly customerName: string;
+            /** Format: date-time */
+            readonly startsAt: string;
+            /** Format: date-time */
+            readonly endsAt: string;
+            /** Format: date-time */
+            readonly arrivalOpensAt: string;
+            /** Format: date-time */
+            readonly arrivalClosesAt: string;
+            readonly status: components["schemas"]["ReservationStatusEnum"];
+            /** Format: date-time */
+            readonly holdExpiresAt: string | null;
+            readonly cancelReason: string;
+            readonly conflict: boolean;
+            readonly revision: number;
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `HOLD` - Hold
+         *     * `CONFIRMED` - Confirmed
+         *     * `CHECKED_IN` - Checked In
+         *     * `COMPLETED` - Completed
+         *     * `EXPIRED` - Expired
+         *     * `CANCELLED` - Cancelled
+         *     * `NO_SHOW` - No Show
+         * @enum {string}
+         */
+        ReservationStatusEnum: "HOLD" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "EXPIRED" | "CANCELLED" | "NO_SHOW";
         /**
          * @description * `OWNER` - Owner
          *     * `MANAGER` - Manager
@@ -940,6 +1222,31 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    auth_customer_register_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerRegisterRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Session"];
+                    };
+                };
+            };
+        };
+    };
     auth_login_create: {
         parameters: {
             query?: never;
@@ -1049,6 +1356,81 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Session"];
+                    };
+                };
+            };
+        };
+    };
+    customer_reservations_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedReservationList"];
+                };
+            };
+        };
+    };
+    customer_reservations_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reservation"];
+                    };
+                };
+            };
+        };
+    };
+    customer_reservations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reservation"];
                     };
                 };
             };
@@ -1217,6 +1599,34 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Bay"];
+                    };
+                };
+            };
+        };
+    };
+    locations_bays_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bay_id: string;
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedBayUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1515,6 +1925,61 @@ export interface operations {
             };
         };
     };
+    public_locations_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPublicLocationList"];
+                };
+            };
+        };
+    };
+    public_locations_availability_retrieve: {
+        parameters: {
+            query: {
+                endsAt: string;
+                startsAt: string;
+                /**
+                 * @description * `CAR` - Car
+                 *     * `MOTORBIKE` - Motorbike
+                 */
+                vehicleClass: "CAR" | "MOTORBIKE";
+            };
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Availability"];
+                    };
+                };
+            };
+        };
+    };
     receipts_retrieve: {
         parameters: {
             query?: never;
@@ -1627,6 +2092,113 @@ export interface operations {
                     };
                     "application/pdf": string;
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    reservations_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description A local date at the location. */
+                date?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+                locationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedReservationList"];
+                };
+            };
+        };
+    };
+    reservations_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reservation"];
+                    };
+                };
+            };
+        };
+    };
+    reservations_confirm_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reservation"];
+                    };
+                };
+            };
+        };
+    };
+    reservations_relocate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RelocateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Reservation"];
+                    };
                 };
             };
         };

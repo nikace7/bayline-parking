@@ -3,6 +3,33 @@ info:
   title: Bayline API
   version: 1.0.0
 paths:
+  /api/v1/auth/customer/register:
+    post:
+      operationId: auth_customer_register_create
+      description: A global account for booking parking, with no staff access.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRegisterRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Session'
+          description: ''
   /api/v1/auth/login:
     post:
       operationId: auth_login_create
@@ -113,6 +140,95 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Session'
+          description: ''
+  /api/v1/customer/reservations:
+    get:
+      operationId: customer_reservations_list
+      description: The signed-in account's own reservations across organisations;
+        holding one claims a bay.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - customer
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReservationList'
+          description: ''
+    post:
+      operationId: customer_reservations_create
+      description: The signed-in account's own reservations across organisations;
+        holding one claims a bay.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      tags:
+      - customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/customer/reservations/{reservation_id}:
+    get:
+      operationId: customer_reservations_retrieve
+      parameters:
+      - in: path
+        name: reservation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - customer
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Reservation'
           description: ''
   /api/v1/health/live:
     get:
@@ -292,6 +408,43 @@ paths:
       - cookieAuth: []
       responses:
         '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Bay'
+          description: ''
+  /api/v1/locations/{location_id}/bays/{bay_id}:
+    patch:
+      operationId: locations_bays_partial_update
+      parameters:
+      - in: path
+        name: bay_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBayUpdateRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
           content:
             application/json:
               schema:
@@ -649,6 +802,86 @@ paths:
                   data:
                     $ref: '#/components/schemas/Quote'
           description: ''
+  /api/v1/public/locations:
+    get:
+      operationId: public_locations_list
+      description: Discovery across organisations for anyone, signed in or not.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - public
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPublicLocationList'
+          description: ''
+  /api/v1/public/locations/{location_id}/availability:
+    get:
+      operationId: public_locations_availability_retrieve
+      parameters:
+      - in: query
+        name: endsAt
+        schema:
+          type: string
+          format: date-time
+        required: true
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: startsAt
+        schema:
+          type: string
+          format: date-time
+        required: true
+      - in: query
+        name: vehicleClass
+        schema:
+          enum:
+          - CAR
+          - MOTORBIKE
+          type: string
+          minLength: 1
+        description: |-
+          * `CAR` - Car
+          * `MOTORBIKE` - Motorbike
+        required: true
+      tags:
+      - public
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Availability'
+          description: ''
   /api/v1/receipts/{receipt_id}:
     get:
       operationId: receipts_retrieve
@@ -825,6 +1058,144 @@ paths:
                 type: string
                 format: binary
           description: ''
+  /api/v1/reservations:
+    get:
+      operationId: reservations_list
+      description: Every reservation in the organisation, soonest first, flagged when
+        a vehicle overstays.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: A local date at the location.
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - reservations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReservationList'
+          description: ''
+  /api/v1/reservations/{reservation_id}/cancel:
+    post:
+      operationId: reservations_cancel_create
+      description: The customer's own reservation, or any in the staff member's organisation
+        with a reason.
+      parameters:
+      - in: path
+        name: reservation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/reservations/{reservation_id}/confirm:
+    post:
+      operationId: reservations_confirm_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: reservation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reservations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/reservations/{reservation_id}/relocate:
+    post:
+      operationId: reservations_relocate_create
+      parameters:
+      - in: path
+        name: reservation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelocateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Reservation'
+          description: ''
   /api/v1/shifts:
     get:
       operationId: shifts_list
@@ -974,6 +1345,32 @@ paths:
           description: ''
 components:
   schemas:
+    Availability:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        availableBays:
+          type: integer
+        asOf:
+          type: string
+          format: date-time
+      required:
+      - asOf
+      - availableBays
+      - endsAt
+      - locationId
+      - startsAt
+      - vehicleClass
     Bay:
       type: object
       properties:
@@ -996,6 +1393,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/BayStateEnum'
           readOnly: true
+        revision:
+          type: integer
+          readOnly: true
         createdAt:
           type: string
           format: date-time
@@ -1006,6 +1406,7 @@ components:
       - label
       - locationId
       - mode
+      - revision
       - state
       - vehicleClass
     BayModeEnum:
@@ -1039,6 +1440,13 @@ components:
       description: |-
         * `ACTIVE` - Active
         * `OUT_OF_SERVICE` - Out Of Service
+    CancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          default: ''
+          maxLength: 240
     CashPaymentRequest:
       type: object
       properties:
@@ -1125,6 +1533,27 @@ components:
           nullable: true
       required:
       - shift
+    CustomerRegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - email
+      - name
+      - password
     EntryKindEnum:
       enum:
       - CAPTURE
@@ -1145,6 +1574,10 @@ components:
           maxLength: 16
         vehicleClass:
           $ref: '#/components/schemas/VehicleClassEnum'
+        reservationId:
+          type: string
+          format: uuid
+          nullable: true
       required:
       - bayId
       - locationId
@@ -1157,6 +1590,30 @@ components:
           type: string
       required:
       - status
+    HoldRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        plate:
+          type: string
+          minLength: 1
+          maxLength: 16
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+      required:
+      - endsAt
+      - locationId
+      - plate
+      - startsAt
+      - vehicleClass
     Invoice:
       type: object
       properties:
@@ -1437,6 +1894,50 @@ components:
             previous:
               type: string
               nullable: true
+    PaginatedPublicLocationList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicLocation'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedReservationList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
     PaginatedSessionSummaryList:
       type: object
       required:
@@ -1556,6 +2057,16 @@ components:
       - status
       - tariffId
       - vehicleClass
+    PatchedBayUpdateRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 1
+        mode:
+          $ref: '#/components/schemas/BayModeEnum'
+        state:
+          $ref: '#/components/schemas/BayStateEnum'
     PatchedMemberUpdateRequest:
       type: object
       properties:
@@ -1670,6 +2181,47 @@ components:
       description: |-
         * `BROWSER` - Browser
         * `ANDROID_POS` - Android Pos
+    PublicLocation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        organisationName:
+          type: string
+          readOnly: true
+        address:
+          type: string
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        timezone:
+          type: string
+          readOnly: true
+        reservableBays:
+          type: integer
+          readOnly: true
+      required:
+      - address
+      - id
+      - latitude
+      - longitude
+      - name
+      - organisationName
+      - reservableBays
+      - timezone
     Quote:
       type: object
       properties:
@@ -1817,6 +2369,17 @@ components:
       - name
       - organisationName
       - password
+    RelocateRequest:
+      type: object
+      properties:
+        bayId:
+          type: string
+          format: uuid
+        expectedRevision:
+          type: integer
+          minimum: 1
+      required:
+      - bayId
     ReportScope:
       type: object
       properties:
@@ -1843,6 +2406,128 @@ components:
       - organisationName
       - timezone
       - toDate
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        reference:
+          type: string
+          readOnly: true
+        organisationName:
+          type: string
+          readOnly: true
+        locationId:
+          type: string
+          format: uuid
+          readOnly: true
+        locationName:
+          type: string
+          readOnly: true
+        locationAddress:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        bayId:
+          type: string
+          format: uuid
+          readOnly: true
+        bayLabel:
+          type: string
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        plate:
+          type: string
+          readOnly: true
+        customerName:
+          type: string
+          readOnly: true
+        startsAt:
+          type: string
+          format: date-time
+          readOnly: true
+        endsAt:
+          type: string
+          format: date-time
+          readOnly: true
+        arrivalOpensAt:
+          type: string
+          format: date-time
+          readOnly: true
+        arrivalClosesAt:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ReservationStatusEnum'
+          readOnly: true
+        holdExpiresAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancelReason:
+          type: string
+          readOnly: true
+        conflict:
+          type: boolean
+          readOnly: true
+        revision:
+          type: integer
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - arrivalClosesAt
+      - arrivalOpensAt
+      - bayId
+      - bayLabel
+      - cancelReason
+      - conflict
+      - createdAt
+      - customerName
+      - endsAt
+      - holdExpiresAt
+      - id
+      - locationAddress
+      - locationId
+      - locationName
+      - organisationName
+      - plate
+      - reference
+      - revision
+      - startsAt
+      - status
+      - timezone
+      - vehicleClass
+    ReservationStatusEnum:
+      enum:
+      - HOLD
+      - CONFIRMED
+      - CHECKED_IN
+      - COMPLETED
+      - EXPIRED
+      - CANCELLED
+      - NO_SHOW
+      type: string
+      description: |-
+        * `HOLD` - Hold
+        * `CONFIRMED` - Confirmed
+        * `CHECKED_IN` - Checked In
+        * `COMPLETED` - Completed
+        * `EXPIRED` - Expired
+        * `CANCELLED` - Cancelled
+        * `NO_SHOW` - No Show
     RoleEnum:
       enum:
       - OWNER
