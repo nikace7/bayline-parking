@@ -3,7 +3,15 @@ from decimal import ROUND_HALF_UP, Decimal
 from rest_framework import serializers
 
 from config import clock
-from modules.sites.models import Bay, Location, TariffStatus, TariffVersion, VehicleClass
+from modules.sites.models import (
+    Bay,
+    BayMode,
+    BayState,
+    Location,
+    TariffStatus,
+    TariffVersion,
+    VehicleClass,
+)
 from modules.sites.tariff import DAY_SECONDS
 
 # NPR 1,00,000: far below the column limit, so a mistyped rate fails validation instead of a 500.
@@ -53,8 +61,24 @@ class BaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bay
-        fields = ["id", "location_id", "label", "vehicle_class", "mode", "state", "created_at"]
-        read_only_fields = ["id", "state", "created_at"]
+        fields = [
+            "id",
+            "location_id",
+            "label",
+            "vehicle_class",
+            "mode",
+            "state",
+            "revision",
+            "created_at",
+        ]
+        read_only_fields = ["id", "state", "revision", "created_at"]
+
+
+class BayUpdateSerializer(serializers.Serializer):
+    # Optional here so a missing value can answer 428 Precondition Required instead of 400.
+    expected_revision = serializers.IntegerField(min_value=1, required=False)
+    mode = serializers.ChoiceField(choices=BayMode.choices, required=False)
+    state = serializers.ChoiceField(choices=BayState.choices, required=False)
 
 
 class TariffVersionSerializer(serializers.ModelSerializer):
