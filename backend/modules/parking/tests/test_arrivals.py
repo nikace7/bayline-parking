@@ -2,7 +2,8 @@
 guarded by occupancy and reservations."""
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -172,6 +173,33 @@ def test_overstay_flags_the_next_reservation_and_relocation_rechecks_both_bays( 
     assert code(stale) == "REVISION_CONFLICT"
     assert (moved.status_code, moved.json()["data"]["bayId"]) == (200, third["bayId"])
     assert arrived.status_code == 201
+
+
+def test_staff_board_lists_a_booking_due_before_local_midnight(api, customer, signed_in, gate):
+    sites.create_bay(
+        location=gate.location,
+        actor=gate.owner.user,
+        label="R02",
+        vehicle_class=VehicleClass.CAR,
+        mode=BayMode.RESERVABLE,
+        correlation_id="test",
+    )
+    midnight = datetime(2026, 9, 16, tzinfo=ZoneInfo(gate.location.timezone))
+    with clock.frozen(NOW):
+        due = book(api, customer("asha@customer.test"), gate, midnight + timedelta(minutes=5))
+        book(
+            api,
+            customer("bina@customer.test"),
+            gate,
+            midnight + timedelta(minutes=10),
+            plate="BA 3 PA 3003",
+        )
+        signed_in(gate.operator)
+        board = {"locationId": str(gate.location.pk), "date": "2026-09-15"}
+        listed = [item["id"] for item in api.get(STAFF, board).json()["data"]]
+
+    # Check-in for 00:05 opens at 23:55 the day before; for 00:10 it opens at midnight.
+    assert listed == [due["id"]]
 
 
 def test_bay_mode_changes_only_when_nothing_uses_the_bay(api, customer, signed_in, gate):

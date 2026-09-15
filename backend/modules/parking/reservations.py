@@ -22,6 +22,7 @@ from modules.accounts.permissions import ensure_roles
 from modules.accounts.services import customer_profile, record_audit
 from modules.parking.models import (
     ARRIVAL_CLOSES,
+    ARRIVAL_OPENS,
     ParkingSession,
     Reservation,
     ReservationStatus,
@@ -317,7 +318,8 @@ def staff_reservations(member, *, location_id=None, day: date | None = None):
         zone = ZoneInfo(location.timezone if location else organisation.timezone)
         starts = datetime.combine(day, time.min, zone)
         ends = datetime.combine(day + timedelta(days=1), time.min, zone)
-        reservations = reservations.filter(starts_at__lt=ends, ends_at__gt=starts)
+        # A booking starting just after midnight is due at the gate from 23:50 the day before.
+        reservations = reservations.filter(starts_at__lt=ends + ARRIVAL_OPENS, ends_at__gt=starts)
     return reservations
 
 
