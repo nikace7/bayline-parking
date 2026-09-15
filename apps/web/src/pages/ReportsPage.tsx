@@ -1,4 +1,3 @@
-import { Download } from "lucide-react";
 import { Fragment, useState } from "react";
 import { errorMessage } from "../api/client";
 import {
@@ -13,6 +12,7 @@ import {
 } from "../app/cash";
 import { type Location, useActiveRoles, useLocations } from "../app/gate";
 import { DataTable } from "../components/DataTable";
+import { Download } from "../components/icons";
 import { FormAlert } from "../components/Page";
 import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";

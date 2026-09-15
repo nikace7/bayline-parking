@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
-/* Blueprint section 7 tokens. Spacing uses Tailwind's default 4px scale (1=4, 2=8, 3=12, 4=16, 6=24, 8=32, 12=48). */
+/* Blueprint section 7 tokens with the cool neutral palette (D52). Roles follow Carbon's theme: canvas is
+   the page, surface a layer, inset a layer fill, line a subtle border and control a strong border.
+   src/lib/contrast.test.ts checks every text and control pair. Spacing uses Tailwind's default 4px
+   scale (1=4, 2=8, 3=12, 4=16, 6=24, 8=32, 12=48). */
 @theme {
-  --color-canvas: #f5f3ee;
+  --color-canvas: #f2f4f3;
   --color-surface: #ffffff;
-  --color-inset: #eaefea;
+  --color-inset: #e8edeb;
+  --color-line: #d3dcd8;
   --color-ink: #172b2b;
   --color-ink-muted: #4b6262;
   --color-brand: #00645c;
@@ -19,10 +23,11 @@
   --color-error: #a62b34;
   --color-error-strong: #8a222a;
   --color-error-bg: #fbebec;
-  --color-control: #718681;
+  --color-control: #6b7d78;
 
-  --font-sans: "IBM Plex Sans", "Noto Sans Devanagari", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* IBM Plex throughout (D53): Plex Sans Devanagari only downloads for Devanagari text. */
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans Devanagari", ui-monospace, monospace;
 
   --text-meta: 12px;
   --text-meta--line-height: 16px;

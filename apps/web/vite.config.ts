@@ -14,5 +14,7 @@ export default defineConfig({
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./src/test-setup.ts"],
+		// Vitest blanks CSS imports by default; the contrast test reads the tokens as raw text.
+		css: { include: [/styles\.css/] },
 	},
 });

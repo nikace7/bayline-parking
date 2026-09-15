@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 
 const variants = {
@@ -28,7 +27,12 @@ export function Button({
 			aria-busy={pending || undefined}
 			className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-4 font-medium transition-colors duration-120 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
 		>
-			{pending && <LoaderCircle aria-hidden className="size-4 animate-spin" />}
+			{pending && (
+				<span
+					aria-hidden="true"
+					className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+				/>
+			)}
 			{children}
 		</button>
 	);

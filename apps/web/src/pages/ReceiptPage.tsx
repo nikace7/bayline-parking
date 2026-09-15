@@ -1,4 +1,3 @@
-import { ArrowLeft, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { errorMessage } from "../api/client";
@@ -9,6 +8,7 @@ import {
 	useReceipt,
 } from "../app/cash";
 import { Button } from "../components/Button";
+import { ArrowLeft, Printer } from "../components/icons";
 import { FormAlert } from "../components/Page";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa } from "../lib/money";
@@ -163,7 +163,7 @@ function ReceiptSlip({
 			data-print="receipt"
 			aria-label={`Receipt ${receipt.number}, ${copy}`}
 			style={{ width: `${width}mm` }}
-			className={`mx-auto flex max-w-full flex-col gap-2 rounded-panel border border-inset bg-surface p-3 tabular-nums print:rounded-none print:border-0 ${width === 58 ? "text-meta" : "text-dense"}`}
+			className={`mx-auto flex max-w-full flex-col gap-2 rounded-panel border border-line bg-surface p-3 tabular-nums print:rounded-none print:border-0 ${width === 58 ? "text-meta" : "text-dense"}`}
 		>
 			<header className="text-center">
 				<p className="font-semibold">{receipt.organisationName}</p>
