@@ -8,7 +8,9 @@ dependencies = [
     "djangorestframework-camel-case>=1.4.2",
     "drf-spectacular>=0.30.0",
     "gunicorn>=26.2.0",
+    "openpyxl>=3.1.5",
     "psycopg[binary]>=3.3.5",
+    "reportlab[shaping]>=5.0.1",
 ]
 
 [dependency-groups]
