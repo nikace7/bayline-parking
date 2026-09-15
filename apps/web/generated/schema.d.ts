@@ -294,6 +294,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/receipts/{receipt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["receipts_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/receipts/{receipt_id}/print-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["receipts_print_events_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_collections_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/vehicle-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_vehicle_log_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Owners, managers and auditors see every shift; cash staff see their own. */
+        get: operations["shifts_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts/{shift_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["shifts_close_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shifts/{shift_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["shifts_summary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shifts/current": {
         parameters: {
             query?: never;
@@ -365,6 +478,25 @@ export interface components {
         };
         CheckoutRequest: {
             quoteToken: string;
+        };
+        CollectionRow: {
+            /** Format: date-time */
+            postedAt: string;
+            receiptNumber: string | null;
+            locationName: string;
+            plate: string;
+            method: components["schemas"]["PaymentMethodEnum"];
+            kind: components["schemas"]["EntryKindEnum"];
+            amountPaisa: number;
+            receivedByName: string;
+        };
+        CollectionsReport: {
+            scope: components["schemas"]["ReportScope"];
+            rows: components["schemas"]["CollectionRow"][];
+            byMethod: components["schemas"]["MethodTotal"][];
+            capturedPaisa: number;
+            refundedPaisa: number;
+            netPaisa: number;
         };
         CurrentShift: {
             shift: components["schemas"]["Shift"] | null;
@@ -452,6 +584,11 @@ export interface components {
             organisationName: string;
             roles: components["schemas"]["RoleEnum"][];
         };
+        MethodTotal: {
+            method: components["schemas"]["PaymentMethodEnum"];
+            count: number;
+            amountPaisa: number;
+        };
         PaginatedBayList: {
             data: components["schemas"]["Bay"][];
             page: {
@@ -475,6 +612,13 @@ export interface components {
         };
         PaginatedSessionSummaryList: {
             data: components["schemas"]["SessionSummary"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedShiftList: {
+            data: components["schemas"]["Shift"][];
             page: {
                 next: string | null;
                 previous: string | null;
@@ -526,12 +670,34 @@ export interface components {
             readonly amountPaisa: number;
             /** Format: date-time */
             readonly createdAt: string;
+            /** Format: uuid */
+            readonly receiptId: string;
+            readonly receiptNumber: string;
         };
         /**
          * @description * `CASH` - Cash
          * @enum {string}
          */
         PaymentMethodEnum: "CASH";
+        PrintEvent: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly receiptId: string;
+            readonly copyNumber: number;
+            readonly printerPath: components["schemas"]["PrinterPathEnum"];
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        PrintRequestRequest: {
+            printerPath: components["schemas"]["PrinterPathEnum"];
+        };
+        /**
+         * @description * `BROWSER` - Browser
+         *     * `ANDROID_POS` - Android Pos
+         * @enum {string}
+         */
+        PrinterPathEnum: "BROWSER" | "ANDROID_POS";
         Quote: {
             quoteToken: string;
             /** Format: date-time */
@@ -545,12 +711,50 @@ export interface components {
             taxPaisa: number;
             totalPaisa: number;
         };
+        /** @description Everything a printed receipt shows, read from immutable rows. */
+        Receipt: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly number: string;
+            /** Format: date-time */
+            readonly issuedAt: string;
+            readonly organisationName: string;
+            readonly locationName: string;
+            readonly locationAddress: string;
+            readonly timezone: string;
+            readonly plate: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            readonly bayLabel: string;
+            /** Format: date-time */
+            readonly enteredAt: string;
+            readonly invoice: components["schemas"]["Invoice"];
+            readonly amountPaisa: number;
+            readonly method: components["schemas"]["PaymentMethodEnum"];
+            readonly receivedByName: string;
+            readonly printedCopies: number;
+        };
+        ReceiptRef: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly number: string;
+        };
         RegisterRequest: {
             organisationName: string;
             name: string;
             /** Format: email */
             email: string;
             password: string;
+        };
+        ReportScope: {
+            organisationName: string;
+            locationName: string | null;
+            timezone: string;
+            /** Format: date */
+            fromDate: string;
+            /** Format: date */
+            toDate: string;
+            /** Format: date-time */
+            asOf: string;
         };
         /**
          * @description * `OWNER` - Owner
@@ -590,6 +794,7 @@ export interface components {
             readonly paidPaisa: number;
             readonly duePaisa: number | null;
             readonly invoice: components["schemas"]["Invoice"] | null;
+            readonly receipt: components["schemas"]["ReceiptRef"] | null;
         };
         /**
          * @description * `PARKED` - Parked
@@ -641,16 +846,29 @@ export interface components {
             /** Format: uuid */
             readonly locationId: string;
             readonly locationName: string;
+            readonly operatorName: string;
             readonly openingFloatPaisa: number;
             /** Format: date-time */
             readonly openedAt: string;
             /** Format: date-time */
             readonly closedAt: string | null;
+            readonly countedCashPaisa: number | null;
+            readonly expectedCashPaisa: number | null;
+            readonly variancePaisa: number | null;
+        };
+        ShiftCloseRequest: {
+            countedCashPaisa: number;
         };
         ShiftOpenRequest: {
             /** Format: uuid */
             locationId: string;
             openingFloatPaisa: number;
+        };
+        ShiftSummary: {
+            shift: components["schemas"]["Shift"];
+            captureCount: number;
+            cashCapturedPaisa: number;
+            expectedCashPaisa: number;
         };
         TariffPublishRequest: {
             vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -693,6 +911,26 @@ export interface components {
          * @enum {string}
          */
         VehicleClassEnum: "CAR" | "MOTORBIKE";
+        VehicleLogReport: {
+            scope: components["schemas"]["ReportScope"];
+            rows: components["schemas"]["VehicleLogRow"][];
+            entries: number;
+            exits: number;
+            stillParked: number;
+        };
+        VehicleLogRow: {
+            /** Format: date-time */
+            enteredAt: string;
+            /** Format: date-time */
+            exitedAt: string | null;
+            status: components["schemas"]["SessionStatusEnum"];
+            plate: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            bayLabel: string;
+            locationName: string;
+            enteredByName: string;
+            exitedByName: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -1272,6 +1510,202 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Quote"];
+                    };
+                };
+            };
+        };
+    };
+    receipts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Receipt"];
+                    };
+                };
+            };
+        };
+    };
+    receipts_print_events_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrintRequestRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PrintEvent"];
+                    };
+                };
+            };
+        };
+    };
+    reports_collections_retrieve: {
+        parameters: {
+            query: {
+                /**
+                 * @description * `json` - Json
+                 *     * `pdf` - Pdf
+                 *     * `xlsx` - Xlsx
+                 */
+                format?: "json" | "pdf" | "xlsx";
+                fromDate: string;
+                locationId?: string;
+                toDate: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CollectionsReport"];
+                    };
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    reports_vehicle_log_retrieve: {
+        parameters: {
+            query: {
+                /**
+                 * @description * `json` - Json
+                 *     * `pdf` - Pdf
+                 *     * `xlsx` - Xlsx
+                 */
+                format?: "json" | "pdf" | "xlsx";
+                fromDate: string;
+                locationId?: string;
+                toDate: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["VehicleLogReport"];
+                    };
+                    "application/pdf": string;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    shifts_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+                locationId?: string;
+                /**
+                 * @description * `OPEN` - Open
+                 *     * `CLOSED` - Closed
+                 */
+                status?: "OPEN" | "CLOSED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedShiftList"];
+                };
+            };
+        };
+    };
+    shifts_close_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftCloseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ShiftSummary"];
+                    };
+                };
+            };
+        };
+    };
+    shifts_summary_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ShiftSummary"];
                     };
                 };
             };

@@ -649,6 +649,285 @@ paths:
                   data:
                     $ref: '#/components/schemas/Quote'
           description: ''
+  /api/v1/receipts/{receipt_id}:
+    get:
+      operationId: receipts_retrieve
+      parameters:
+      - in: path
+        name: receipt_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - receipts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Receipt'
+          description: ''
+  /api/v1/receipts/{receipt_id}/print-events:
+    post:
+      operationId: receipts_print_events_create
+      parameters:
+      - in: path
+        name: receipt_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - receipts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrintRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PrintEvent'
+          description: ''
+  /api/v1/reports/collections:
+    get:
+      operationId: reports_collections_retrieve
+      parameters:
+      - in: query
+        name: format
+        schema:
+          enum:
+          - json
+          - pdf
+          - xlsx
+          type: string
+          default: json
+          minLength: 1
+        description: |-
+          * `json` - Json
+          * `pdf` - Pdf
+          * `xlsx` - Xlsx
+      - in: query
+        name: fromDate
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: toDate
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollectionsReport'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/reports/vehicle-log:
+    get:
+      operationId: reports_vehicle_log_retrieve
+      parameters:
+      - in: query
+        name: format
+        schema:
+          enum:
+          - json
+          - pdf
+          - xlsx
+          type: string
+          default: json
+          minLength: 1
+        description: |-
+          * `json` - Json
+          * `pdf` - Pdf
+          * `xlsx` - Xlsx
+      - in: query
+        name: fromDate
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: toDate
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VehicleLogReport'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/shifts:
+    get:
+      operationId: shifts_list
+      description: Owners, managers and auditors see every shift; cash staff see their
+        own.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: status
+        schema:
+          enum:
+          - OPEN
+          - CLOSED
+          type: string
+          minLength: 1
+        description: |-
+          * `OPEN` - Open
+          * `CLOSED` - Closed
+      tags:
+      - shifts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShiftList'
+          description: ''
+  /api/v1/shifts/{shift_id}/close:
+    post:
+      operationId: shifts_close_create
+      parameters:
+      - in: path
+        name: shift_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - shifts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShiftCloseRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ShiftSummary'
+          description: ''
+  /api/v1/shifts/{shift_id}/summary:
+    get:
+      operationId: shifts_summary_retrieve
+      parameters:
+      - in: path
+        name: shift_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - shifts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ShiftSummary'
+          description: ''
   /api/v1/shifts/current:
     get:
       operationId: shifts_current_retrieve
@@ -781,6 +1060,62 @@ components:
           maxLength: 512
       required:
       - quoteToken
+    CollectionRow:
+      type: object
+      properties:
+        postedAt:
+          type: string
+          format: date-time
+        receiptNumber:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+        plate:
+          type: string
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        kind:
+          $ref: '#/components/schemas/EntryKindEnum'
+        amountPaisa:
+          type: integer
+        receivedByName:
+          type: string
+      required:
+      - amountPaisa
+      - kind
+      - locationName
+      - method
+      - plate
+      - postedAt
+      - receiptNumber
+      - receivedByName
+    CollectionsReport:
+      type: object
+      properties:
+        scope:
+          $ref: '#/components/schemas/ReportScope'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionRow'
+        byMethod:
+          type: array
+          items:
+            $ref: '#/components/schemas/MethodTotal'
+        capturedPaisa:
+          type: integer
+        refundedPaisa:
+          type: integer
+        netPaisa:
+          type: integer
+      required:
+      - byMethod
+      - capturedPaisa
+      - netPaisa
+      - refundedPaisa
+      - rows
+      - scope
     CurrentShift:
       type: object
       properties:
@@ -1023,6 +1358,19 @@ components:
       - organisationId
       - organisationName
       - roles
+    MethodTotal:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        count:
+          type: integer
+        amountPaisa:
+          type: integer
+      required:
+      - amountPaisa
+      - count
+      - method
     PaginatedBayList:
       type: object
       required:
@@ -1099,6 +1447,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SessionSummary'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedShiftList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shift'
         page:
           type: object
           required:
@@ -1235,6 +1605,13 @@ components:
           type: string
           format: date-time
           readOnly: true
+        receiptId:
+          type: string
+          format: uuid
+          readOnly: true
+        receiptNumber:
+          type: string
+          readOnly: true
       required:
       - amountPaisa
       - createdAt
@@ -1242,12 +1619,57 @@ components:
       - invoiceId
       - kind
       - method
+      - receiptId
+      - receiptNumber
       - shiftId
     PaymentMethodEnum:
       enum:
       - CASH
       type: string
       description: '* `CASH` - Cash'
+    PrintEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        receiptId:
+          type: string
+          format: uuid
+          readOnly: true
+        copyNumber:
+          type: integer
+          readOnly: true
+        printerPath:
+          allOf:
+          - $ref: '#/components/schemas/PrinterPathEnum'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - copyNumber
+      - createdAt
+      - id
+      - printerPath
+      - receiptId
+    PrintRequestRequest:
+      type: object
+      properties:
+        printerPath:
+          $ref: '#/components/schemas/PrinterPathEnum'
+      required:
+      - printerPath
+    PrinterPathEnum:
+      enum:
+      - BROWSER
+      - ANDROID_POS
+      type: string
+      description: |-
+        * `BROWSER` - Browser
+        * `ANDROID_POS` - Android Pos
     Quote:
       type: object
       properties:
@@ -1281,6 +1703,94 @@ components:
       - quoteToken
       - taxPaisa
       - totalPaisa
+    Receipt:
+      type: object
+      description: Everything a printed receipt shows, read from immutable rows.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: string
+          readOnly: true
+        issuedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        organisationName:
+          type: string
+          readOnly: true
+        locationName:
+          type: string
+          readOnly: true
+        locationAddress:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        plate:
+          type: string
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        bayLabel:
+          type: string
+          readOnly: true
+        enteredAt:
+          type: string
+          format: date-time
+          readOnly: true
+        invoice:
+          allOf:
+          - $ref: '#/components/schemas/Invoice'
+          readOnly: true
+        amountPaisa:
+          type: integer
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        receivedByName:
+          type: string
+          readOnly: true
+        printedCopies:
+          type: integer
+          readOnly: true
+      required:
+      - amountPaisa
+      - bayLabel
+      - enteredAt
+      - id
+      - invoice
+      - issuedAt
+      - locationAddress
+      - locationName
+      - method
+      - number
+      - organisationName
+      - plate
+      - printedCopies
+      - receivedByName
+      - timezone
+      - vehicleClass
+    ReceiptRef:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - number
     RegisterRequest:
       type: object
       properties:
@@ -1307,6 +1817,32 @@ components:
       - name
       - organisationName
       - password
+    ReportScope:
+      type: object
+      properties:
+        organisationName:
+          type: string
+        locationName:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        asOf:
+          type: string
+          format: date-time
+      required:
+      - asOf
+      - fromDate
+      - locationName
+      - organisationName
+      - timezone
+      - toDate
     RoleEnum:
       enum:
       - OWNER
@@ -1404,6 +1940,11 @@ components:
           - $ref: '#/components/schemas/Invoice'
           readOnly: true
           nullable: true
+        receipt:
+          allOf:
+          - $ref: '#/components/schemas/ReceiptRef'
+          readOnly: true
+          nullable: true
       required:
       - bayId
       - bayLabel
@@ -1415,6 +1956,7 @@ components:
       - locationId
       - paidPaisa
       - plate
+      - receipt
       - stage
       - status
       - tariffId
@@ -1543,6 +2085,9 @@ components:
         locationName:
           type: string
           readOnly: true
+        operatorName:
+          type: string
+          readOnly: true
         openingFloatPaisa:
           type: integer
           readOnly: true
@@ -1555,13 +2100,38 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        countedCashPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        expectedCashPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        variancePaisa:
+          type: integer
+          readOnly: true
+          nullable: true
       required:
       - closedAt
+      - countedCashPaisa
+      - expectedCashPaisa
       - id
       - locationId
       - locationName
       - openedAt
       - openingFloatPaisa
+      - operatorName
+      - variancePaisa
+    ShiftCloseRequest:
+      type: object
+      properties:
+        countedCashPaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 0
+      required:
+      - countedCashPaisa
     ShiftOpenRequest:
       type: object
       properties:
@@ -1575,6 +2145,22 @@ components:
       required:
       - locationId
       - openingFloatPaisa
+    ShiftSummary:
+      type: object
+      properties:
+        shift:
+          $ref: '#/components/schemas/Shift'
+        captureCount:
+          type: integer
+        cashCapturedPaisa:
+          type: integer
+        expectedCashPaisa:
+          type: integer
+      required:
+      - captureCount
+      - cashCapturedPaisa
+      - expectedCashPaisa
+      - shift
     TariffPublishRequest:
       type: object
       properties:
@@ -1683,6 +2269,62 @@ components:
       description: |-
         * `CAR` - Car
         * `MOTORBIKE` - Motorbike
+    VehicleLogReport:
+      type: object
+      properties:
+        scope:
+          $ref: '#/components/schemas/ReportScope'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleLogRow'
+        entries:
+          type: integer
+        exits:
+          type: integer
+        stillParked:
+          type: integer
+      required:
+      - entries
+      - exits
+      - rows
+      - scope
+      - stillParked
+    VehicleLogRow:
+      type: object
+      properties:
+        enteredAt:
+          type: string
+          format: date-time
+        exitedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/SessionStatusEnum'
+        plate:
+          type: string
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        bayLabel:
+          type: string
+        locationName:
+          type: string
+        enteredByName:
+          type: string
+        exitedByName:
+          type: string
+          nullable: true
+      required:
+      - bayLabel
+      - enteredAt
+      - enteredByName
+      - exitedAt
+      - exitedByName
+      - locationName
+      - plate
+      - status
+      - vehicleClass
   securitySchemes:
     cookieAuth:
       type: apiKey
