@@ -64,3 +64,28 @@
     }
   }
 }
+
+/* Receipts print through the browser: the app shell disappears and the receipt prints in black. */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  [data-print="bare"] {
+    display: block !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  [data-print="receipt"],
+  [data-print="receipt"] * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #000 !important;
+  }
+}

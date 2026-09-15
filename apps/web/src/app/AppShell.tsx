@@ -1,21 +1,26 @@
 import {
+	FileText,
 	LayoutGrid,
 	LogOut,
 	MapPin,
 	Palette,
 	SquareParking,
 	Users,
+	Wallet,
 } from "lucide-react";
 import { Navigate, NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { FullPageMessage } from "../components/Page";
 import { useSession, useSignOut, useSwitchOrganisation } from "./session";
 
+// The four `mobile` entries fill the bottom bar below 768px.
 const NAV = [
-	{ to: "/operations", label: "Operations", Icon: LayoutGrid },
-	{ to: "/settings/sites", label: "Sites", Icon: MapPin },
-	{ to: "/settings/staff", label: "Staff", Icon: Users },
-	{ to: "/gallery", label: "UI gallery", Icon: Palette },
+	{ to: "/operations", label: "Operations", Icon: LayoutGrid, mobile: true },
+	{ to: "/shifts", label: "Shifts", Icon: Wallet, mobile: true },
+	{ to: "/reports", label: "Reports", Icon: FileText, mobile: true },
+	{ to: "/settings/sites", label: "Sites", Icon: MapPin, mobile: true },
+	{ to: "/settings/staff", label: "Staff", Icon: Users, mobile: false },
+	{ to: "/gallery", label: "UI gallery", Icon: Palette, mobile: false },
 ];
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -65,9 +70,13 @@ export function AppShell() {
 	}
 
 	return (
-		<div className="min-h-dvh md:grid md:grid-cols-[224px_1fr]">
+		<div
+			data-print="bare"
+			className="min-h-dvh md:grid md:grid-cols-[224px_1fr]"
+		>
 			<nav
 				aria-label="Main"
+				data-print="hide"
 				className="hidden border-r border-inset bg-surface md:block"
 			>
 				<p className="flex h-16 items-center gap-2 px-4 font-semibold text-brand">
@@ -86,8 +95,11 @@ export function AppShell() {
 				</ul>
 			</nav>
 
-			<div className="flex min-w-0 flex-col pb-16 md:pb-0">
-				<header className="flex h-16 items-center justify-between gap-3 border-b border-inset bg-surface px-4">
+			<div data-print="bare" className="flex min-w-0 flex-col pb-16 md:pb-0">
+				<header
+					data-print="hide"
+					className="flex h-16 items-center justify-between gap-3 border-b border-inset bg-surface px-4"
+				>
 					<label className="flex min-w-0 items-center gap-2 text-dense">
 						<span className="hidden text-ink-muted sm:inline">
 							Organisation
@@ -126,17 +138,18 @@ export function AppShell() {
 					</div>
 				</header>
 
-				<main className="flex-1 p-4 md:p-6">
+				<main data-print="bare" className="flex-1 p-4 md:p-6">
 					<Outlet />
 				</main>
 			</div>
 
 			<nav
 				aria-label="Main"
+				data-print="hide"
 				className="fixed inset-x-0 bottom-0 border-t border-inset bg-surface md:hidden"
 			>
 				<ul className="grid grid-cols-4">
-					{NAV.map(({ to, label, Icon }) => (
+					{NAV.filter((item) => item.mobile).map(({ to, label, Icon }) => (
 						<li key={to}>
 							<NavLink
 								to={to}

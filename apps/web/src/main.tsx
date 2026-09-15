@@ -17,7 +17,10 @@ import { AppShell } from "./app/AppShell";
 import { GalleryPage } from "./pages/GalleryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OperationsPage } from "./pages/OperationsPage";
+import { ReceiptPage } from "./pages/ReceiptPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { ShiftsPage } from "./pages/ShiftsPage";
 import { SitesPage } from "./pages/SitesPage";
 import { StaffPage } from "./pages/StaffPage";
 import { NotFoundPage, RouteErrorPage } from "./pages/StatusPages";
@@ -45,6 +48,9 @@ const router = createBrowserRouter([
 				children: [
 					{ index: true, element: <Navigate to="/operations" replace /> },
 					{ path: "operations", element: <OperationsPage /> },
+					{ path: "shifts", element: <ShiftsPage /> },
+					{ path: "reports", element: <ReportsPage /> },
+					{ path: "receipts/:receiptId", element: <ReceiptPage /> },
 					{ path: "settings/sites", element: <SitesPage /> },
 					{ path: "settings/staff", element: <StaffPage /> },
 				],
