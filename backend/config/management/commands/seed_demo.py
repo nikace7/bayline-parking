@@ -1,19 +1,25 @@
 """Synthetic demo data built through domain services (blueprint section 8).
 
 Lives in `config` because it spans modules. Each milestone extends it as its services land:
-M1 seeds staff, locations, bays and tariffs; M2 assigns gate staff to locations.
+M1 seeds staff, locations, bays and tariffs; M2 assigns gate staff to locations; M3 adds a cash day
+at North Gate Central with a closed and an open shift.
 """
 
 import os
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from config import clock
 from modules.accounts import services as accounts
 from modules.accounts.models import OrgMember, Role, User
+from modules.billing import services as billing
+from modules.billing.models import Shift
+from modules.parking import services as parking
 from modules.sites import services as sites
-from modules.sites.models import BayMode, Location, LocationAssignment, VehicleClass
+from modules.sites.models import Bay, BayMode, Location, LocationAssignment, VehicleClass
 
 CORRELATION_ID = "seed-demo"
 MARKER_EMAIL = "owner@northgate.test"
@@ -48,6 +54,13 @@ BAYS = [
 # Blueprint demo pricing: five free minutes, then paisa per started 30-minute block; no cap or tax.
 TARIFFS = {VehicleClass.CAR: 5_000, VehicleClass.MOTORBIKE: 2_000}
 
+# Blueprint cash fixture: NPR 1,000 float + NPR 300 taken = NPR 1,300 expected; NPR 1,280 counted is
+# a variance of −NPR 20. Its NPR 50 refund waits for refunds (M6), so captures total 300, not 350.
+OPENING_FLOAT_PAISA = 100_000
+COUNTED_CASH_PAISA = 128_000
+# The cash day starts this long before the seed runs, so visits carry fees and none is in future.
+CASH_DAY_OFFSET = timedelta(hours=4)
+
 
 class Command(BaseCommand):
     help = "Seed synthetic North Gate and Riverside demo data. Rerunning changes nothing."
@@ -71,6 +84,10 @@ class Command(BaseCommand):
             )
         if assigned := self._assign_gate_staff():
             self.stdout.write(f"Added {assigned} gate staff location assignment(s).")
+        if self._seed_cash_day():
+            self.stdout.write(
+                "Added a North Gate Central cash day: 8 visits, 2 shifts, 4 receipts."
+            )
 
     def _assign_gate_staff(self) -> int:
         """Operators and cashiers act only at assigned locations. Idempotent, so databases seeded
@@ -88,6 +105,103 @@ class Command(BaseCommand):
                 )
                 created += 1
         return created
+
+    @transaction.atomic
+    def _seed_cash_day(self) -> bool:
+        """A North Gate Central day run through the gate and cash services on the fixture clock:
+        three paid visits on a shift closed NPR 20 short, then an open shift with one visit ready to
+        exit, one awaiting cash and three parked. Runs once, also on databases seeded before M3."""
+        staff = OrgMember.objects.select_related("organisation", "user")
+        cashier = staff.filter(user__email="cashier@northgate.test").first()
+        if cashier is None or Shift.objects.filter(operator=cashier.user).exists():
+            return False
+        operator = staff.get(user__email="operator@northgate.test")
+        location = Location.objects.for_org(cashier.organisation).get(receipt_prefix="NGC")
+        start = clock.now().replace(second=0, microsecond=0) - CASH_DAY_OFFSET
+        tag = {"correlation_id": CORRELATION_ID}
+
+        def at(minutes):
+            return clock.frozen(start + timedelta(minutes=minutes))
+
+        def admit(minutes, label, plate, vehicle_class=VehicleClass.CAR):
+            bay = Bay.objects.get(location=location, label=label)
+            with at(minutes):
+                return parking.admit_vehicle(
+                    member=operator,
+                    actor=operator.user,
+                    location_id=location.pk,
+                    bay_id=bay.pk,
+                    plate=plate,
+                    vehicle_class=vehicle_class,
+                    **tag,
+                )
+
+        def check_out(minutes, visit):
+            with at(minutes):
+                quote = billing.quote_checkout(member=cashier, session_id=visit.pk)
+                return billing.confirm_checkout(
+                    member=cashier,
+                    actor=cashier.user,
+                    session_id=visit.pk,
+                    quote_token=quote.token,
+                    **tag,
+                )
+
+        def take_cash(minutes, visit):
+            invoice = check_out(minutes, visit)
+            with at(minutes):
+                billing.capture_cash(
+                    member=cashier,
+                    actor=cashier.user,
+                    invoice_id=invoice.pk,
+                    amount_paisa=invoice.total_paisa,
+                    **tag,
+                )
+
+        def leave(minutes, visit):
+            with at(minutes):
+                billing.exit_vehicle(
+                    member=operator, actor=operator.user, session_id=visit.pk, **tag
+                )
+
+        def open_shift(minutes):
+            with at(minutes):
+                return billing.open_shift(
+                    member=cashier,
+                    actor=cashier.user,
+                    location_id=location.pk,
+                    opening_float_paisa=OPENING_FLOAT_PAISA,
+                    **tag,
+                )
+
+        # Car fee: five free minutes, then NPR 50 per started 30 minutes.
+        shift = open_shift(0)
+        a01 = admit(10, "A01", "BA 1 PA 1001")
+        a02 = admit(20, "A02", "बा २ प ४५६७")
+        a03 = admit(40, "A03", "BA 3 PA 3003")
+        a04 = admit(60, "A04", "BA 4 PA 4004")
+        take_cash(75, a01)  # 65 minutes: NPR 100
+        take_cash(75, a03)  # 35 minutes: NPR 50
+        leave(78, a01)
+        leave(78, a03)
+        take_cash(115, a02)  # 95 minutes: NPR 150
+        leave(118, a02)
+        m01 = admit(120, "M01", "BA 5 PA 5005", VehicleClass.MOTORBIKE)
+        with at(150):
+            billing.close_shift(
+                member=cashier,
+                actor=cashier.user,
+                shift_id=shift.pk,
+                counted_cash_paisa=COUNTED_CASH_PAISA,
+                **tag,
+            )
+        open_shift(155)
+        take_cash(160, a04)  # 100 minutes: NPR 200, ready to exit
+        check_out(170, m01)  # 50 minutes: NPR 40 for a motorbike, awaiting cash
+        admit(180, "A05", "BA 6 PA 6006")
+        admit(190, "M02", "BA 7 PA 7007", VehicleClass.MOTORBIKE)
+        admit(200, "A06", "बा ८ च ८००८")
+        return True
 
     def _seed_organisation(self, spec, password):
         domain = spec["domain"]
@@ -140,4 +254,6 @@ class Command(BaseCommand):
                     daily_cap_paisa=None,
                     tax_bps=0,
                     correlation_id=CORRELATION_ID,
+                    # All demo tariffs start a day early so the backdated cash day finds one.
+                    effective_from=clock.now() - timedelta(days=1),
                 )
