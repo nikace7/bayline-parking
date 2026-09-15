@@ -5,6 +5,7 @@ import { ApiError, api, unwrap } from "../api/client";
 export type Session = components["schemas"]["Session"];
 type LoginBody = components["schemas"]["LoginRequest"];
 type RegisterBody = components["schemas"]["RegisterRequest"];
+type CustomerRegisterBody = components["schemas"]["CustomerRegisterRequest"];
 
 const SESSION_KEY = ["session"] as const;
 const SIGNED_OUT: Session = {
@@ -12,6 +13,11 @@ const SIGNED_OUT: Session = {
 	memberships: [],
 	activeOrganisationId: null,
 };
+
+/** Staff land on operations; an account with no staff access lands on its reservations. */
+export function homePath(session: Session): string {
+	return session.memberships.length ? "/operations" : "/account/reservations";
+}
 
 export function useSession() {
 	return useQuery({
@@ -34,6 +40,15 @@ export function useRegister() {
 	return useMutation({
 		mutationFn: (body: RegisterBody) =>
 			unwrap(api.POST("/api/v1/auth/register", { body })),
+		onSuccess: (session) => queryClient.setQueryData(SESSION_KEY, session),
+	});
+}
+
+export function useCustomerRegister() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (body: CustomerRegisterBody) =>
+			unwrap(api.POST("/api/v1/auth/customer/register", { body })),
 		onSuccess: (session) => queryClient.setQueryData(SESSION_KEY, session),
 	});
 }

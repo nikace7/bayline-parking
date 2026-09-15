@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { ApiError } from "../api/client";
-import { useSession, useSignIn } from "../app/session";
+import { homePath, useSession, useSignIn } from "../app/session";
 import { Button } from "../components/Button";
 import { AuthLayout, FormAlert } from "../components/Page";
 import { TextField } from "../components/TextField";
@@ -15,7 +15,7 @@ export function LoginPage() {
 	const [form, setForm] = useState(EMPTY);
 
 	if (session.data?.user) {
-		return <Navigate to="/operations" replace />;
+		return <Navigate to={homePath(session.data)} replace />;
 	}
 
 	const error = signIn.error instanceof ApiError ? signIn.error : null;
@@ -32,7 +32,7 @@ export function LoginPage() {
 	function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		signIn.mutate(form, {
-			onSuccess: () => navigate("/operations", { replace: true }),
+			onSuccess: (signedIn) => navigate(homePath(signedIn), { replace: true }),
 		});
 	}
 
@@ -71,6 +71,12 @@ export function LoginPage() {
 				New operator?{" "}
 				<Link className="font-medium text-brand underline" to="/register">
 					Register an organisation
+				</Link>
+			</p>
+			<p className="mt-2 text-dense text-ink-muted">
+				Looking for parking?{" "}
+				<Link className="font-medium text-brand underline" to="/park">
+					Find and reserve a bay
 				</Link>
 			</p>
 		</AuthLayout>

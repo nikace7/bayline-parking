@@ -34,6 +34,36 @@ export function todayIn(timeZone: string, nowMs = Date.now()): string {
 	return new Intl.DateTimeFormat("en-CA", { timeZone }).format(nowMs);
 }
 
+/**
+ * A `datetime-local` value ("2026-09-15T10:30") read as wall time in `timeZone`, as a UTC ISO
+ * string. The browser's own zone plays no part, so a booking means the location's clock.
+ */
+export function zonedTimeToIso(local: string, timeZone: string): string {
+	const asIfUtc = Date.parse(`${local}:00Z`);
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		hourCycle: "h23",
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+	}).formatToParts(asIfUtc);
+	const part = (type: Intl.DateTimeFormatPartTypes) =>
+		Number(parts.find((item) => item.type === type)?.value);
+	const shown = Date.UTC(
+		part("year"),
+		part("month") - 1,
+		part("day"),
+		part("hour"),
+		part("minute"),
+		part("second"),
+	);
+	// ponytail: one offset lookup; a wall time inside a DST jump shifts by the jump (Nepal has none).
+	return new Date(asIfUtc - (shown - asIfUtc)).toISOString();
+}
+
 /** Wall-clock time in the location's time zone, not the browser's. */
 export function formatClock(
 	iso: string,

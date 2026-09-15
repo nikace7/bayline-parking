@@ -94,7 +94,7 @@ export function useOpenShift() {
  * replays the first result instead of repeating the change. A different payload, or a definitive
  * answer from the server, starts a new key.
  */
-function useIdempotencyKey() {
+export function useIdempotencyKey() {
 	const current = useRef<{ key: string; payload: string } | null>(null);
 	return {
 		keyFor(payload: unknown): string {
@@ -117,6 +117,8 @@ function useRefreshVisits(visitId?: string) {
 	return () =>
 		Promise.all([
 			queryClient.invalidateQueries({ queryKey: ["visits"] }),
+			// Check-in and exit move reservations to CHECKED_IN and COMPLETED.
+			queryClient.invalidateQueries({ queryKey: ["reservations"] }),
 			visitId &&
 				queryClient.invalidateQueries({ queryKey: ["visit", visitId] }),
 		]);

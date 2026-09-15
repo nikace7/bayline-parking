@@ -14,12 +14,20 @@ import { createBrowserRouter, Navigate } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { ApiError } from "./api/client";
 import { AppShell } from "./app/AppShell";
+import { CustomerShell } from "./app/CustomerShell";
+import { CustomerRegisterPage } from "./pages/CustomerRegisterPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { LoginPage } from "./pages/LoginPage";
+import {
+	MyReservationsPage,
+	ReservationDetailPage,
+} from "./pages/MyReservationsPage";
 import { OperationsPage } from "./pages/OperationsPage";
+import { ParkPage } from "./pages/ParkPage";
 import { ReceiptPage } from "./pages/ReceiptPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { ReservationsPage } from "./pages/ReservationsPage";
 import { ShiftsPage } from "./pages/ShiftsPage";
 import { SitesPage } from "./pages/SitesPage";
 import { StaffPage } from "./pages/StaffPage";
@@ -41,13 +49,26 @@ const router = createBrowserRouter([
 		children: [
 			{ path: "/login", element: <LoginPage /> },
 			{ path: "/register", element: <RegisterPage /> },
+			{ path: "/account/register", element: <CustomerRegisterPage /> },
 			{ path: "/gallery", element: <GalleryPage /> },
+			{
+				element: <CustomerShell />,
+				children: [
+					{ path: "/park", element: <ParkPage /> },
+					{ path: "/account/reservations", element: <MyReservationsPage /> },
+					{
+						path: "/account/reservations/:reservationId",
+						element: <ReservationDetailPage />,
+					},
+				],
+			},
 			{
 				path: "/",
 				element: <AppShell />,
 				children: [
 					{ index: true, element: <Navigate to="/operations" replace /> },
 					{ path: "operations", element: <OperationsPage /> },
+					{ path: "reservations", element: <ReservationsPage /> },
 					{ path: "shifts", element: <ShiftsPage /> },
 					{ path: "reports", element: <ReportsPage /> },
 					{ path: "receipts/:receiptId", element: <ReceiptPage /> },
