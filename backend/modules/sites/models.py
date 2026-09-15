@@ -70,6 +70,7 @@ class Bay(models.Model):
     vehicle_class = models.CharField(max_length=16, choices=VehicleClass.choices)
     mode = models.CharField(max_length=16, choices=BayMode.choices)
     state = models.CharField(max_length=16, choices=BayState.choices, default=BayState.ACTIVE)
+    revision = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(default=clock.now, editable=False)
 
     objects = OrgScopedQuerySet.as_manager()

@@ -87,6 +87,24 @@ def create_bay(*, location, actor, label, vehicle_class, mode, correlation_id) -
     return bay
 
 
+def update_bay(bay: Bay, *, location, actor, changes: dict, correlation_id) -> Bay:
+    """Writes a mode or service-state change. The parking service calls it after locking the bay
+    and checking that no vehicle or reservation uses it."""
+    for field, value in changes.items():
+        setattr(bay, field, value)
+    bay.revision += 1
+    bay.save(update_fields=[*changes, "revision"])
+    record_audit(
+        organisation=location.organisation,
+        actor=actor,
+        action="bay.updated",
+        entity=bay,
+        summary=changes,
+        correlation_id=correlation_id,
+    )
+    return bay
+
+
 @transaction.atomic
 def assign_member(*, location, member, actor, correlation_id) -> LocationAssignment:
     if member.organisation_id != location.organisation_id:
