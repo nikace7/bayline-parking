@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "modules.sites",
     "modules.parking",
     "modules.billing",
+    "modules.reports",
 ]
 
 MIDDLEWARE = [
@@ -110,6 +111,9 @@ SPECTACULAR_SETTINGS = {
         "InvoiceStatusEnum": "modules.billing.models.InvoiceStatus",
         "PaymentMethodEnum": "modules.billing.models.PaymentMethod",
         "EntryKindEnum": "modules.billing.models.EntryKind",
+        "ShiftStatusEnum": "modules.billing.models.ShiftStatus",
+        "PrinterPathEnum": "modules.billing.models.PrinterPath",
+        "ReportFormatEnum": "modules.reports.serializers.ReportFormat",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
