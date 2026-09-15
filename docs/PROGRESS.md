@@ -22,6 +22,7 @@ Branch `feat/m3-shift-receipts-reports`. Completes the cash success journey: adm
 | Lint | `pnpm lint` | Biome: 39 files, no issues. Ruff: all checks passed, 79 files formatted |
 | Typecheck | `pnpm typecheck` | No errors |
 | Build | `pnpm build` | JS 414.40 kB (126.92 kB gzip), CSS 28.93 kB |
+| Contracts | `pnpm contracts:check` after committing | Exit 0: regenerated schema identical to the committed files |
 | Migrations and seed on the development database | `pnpm db:migrate`, `pnpm db:seed` twice | `sites.0004`, `billing.0003`/`0004` applied; the first seed run added the cash day (8 visits, 2 shifts, 4 receipts), the second changed nothing |
 | Containerised stack | `pnpm demo:up` (rebuilt api image) | db, api, gateway healthy. Through Caddy: `/api/v1/health/ready` 200; `/shifts`, `/reports` and `/receipts/:id` serve the SPA; anonymous `/api/v1/shifts` and a `format=pdf` report answer 403 `NOT_AUTHENTICATED` as JSON. Inside the api container the seeded day's collections report has 4 rows, NPR 500 captured and receipts `NGC-000001`–`0004`; the vehicle log has 8 entries, 3 exits and 5 still parked; its PDF (23,342 bytes) and XLSX (5,741 bytes) build with the image's fonts |
 | PDF rendering | Rendered vehicle log opened as an image | Devanagari plates and names shaped correctly (conjuncts and pre-base vowel signs) |
