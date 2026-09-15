@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from config import clock
 from modules.accounts import services
-from modules.accounts.models import Role
+from modules.accounts.models import Role, User
 from modules.accounts.permissions import SESSION_ORG_KEY
 from modules.sites import services as sites
 from modules.sites.models import BayMode, VehicleClass
@@ -73,6 +73,20 @@ def signed_in(api, csrf):
         session = api.session
         session[SESSION_ORG_KEY] = str(member.organisation_id)
         session.save()
+        return csrf(api)
+
+    return sign_in
+
+
+@pytest.fixture
+def customer(api, csrf):
+    """Signs a global customer account in (no staff access) and returns its CSRF headers."""
+
+    def sign_in(email="asha@customer.test"):
+        user = User.objects.filter(email=email).first() or services.register_customer(
+            name=email.split("@")[0].title(), email=email, password=PASSWORD
+        )
+        api.force_login(user)
         return csrf(api)
 
     return sign_in
