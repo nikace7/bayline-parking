@@ -95,6 +95,24 @@ class OrgMember(models.Model):
         ]
 
 
+class Customer(models.Model):
+    """An organisation's profile for a global User who books parking, created on first booking.
+    Customers hold no staff access; their routes show only their own reservations."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="customer_profiles")
+    name = models.CharField(max_length=120)
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["organisation", "user"], name="customer_one_per_user"),
+        ]
+
+
 class AuditEvent(models.Model):
     """Append-only (database trigger); a safe change summary, never contact details or secrets."""
 

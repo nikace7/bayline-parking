@@ -15,6 +15,7 @@ from modules.accounts import services
 from modules.accounts.models import OrgMember, Role, normalize_email
 from modules.accounts.permissions import SESSION_ORG_KEY, current_member, require_roles
 from modules.accounts.serializers import (
+    CustomerRegisterSerializer,
     LoginSerializer,
     MemberSerializer,
     MemberUpdateSerializer,
@@ -76,6 +77,22 @@ class RegisterView(CsrfProtectedMixin, APIView):
             **serializer.validated_data, correlation_id=request.request_id
         )
         _start_session(request, member.user, member.organisation_id)
+        return Response(_session_payload(request), status=201)
+
+
+class CustomerRegisterView(CsrfProtectedMixin, APIView):
+    """A global account for booking parking, with no staff access."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    @extend_schema(request=CustomerRegisterSerializer, responses={201: SessionSerializer})
+    def post(self, request):
+        serializer = CustomerRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = services.register_customer(**serializer.validated_data)
+        _start_session(request, user)
         return Response(_session_payload(request), status=201)
 
 
