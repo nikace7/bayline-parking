@@ -1,5 +1,83 @@
 # Progress
 
+## M4 Reservations — built and verified (15 September 2026)
+
+Branch `feat/m4-reservations`. Adds customer bookings on reservable bays: find a location, hold and confirm a bay, check in at the gate, and handle no-shows and overstays by relocating the next booking. An independent code review covered:
+- tenant isolation and roles;
+- double booking and lock order;
+- idempotency scope;
+- time zones;
+- validation, throttles and CSRF;
+- migrations;
+- frontend retries and accessibility.
+
+It found no critical, high or low issues. It found one medium issue, now fixed; see "Found during M4" below.
+
+### Delivered
+
+- **Customers:** `POST /auth/customer/register` creates a global account with no staff access (CSRF, auth throttle). A `Customer` profile is created per organisation on the first booking there, and each booking gets an 8-character reference (D41).
+- **Reservations:** a `Reservation` claims a bay for [start, end). A PostgreSQL exclusion constraint over `HOLD`, `CONFIRMED` and `CHECKED_IN` rows stops two bookings for one bay overlapping. Holds last 5 minutes, a customer keeps at most 2 live holds, and bookings run 30 minutes to 12 hours. The first free compatible bay is taken under its bay lock (D42, D44).
+- **Status without waiting for the worker:** reads show a lapsed hold as `EXPIRED` and a missed arrival as `NO_SHOW`. Writes store those states under lock before checking a bay (D47).
+- **API:**
+  - Anonymous and throttled: `GET /public/locations` and `/public/locations/{id}/availability`, which returns only a free bay count.
+  - Customers: `GET/POST /customer/reservations` and `GET /customer/reservations/{id}`.
+  - Actions: `POST /reservations/{id}/confirm`, `/cancel` and `/relocate`.
+  - Staff: `GET /reservations` with `locationId` and `date` filters and an overstay `conflict` flag.
+  - Hold and confirm take an Idempotency-Key scoped to the location's organisation (D43).
+- **Check-in:** `POST /parking/entries` with `reservationId` admits a reserved vehicle from 10 minutes before the start to 15 minutes after, when the plate and bay match. Walk-ins cannot use reservable bays. An early arrival cannot take a bay another booking still claims. Exit completes the reservation (D45).
+- **Overstay and relocation:** a vehicle parked past its booking flags the next booking for that bay. Owners and managers can move that booking to a compatible free bay, with both bays locked in UUID order, or cancel it with a reason (D46).
+- **Bay changes:** `PATCH /locations/{id}/bays/{id}` changes mode or state with `expectedRevision` (428 when missing, 409 when stale). It is refused while a vehicle is parked there or a booking claims the bay (D49).
+- **Worker:** every 5 seconds, `manage.py worker` stores lapsed holds and no-shows and purges idempotency records older than 7 days. Its sweeps claim rows with SKIP LOCKED. Compose runs it as the `worker` service (D48).
+- **Web (D50):**
+  - Customers:
+    - `/park` lists locations and counts free bays for a time entered in the location's time zone, then holds and confirms a bay.
+    - `/account/register` creates an account.
+    - `/account/reservations` and its detail page show bookings. Customers land there after signing in.
+  - Staff:
+    - `/reservations` is a day board with conflicts and move and cancel forms.
+    - The gate shows an arrival panel for reservable bays.
+- **Seed:** two customers at North Gate Central. Asha's vehicle is still parked after her booking ended, so Bina's next booking for that bay shows the conflict. Bina's earlier booking was a no-show.
+
+### Verification (actual runs, Windows 11, PostgreSQL 17.11)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend unit | `pnpm test:unit` | 36 passed (unchanged) |
+| Frontend unit | `pnpm test:unit` | 40 passed in 11 files (adds the park page, reservations board, arrival panel and time-zone input conversion) |
+| Backend integration on real PostgreSQL | `pnpm test:integration` | 77 passed (9 reservations, 5 arrivals and relocation, 2 hold races on separate connections for the last bay and for one account's hold limit, 61 from M3 with the seed test now checking reservations) |
+| Lint | `pnpm lint` | Biome: 49 files, no issues. Ruff: all checks passed, 84 files formatted |
+| Typecheck | `pnpm typecheck` | No errors |
+| Build | `pnpm build` | JS 435.77 kB (131.24 kB gzip), CSS 29.24 kB |
+| Contracts | `pnpm contracts:generate`, then `pnpm contracts:check` after committing | No spectacular warnings; 11 new schemas including `Reservation`, `Availability` and `PublicLocation`. The check exited 0: the regenerated schema matches the committed files |
+| Migrations and seed on the development database | `pnpm db:migrate`, `pnpm db:seed` twice | `accounts.0004`, `sites.0005` and `parking.0002` applied. The first seed run added 2 customers and 3 reservations; the second changed nothing |
+| Containerised stack | `pnpm demo:up` (rebuilt images) | db, api, worker and gateway healthy. The worker logged "Worker started.", and its first pass marked 1 no-show. Through Caddy: `/park`, `/account/reservations` and `/reservations` serve the SPA. Anonymous staff and customer reservation lists answer 403. `/public/locations` lists 3 locations with 6 reservable bays each and only public fields. North Gate Central shows 5 of 6 car bays free an hour ahead, excluding the overstayed bay. A reversed interval answers 400 `VALIDATION_FAILED` |
+
+Acceptance matrix:
+- **P07:** a lapsed hold stops blocking without the worker; overlapping bookings for one bay are rejected; two customers racing for the last bay get one hold and one `NO_BAY_AVAILABLE`.
+- **P08:** an occupied bay refuses a second vehicle; the waiting booking shows the conflict; relocation moves it to a free bay with both bays locked.
+- **P01 extends to reservations:** another customer gets 404 reading or cancelling a booking. Another organisation's staff see an empty board and get 404 cancelling.
+
+### Found during M4
+
+- Review finding (medium): the two-hold limit was counted without a lock, so parallel hold requests from one account could each see room. Hold creation now locks the account's user row before counting (D44). `test_parallel_holds_from_one_account_stop_at_the_limit` made 3 holds with that lock patched out and passed five runs in a row with it.
+- After a Docker Desktop restart, only the worker came back, because it alone had `restart: unless-stopped`. It logged a failed database connection every 5 seconds (1,142 tracebacks in 3 hours) while db, api and gateway stayed down. The loop survived as intended. The restart policy is removed so the stack starts and stops as one.
+- Git Bash's `/tmp` is not Node's `C:\tmp` on Windows, so the first discovery probe read no file. The probe now pipes curl straight into Node.
+- Tests and typecheck caught two missing imports: `BayMode`/`BayState` in the sites serializers and `ArrivalPanel` on the operations page.
+- Otherwise only Biome and Ruff formatting.
+
+### Not verified / known limitations
+
+- The signed-in screens were not exercised in a browser (agent browser policy forbids entering passwords). This covers holding and confirming on `/park`, `/account/reservations`, `/reservations` and gate check-in. Component tests with a mocked API and API integration tests cover them. For a manual pass:
+  - sign in as `bina@customer.test` to book;
+  - `manager@northgate.test` to move the conflicting booking;
+  - `operator@northgate.test` to check a vehicle in.
+- Seeded bookings are timed from when the seed ran. About 35 minutes later, Bina's upcoming booking becomes a no-show and the conflict clears; only a fresh database seeds it again.
+- No screen changes a bay's mode or state; that is API-only.
+- No confirmation code or QR at the gate: staff pick the booking by bay and check the plate. Bookings are not paid in advance and have no customer receipt; reserved visits pay at checkout like walk-ins.
+- No map on `/park`.
+- The customer bookings list and the staff board show the first page only.
+- The early-arrival `BAY_CLAIMED` check cannot trigger through the API while bookings start in the future and last at least 30 minutes; its test creates the short claim directly.
+
 ## M3 Shift, receipts, reports — built and verified (15 September 2026)
 
 Branch `feat/m3-shift-receipts-reports`. Completes the cash success journey: admit, check out, take cash against a numbered receipt, exit, close the shift against the counted drawer, and report the day. An independent code review (tenant isolation and roles, capture/close races, receipt numbering, report time zones, PDF markup and spreadsheet formula injection, migrations, print flow, seed) found no critical, high or medium issues. Its one low finding is fixed: the seed backdates every demo organisation's tariffs, not only North Gate's, and the comment now says so.
@@ -183,9 +261,9 @@ Acceptance matrix started, not complete: P01 is covered for staff membership end
 - Biome does not lint `apps/web/styles.css`: its CSS parser rejects Tailwind `@theme` without a `biome.json` change, which the user's config-protection hook blocks.
 - Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a OneDrive-synced folder, so `node_modules` and `.venv` are synced too.
 
-## Next: M4 Reservations
+## Next: M5 Member passes
 
-- Global customer accounts; holds on reservable bays guarded by a PostgreSQL exclusion constraint; arrivals and relocation.
-- Worker sweeps as PostgreSQL rows: expire holds, mark no-shows, and purge idempotency records older than 7 days (D32).
-- Bay mode and state updates behind the occupancy and reservation guards.
-- Race and overstay tests; the seed gains confirmed and no-show reservations.
+- Passes for customers or vehicles, with a pass-first lock order at entry and checkout.
+- Entitlement checks at the gate.
+- Renewal invoices raised through the billing module.
+- Concurrent pass usage tests; the seed gains active and expired passes.
