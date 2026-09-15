@@ -8,7 +8,7 @@ import hashlib
 import json
 import re
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
@@ -35,8 +35,14 @@ IDEMPOTENCY_KEY = OpenApiParameter(
 
 
 def idempotent(
-    request, *, operation: str, payload: dict, perform: Callable[[], tuple[int, dict]]
+    request,
+    *,
+    operation: str,
+    payload: dict,
+    perform: Callable[[], tuple[int, dict]],
+    organisation=None,
 ) -> Response:
+    """`organisation` defaults to the staff member's; customer writes pass the booking's."""
     key = request.headers.get("Idempotency-Key", "")
     if not key:
         raise ApiError(
@@ -48,22 +54,22 @@ def idempotent(
             "IDEMPOTENCY_KEY_INVALID",
             "Idempotency-Key must be 8 to 128 letters, digits, hyphens or underscores.",
         )
-    member = current_member(request)
+    organisation = organisation or current_member(request).organisation
     canonical = json.dumps(
-        {"organisation": member.organisation_id, **payload}, sort_keys=True, cls=DjangoJSONEncoder
+        {"organisation": organisation.pk, **payload}, sort_keys=True, cls=DjangoJSONEncoder
     )
     payload_hash = hashlib.sha256(canonical.encode()).hexdigest()
-    return _run_once(member, request.user, operation, key, payload_hash, perform)
+    return _run_once(organisation, request.user, operation, key, payload_hash, perform)
 
 
 @retry_on_conflict
-def _run_once(member, actor, operation, key, payload_hash, perform) -> Response:
+def _run_once(organisation, actor, operation, key, payload_hash, perform) -> Response:
     with transaction.atomic():
         now = clock.now()
         try:
             with transaction.atomic():
                 record = IdempotencyRecord.objects.create(
-                    organisation=member.organisation,
+                    organisation=organisation,
                     actor=actor,
                     operation=operation,
                     key=key,
@@ -75,7 +81,7 @@ def _run_once(member, actor, operation, key, payload_hash, perform) -> Response:
             if violated_constraint(exc) != "idempotency_key_unique":
                 raise
             stored = IdempotencyRecord.objects.get(
-                organisation=member.organisation, actor=actor, operation=operation, key=key
+                organisation=organisation, actor=actor, operation=operation, key=key
             )
             if stored.payload_hash != payload_hash:
                 raise ApiError(
@@ -93,3 +99,10 @@ def _run_once(member, actor, operation, key, payload_hash, perform) -> Response:
         record.response_body = body
         record.save(update_fields=["response_status", "response_body"])
     return Response(body, status=status)
+
+
+def purge_expired(now: datetime, limit: int = 1000) -> int:
+    """Deletes replay metadata past its retention (D32), a batch at a time for the worker."""
+    expired = IdempotencyRecord.objects.filter(expires_at__lte=now).values("pk")[:limit]
+    deleted, _ = IdempotencyRecord.objects.filter(pk__in=expired).delete()
+    return deleted
