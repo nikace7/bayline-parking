@@ -13,7 +13,7 @@ import {
 import { type BayState, BayTile } from "../components/BayTile";
 import { LocationSelect } from "../components/LocationSelect";
 import { formatClock, formatElapsed } from "../lib/time";
-import { EntryPanel, ShiftBar, VisitPanel } from "./GatePanels";
+import { ArrivalPanel, EntryPanel, ShiftBar, VisitPanel } from "./GatePanels";
 
 function tileState(bay: Bay, visit?: VisitSummary): BayState {
 	if (visit) return "occupied";
@@ -173,13 +173,21 @@ function Gate({ location }: { location: Location }) {
 							}}
 						/>
 					)}
-					{selectedBay && !selectedVisit && (
-						<EntryPanel
-							key={selectedBay.id}
-							bay={selectedBay}
-							location={location}
-						/>
-					)}
+					{selectedBay &&
+						!selectedVisit &&
+						(selectedBay.mode === "RESERVABLE" ? (
+							<ArrivalPanel
+								key={selectedBay.id}
+								bay={selectedBay}
+								location={location}
+							/>
+						) : (
+							<EntryPanel
+								key={selectedBay.id}
+								bay={selectedBay}
+								location={location}
+							/>
+						))}
 				</aside>
 			</div>
 		</>
