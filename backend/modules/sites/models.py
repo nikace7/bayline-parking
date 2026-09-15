@@ -132,6 +132,18 @@ class TariffVersion(models.Model):
         ]
 
 
+class ReceiptCounter(models.Model):
+    """The last online receipt number issued at a location. It only moves when the capture that
+    took it commits; a PostgreSQL sequence would skip numbers on rollback."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    location = models.OneToOneField(Location, on_delete=models.PROTECT, related_name="+")
+    last_number = models.PositiveIntegerField()
+
+    objects = OrgScopedQuerySet.as_manager()
+
+
 class LocationAssignment(models.Model):
     """Gate and cash staff act only at assigned locations; owners act everywhere."""
 

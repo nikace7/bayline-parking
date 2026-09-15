@@ -1,6 +1,7 @@
+import uuid
 from datetime import datetime
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Case, Exists, OuterRef, QuerySet, Value, When
 
 from config import clock
@@ -12,6 +13,7 @@ from modules.sites.models import (
     Bay,
     Location,
     LocationAssignment,
+    ReceiptCounter,
     TariffStatus,
     TariffVersion,
 )
@@ -117,6 +119,24 @@ def ensure_can_operate(member: OrgMember, location: Location) -> None:
         return
     if not LocationAssignment.objects.filter(location=location, member=member).exists():
         raise ApiError(403, "LOCATION_NOT_ASSIGNED", "You are not assigned to this location.")
+
+
+def next_receipt_sequence(location: Location) -> int:
+    """Advances the location's counter inside the caller's transaction and returns the new number.
+    The counter row lock comes last in the global lock order; the upsert creates the counter on a
+    location's first receipt, and a concurrent first capture waits on its unique key."""
+    table = ReceiptCounter._meta.db_table
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            INSERT INTO {table} (id, organisation_id, location_id, last_number)
+            VALUES (%s, %s, %s, 1)
+            ON CONFLICT (location_id) DO UPDATE SET last_number = {table}.last_number + 1
+            RETURNING last_number
+            """,
+            [uuid.uuid4(), location.organisation_id, location.pk],
+        )
+        return cursor.fetchone()[0]
 
 
 @transaction.atomic
