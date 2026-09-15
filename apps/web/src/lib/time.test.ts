@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDuration, formatElapsed, todayIn } from "./time";
+import {
+	formatClock,
+	formatDuration,
+	formatElapsed,
+	todayIn,
+	zonedTimeToIso,
+} from "./time";
+
+describe("zonedTimeToIso", () => {
+	it("reads a picked time on the location's clock, not the browser's", () => {
+		// Kathmandu is UTC+05:45, so 10:30 there is 04:45 UTC.
+		expect(zonedTimeToIso("2026-09-15T10:30", "Asia/Kathmandu")).toBe(
+			"2026-09-15T04:45:00.000Z",
+		);
+		// Just after local midnight is still the previous UTC day.
+		expect(zonedTimeToIso("2026-09-15T00:10", "Asia/Kathmandu")).toBe(
+			"2026-09-14T18:25:00.000Z",
+		);
+	});
+});
 
 describe("todayIn", () => {
 	it("turns over at local midnight, not UTC midnight", () => {

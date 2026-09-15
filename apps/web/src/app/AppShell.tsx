@@ -1,4 +1,5 @@
 import {
+	CalendarClock,
 	FileText,
 	LayoutGrid,
 	LogOut,
@@ -8,7 +9,7 @@ import {
 	Users,
 	Wallet,
 } from "lucide-react";
-import { Navigate, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { FullPageMessage } from "../components/Page";
 import { useSession, useSignOut, useSwitchOrganisation } from "./session";
@@ -16,9 +17,15 @@ import { useSession, useSignOut, useSwitchOrganisation } from "./session";
 // The four `mobile` entries fill the bottom bar below 768px.
 const NAV = [
 	{ to: "/operations", label: "Operations", Icon: LayoutGrid, mobile: true },
+	{
+		to: "/reservations",
+		label: "Reservations",
+		Icon: CalendarClock,
+		mobile: true,
+	},
 	{ to: "/shifts", label: "Shifts", Icon: Wallet, mobile: true },
 	{ to: "/reports", label: "Reports", Icon: FileText, mobile: true },
-	{ to: "/settings/sites", label: "Sites", Icon: MapPin, mobile: true },
+	{ to: "/settings/sites", label: "Sites", Icon: MapPin, mobile: false },
 	{ to: "/settings/staff", label: "Staff", Icon: Users, mobile: false },
 	{ to: "/gallery", label: "UI gallery", Icon: Palette, mobile: false },
 ];
@@ -62,6 +69,14 @@ export function AppShell() {
 		return (
 			<FullPageMessage>
 				<p>This account has no staff access to an organisation.</p>
+				<p className="mt-2">
+					<Link
+						to="/account/reservations"
+						className="font-medium text-brand underline"
+					>
+						Go to your reservations
+					</Link>
+				</p>
 				<Button className="mt-4" variant="secondary" onClick={handleSignOut}>
 					Sign out
 				</Button>
