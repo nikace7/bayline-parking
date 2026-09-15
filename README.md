@@ -5,6 +5,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - Specification: [docs/BLUEPRINT.md](docs/BLUEPRINT.md) (v1.1; the original v1.0 is kept at `02-parking-platform.md`)
 - Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
 - Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
+- Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
 
 ## Stack
 
