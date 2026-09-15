@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDuration, formatElapsed } from "./time";
+import { formatClock, formatDuration, formatElapsed, todayIn } from "./time";
+
+describe("todayIn", () => {
+	it("turns over at local midnight, not UTC midnight", () => {
+		// Kathmandu midnight on 15 September is 18:15 UTC on the 14th.
+		const lastSecond = Date.parse("2026-09-14T18:14:59Z");
+		expect(todayIn("Asia/Kathmandu", lastSecond)).toBe("2026-09-14");
+		expect(todayIn("Asia/Kathmandu", lastSecond + 1000)).toBe("2026-09-15");
+	});
+});
 
 describe("formatDuration", () => {
 	it("shows the two most significant units", () => {

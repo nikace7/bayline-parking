@@ -6,7 +6,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ApiError } from "../api/client";
+import { Link } from "react-router";
+import { errorMessage } from "../api/client";
 import {
 	type Bay,
 	type Location,
@@ -35,12 +36,6 @@ const STAGE: Record<Visit["stage"], { tone: Tone; label: string }> = {
 	EXIT_READY: { tone: "available", label: "Ready to exit" },
 	EXITED: { tone: "neutral", label: "Exited" },
 };
-
-function errorMessage(error: unknown): string {
-	return error instanceof ApiError
-		? error.message
-		: "Bayline could not be reached. Check the connection and retry.";
-}
 
 function PanelNote({
 	title,
@@ -303,6 +298,14 @@ export function VisitPanel({
 					fee={invoice}
 					caption={`Charged up to ${formatClock(invoice.cutoffAt, location.timezone, true)}`}
 				/>
+			)}
+			{visit.data.receipt && (
+				<Link
+					to={`/receipts/${visit.data.receipt.id}`}
+					className="font-medium text-brand underline"
+				>
+					Receipt {visit.data.receipt.number}
+				</Link>
 			)}
 			{stage === "CHECKOUT_PENDING" && invoice && duePaisa !== null && (
 				<>

@@ -30,6 +30,13 @@ export class ApiError extends Error {
 	}
 }
 
+/** A message staff can act on, for an API failure or a request that never reached the server. */
+export function errorMessage(error: unknown): string {
+	return error instanceof ApiError
+		? error.message
+		: "Bayline could not be reached. Check the connection and retry.";
+}
+
 function isErrorBody(value: unknown): value is ApiErrorBody {
 	return typeof value === "object" && value !== null && "error" in value;
 }
@@ -55,7 +62,8 @@ const csrf: Middleware = {
 	},
 };
 
-export const api = createClient<paths>({
+// JSON only: report exports declare PDF/XLSX bodies too, but download through plain links.
+export const api = createClient<paths, "application/json">({
 	baseUrl: "",
 	credentials: "same-origin",
 });

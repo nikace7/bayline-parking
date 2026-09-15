@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { formatPaisa, parseRupees } from "./money";
+import { describeVariance, formatPaisa, parseRupees } from "./money";
+
+describe("describeVariance", () => {
+	it("says whether the drawer is short, over or balanced", () => {
+		// Blueprint fixture: counted NPR 1,280 against expected NPR 1,300.
+		expect(describeVariance(-2_000)).toBe("Short by NPR 20.00");
+		expect(describeVariance(500)).toBe("Over by NPR 5.00");
+		expect(describeVariance(0)).toBe("Balanced");
+	});
+});
 
 describe("formatPaisa", () => {
 	it("formats the blueprint shift fixture amounts", () => {

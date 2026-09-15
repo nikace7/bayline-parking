@@ -12,6 +12,15 @@ export function formatPaisa(paisa: number): string {
 	return `${sign}NPR ${grouping.format(rupees)}.${String(remainder).padStart(2, "0")}`;
 }
 
+/** Counted cash against expected cash, in words staff act on. */
+export function describeVariance(variancePaisa: number): string {
+	if (variancePaisa === 0) {
+		return "Balanced";
+	}
+	const direction = variancePaisa < 0 ? "Short" : "Over";
+	return `${direction} by ${formatPaisa(Math.abs(variancePaisa))}`;
+}
+
 /** Reads a rupee amount typed by staff ("1000", "1,000.5") as integer paisa, or null if invalid. */
 export function parseRupees(text: string): number | null {
 	const match = /^(\d{1,6})(?:\.(\d{1,2}))?$/.exec(
