@@ -56,6 +56,13 @@ const CONTROL_BORDERS: [string, string][] = [
 	["control", "inset"],
 ];
 
+// Panel and table borders are decorative, so WCAG's 3:1 does not apply. This floor keeps them
+// visible: the old inset borders measured 1.05–1.16:1 and would fail it.
+const DECORATIVE_BORDERS: [string, string][] = [
+	["line", "canvas"],
+	["line", "surface"],
+];
+
 describe("colour tokens", () => {
 	it.each(TEXT)("%s text on %s meets 4.5:1", (foreground, background) => {
 		expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
@@ -65,6 +72,13 @@ describe("colour tokens", () => {
 		"%s border on %s meets 3:1",
 		(border, background) => {
 			expect(contrast(border, background)).toBeGreaterThanOrEqual(3);
+		},
+	);
+
+	it.each(DECORATIVE_BORDERS)(
+		"%s border on %s stays visible at 1.25:1",
+		(border, background) => {
+			expect(contrast(border, background)).toBeGreaterThanOrEqual(1.25);
 		},
 	);
 });
