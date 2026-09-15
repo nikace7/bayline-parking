@@ -1,7 +1,7 @@
-"""Shifts, checkout, cash settlement and exit (blueprint sections 4 and 5).
+"""Shifts, checkout, cash settlement, receipts and exit (blueprint sections 4 and 5).
 
-Global lock order: bays -> parking session -> invoice -> shift. Each write takes the subset it
-needs in that order, so no two gate transactions can wait on each other in a cycle.
+Global lock order: bays -> parking session -> invoice -> shift -> receipt counter. Each write takes
+the subset it needs in that order, so no two gate transactions can wait on each other in a cycle.
 """
 
 from dataclasses import dataclass
@@ -9,13 +9,14 @@ from datetime import datetime, timedelta
 
 from django.core import signing
 from django.db import models, transaction
-from django.db.models import OuterRef, QuerySet, Subquery, Sum
+from django.db.models import Count, OuterRef, Q, QuerySet, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework.exceptions import NotFound
 
 from config import clock
 from config.api import ApiError
 from config.transactions import conflict_on
+from modules.accounts.models import Role
 from modules.accounts.services import record_audit
 from modules.billing.models import (
     CheckoutInvoice,
@@ -23,18 +24,22 @@ from modules.billing.models import (
     InvoiceStatus,
     PaymentEntry,
     PaymentMethod,
+    PrintEvent,
+    Receipt,
     SessionStage,
     Shift,
 )
 from modules.parking import services as parking
 from modules.parking.models import ParkingSession, SessionStatus
 from modules.sites.models import Location
-from modules.sites.services import ensure_can_operate
+from modules.sites.services import ensure_can_operate, next_receipt_sequence
 from modules.sites.tariff import Fee, calculate_fee
 
 QUOTE_SALT = "bayline.billing.quote"
 QUOTE_LIFETIME = timedelta(seconds=120)
 CHECKOUT_EXISTS = ("CHECKOUT_EXISTS", "This visit already has a confirmed invoice.")
+# Roles that read every shift in the organisation; cash staff read their own.
+OVERSIGHT_ROLES = frozenset({Role.OWNER, Role.MANAGER, Role.AUDITOR})
 
 
 @dataclass(frozen=True)
@@ -43,6 +48,14 @@ class Quote:
     cutoff_at: datetime
     expires_at: datetime
     fee: Fee
+
+
+@dataclass(frozen=True)
+class ShiftSummary:
+    shift: Shift
+    capture_count: int
+    cash_captured_paisa: int
+    expected_cash_paisa: int
 
 
 @transaction.atomic
@@ -77,10 +90,90 @@ def open_shift(*, member, actor, location_id, opening_float_paisa, correlation_i
 def open_shift_for(organisation, user) -> Shift | None:
     return (
         Shift.objects.for_org(organisation)
-        .select_related("location")
+        .select_related("location", "operator")
         .filter(operator=user, closed_at__isnull=True)
         .first()
     )
+
+
+def shifts_visible_to(member) -> QuerySet[Shift]:
+    shifts = Shift.objects.for_org(member.organisation).select_related("location", "operator")
+    if OVERSIGHT_ROLES.isdisjoint(member.roles):
+        shifts = shifts.filter(operator_id=member.user_id)
+    return shifts
+
+
+def shift_summary(*, member, shift_id) -> ShiftSummary:
+    shift = shifts_visible_to(member).filter(pk=shift_id).first()
+    if shift is None:
+        raise NotFound()
+    return _summarise(shift)
+
+
+def _summarise(shift: Shift) -> ShiftSummary:
+    """Expected cash is the opening float plus every cash movement on the shift. Refunds (M6) will
+    be negative entries, so the same sum stays correct."""
+    cash = PaymentEntry.objects.filter(shift=shift, method=PaymentMethod.CASH).aggregate(
+        capture_count=Count("pk", filter=Q(kind=EntryKind.CAPTURE)),
+        captured=Coalesce(Sum("amount_paisa", filter=Q(kind=EntryKind.CAPTURE)), 0),
+        moved=Coalesce(Sum("amount_paisa"), 0),
+    )
+    expected = shift.opening_float_paisa + cash["moved"]
+    return ShiftSummary(
+        shift=shift,
+        capture_count=cash["capture_count"],
+        cash_captured_paisa=cash["captured"],
+        # A closed shift reports the summary it stored when it closed.
+        expected_cash_paisa=expected if shift.closed_at is None else shift.expected_cash_paisa,
+    )
+
+
+@transaction.atomic
+def close_shift(*, member, actor, shift_id, counted_cash_paisa, correlation_id) -> ShiftSummary:
+    """Takes the shift lock that cash capture takes after the invoice lock, so a capture either
+    commits first and is counted, or waits and then finds the shift closed (P15)."""
+    shift = (
+        Shift.objects.for_org(member.organisation)
+        .select_related("location", "operator")
+        .select_for_update(of=("self",))
+        .filter(pk=shift_id)
+        .first()
+    )
+    if shift is None:
+        raise NotFound()
+    if shift.operator_id != actor.pk:
+        raise ApiError(403, "SHIFT_NOT_YOURS", "Only the person who opened a shift can close it.")
+    if shift.closed_at is not None:
+        raise ApiError(409, "SHIFT_CLOSED", "This shift is already closed.")
+    ensure_can_operate(member, shift.location)
+    expected = _summarise(shift).expected_cash_paisa
+    shift.closed_at = clock.now()
+    shift.closed_by = actor
+    shift.counted_cash_paisa = counted_cash_paisa
+    shift.expected_cash_paisa = expected
+    shift.variance_paisa = counted_cash_paisa - expected
+    shift.save(
+        update_fields=[
+            "closed_at",
+            "closed_by",
+            "counted_cash_paisa",
+            "expected_cash_paisa",
+            "variance_paisa",
+        ]
+    )
+    record_audit(
+        organisation=member.organisation,
+        actor=actor,
+        action="shift.closed",
+        entity=shift,
+        summary={
+            "expected_cash_paisa": expected,
+            "counted_cash_paisa": counted_cash_paisa,
+            "variance_paisa": shift.variance_paisa,
+        },
+        correlation_id=correlation_id,
+    )
+    return _summarise(shift)
 
 
 def quote_checkout(*, member, session_id) -> Quote:
@@ -167,7 +260,7 @@ def _read_quote(token: str, session: ParkingSession) -> tuple[datetime, int]:
 
 @transaction.atomic
 def capture_cash(*, member, actor, invoice_id, amount_paisa, correlation_id) -> PaymentEntry:
-    # Needs neither bay nor session: invoice, then shift, in global lock order.
+    # Needs neither bay nor session: invoice, then shift, then receipt counter.
     invoice = (
         CheckoutInvoice.objects.for_org(member.organisation)
         .select_related("session__location")
@@ -186,6 +279,8 @@ def capture_cash(*, member, actor, invoice_id, amount_paisa, correlation_id) -> 
         raise ApiError(
             409, "AMOUNT_MISMATCH", f"The amount due is {due} paisa. Refresh and try again."
         )
+    # A shift closing concurrently holds this row lock; once it commits, the row no longer matches
+    # `closed_at IS NULL` and the capture is refused rather than landing on a closed shift.
     shift = (
         Shift.objects.for_org(member.organisation)
         .select_for_update()
@@ -205,15 +300,87 @@ def capture_cash(*, member, actor, invoice_id, amount_paisa, correlation_id) -> 
         amount_paisa=amount_paisa,
         received_by=actor,
     )
+    sequence = next_receipt_sequence(location)
+    receipt = Receipt.objects.create(
+        organisation_id=invoice.organisation_id,
+        location=location,
+        invoice=invoice,
+        payment=entry,
+        sequence=sequence,
+        number=f"{location.receipt_prefix}-{sequence:06d}",
+        issued_by=actor,
+        issued_at=entry.created_at,
+    )
     record_audit(
         organisation=member.organisation,
         actor=actor,
         action="payment.captured",
         entity=entry,
-        summary={"invoice_id": str(invoice.pk), "method": entry.method, "amount_paisa": due},
+        summary={
+            "invoice_id": str(invoice.pk),
+            "method": entry.method,
+            "amount_paisa": due,
+            "receipt_number": receipt.number,
+        },
         correlation_id=correlation_id,
     )
     return entry
+
+
+def receipt_detail(*, member, receipt_id) -> Receipt:
+    receipt = (
+        Receipt.objects.for_org(member.organisation)
+        .select_related(
+            "organisation",
+            "location",
+            "invoice__session__vehicle",
+            "invoice__session__bay",
+            "payment",
+            "issued_by",
+        )
+        .annotate(printed_copies=Count("print_events"))
+        .filter(pk=receipt_id)
+        .first()
+    )
+    if receipt is None:
+        raise NotFound()
+    return receipt
+
+
+@transaction.atomic
+def record_print(*, member, actor, receipt_id, printer_path, correlation_id) -> PrintEvent:
+    """Logs a print request under the receipt row lock, so copies number 1, 2, 3 without gaps.
+    A reprint never issues a new receipt number (P17)."""
+    receipt = (
+        Receipt.objects.for_org(member.organisation)
+        .select_related("location")
+        .select_for_update(of=("self",))
+        .filter(pk=receipt_id)
+        .first()
+    )
+    if receipt is None:
+        raise NotFound()
+    ensure_can_operate(member, receipt.location)
+    event = PrintEvent.objects.create(
+        organisation_id=receipt.organisation_id,
+        receipt=receipt,
+        copy_number=PrintEvent.objects.filter(receipt=receipt).count() + 1,
+        printer_path=printer_path,
+        requested_by=actor,
+    )
+    record_audit(
+        organisation=member.organisation,
+        actor=actor,
+        action="receipt.print_requested",
+        entity=event,
+        summary={
+            "receipt_number": receipt.number,
+            "copy_number": event.copy_number,
+            "printer_path": printer_path,
+        },
+        correlation_id=correlation_id,
+    )
+    return event
 
 
 @transaction.atomic

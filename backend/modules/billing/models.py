@@ -9,8 +9,16 @@ from modules.parking.models import ParkingSession
 from modules.sites.models import Location, TariffVersion
 
 
+class ShiftStatus(models.TextChoices):
+    """Derived from `closed_at`; never stored."""
+
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+
+
 class Shift(models.Model):
-    """Cash accountability. M2 opens shifts; closing, counted cash and variance arrive in M3."""
+    """Cash accountability. Closing stores the counted, expected and variance summary; the row is
+    immutable from then on (database trigger)."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
@@ -19,6 +27,10 @@ class Shift(models.Model):
     opening_float_paisa = models.PositiveIntegerField()
     opened_at = models.DateTimeField()
     closed_at = models.DateTimeField(null=True)
+    closed_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, related_name="+")
+    counted_cash_paisa = models.PositiveIntegerField(null=True)
+    expected_cash_paisa = models.IntegerField(null=True)
+    variance_paisa = models.IntegerField(null=True)
     created_at = models.DateTimeField(default=clock.now, editable=False)
 
     objects = OrgScopedQuerySet.as_manager()
@@ -32,6 +44,26 @@ class Shift(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["id", "organisation"], name="shift_id_organisation_unique"
+            ),
+            # Every column is tested for NULL explicitly: a CHECK that evaluates to NULL passes.
+            models.CheckConstraint(
+                condition=Q(
+                    closed_at__isnull=True,
+                    closed_by__isnull=True,
+                    counted_cash_paisa__isnull=True,
+                    expected_cash_paisa__isnull=True,
+                    variance_paisa__isnull=True,
+                )
+                | Q(
+                    closed_at__isnull=False,
+                    closed_at__gte=F("opened_at"),
+                    closed_by__isnull=False,
+                    counted_cash_paisa__isnull=False,
+                    expected_cash_paisa__isnull=False,
+                    variance_paisa__isnull=False,
+                    variance_paisa=F("counted_cash_paisa") - F("expected_cash_paisa"),
+                ),
+                name="shift_close_summary_complete",
             ),
         ]
 
@@ -113,6 +145,62 @@ class PaymentEntry(models.Model):
                 condition=Q(method=PaymentMethod.CASH, shift__isnull=False)
                 | (~Q(method=PaymentMethod.CASH) & Q(shift__isnull=True)),
                 name="entry_shift_exactly_for_cash",
+            ),
+        ]
+
+
+class Receipt(models.Model):
+    """Immutable (database trigger). One per capture, numbered from the location's counter inside
+    the capture transaction, so a rolled-back capture never uses up a number."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="+")
+    invoice = models.ForeignKey(CheckoutInvoice, on_delete=models.PROTECT, related_name="receipts")
+    payment = models.OneToOneField(PaymentEntry, on_delete=models.PROTECT, related_name="receipt")
+    sequence = models.PositiveIntegerField()
+    number = models.CharField(max_length=24)
+    issued_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    issued_at = models.DateTimeField()
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["location", "sequence"], name="receipt_sequence_unique"
+            ),
+            models.UniqueConstraint(
+                fields=["id", "organisation"], name="receipt_id_organisation_unique"
+            ),
+        ]
+
+
+class PrinterPath(models.TextChoices):
+    BROWSER = "BROWSER"
+    ANDROID_POS = "ANDROID_POS"
+
+
+class PrintEvent(models.Model):
+    """A requested print, not proof that paper came out (blueprint section 6). Append-only; copy 1
+    is the original and later copies reprint the same receipt number."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    receipt = models.ForeignKey(Receipt, on_delete=models.PROTECT, related_name="print_events")
+    copy_number = models.PositiveIntegerField()
+    printer_path = models.CharField(max_length=16, choices=PrinterPath.choices)
+    requested_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["receipt", "copy_number"], name="print_copy_unique"),
+            models.CheckConstraint(
+                condition=Q(copy_number__gte=1, printer_path__in=PrinterPath.values),
+                name="print_event_valid",
             ),
         ]
 
