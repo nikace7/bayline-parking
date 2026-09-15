@@ -4,9 +4,11 @@ from io import StringIO
 import pytest
 from django.core.management import CommandError, call_command
 
-from modules.accounts.models import Organisation, OrgMember
+from modules.accounts.models import Customer, Organisation, OrgMember
 from modules.billing import services as billing
 from modules.billing.models import Receipt, SessionStage, Shift
+from modules.parking import reservations
+from modules.parking.models import Reservation, ReservationStatus
 from modules.sites.models import Bay, BayMode, Location, LocationAssignment, TariffVersion
 
 pytestmark = pytest.mark.django_db
@@ -47,8 +49,19 @@ def test_seed_builds_demo_data_once(monkeypatch):
         SessionStage.EXITED: 3,
         SessionStage.EXIT_READY: 1,
         SessionStage.CHECKOUT_PENDING: 1,
-        SessionStage.PARKED: 3,
+        # Four walk-ins from the cash day and one reserved vehicle overstaying its booking.
+        SessionStage.PARKED: 4,
     }
+    # Reservations: the overstay flags the next booking for that bay, and a missed arrival is swept.
+    assert Customer.objects.count() == 2
+    assert Counter(Reservation.objects.values_list("status", flat=True)) == {
+        ReservationStatus.CHECKED_IN: 1,
+        ReservationStatus.CONFIRMED: 1,
+        ReservationStatus.NO_SHOW: 1,
+    }
+    operator = OrgMember.objects.get(user__email="operator@northgate.test")
+    waiting = reservations.staff_reservations(operator).get(status=ReservationStatus.CONFIRMED)
+    assert waiting.overstay_conflict
 
 
 def test_seed_requires_a_demo_password(monkeypatch):
