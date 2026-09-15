@@ -14,6 +14,19 @@ def role_list(**kwargs) -> serializers.ListField:
     )
 
 
+class CustomerRegisterSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=120)
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField(max_length=128, write_only=True)
+
+    def validate(self, attrs):
+        try:
+            validate_password(attrs["password"], User(email=attrs["email"], name=attrs["name"]))
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
+
+
 class RegisterSerializer(serializers.Serializer):
     organisation_name = serializers.CharField(max_length=120)
     name = serializers.CharField(max_length=120)
