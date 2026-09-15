@@ -22,13 +22,14 @@ import {
 	useVisit,
 	type Visit,
 } from "../app/gate";
+import { useStaffReservations } from "../app/reservations";
 import { Button } from "../components/Button";
 import { FormAlert } from "../components/Page";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa, parseRupees } from "../lib/money";
-import { formatClock, formatDuration } from "../lib/time";
+import { formatClock, formatDuration, todayIn } from "../lib/time";
 
 const STAGE: Record<Visit["stage"], { tone: Tone; label: string }> = {
 	PARKED: { tone: "occupied", label: "Parked" },
@@ -128,13 +129,6 @@ export function EntryPanel({
 	// Scanner input lands in the plate field as soon as a free bay is chosen.
 	useEffect(() => plateInput.current?.focus(), []);
 
-	if (bay.mode !== "WALK_IN") {
-		return (
-			<PanelNote title={`Bay ${bay.label}`}>
-				This bay is kept for reservations.
-			</PanelNote>
-		);
-	}
 	if (bay.state !== "ACTIVE") {
 		return (
 			<PanelNote title={`Bay ${bay.label}`}>
@@ -173,6 +167,109 @@ export function EntryPanel({
 			/>
 			<Button type="submit" pending={admit.isPending} disabled={!plate.trim()}>
 				Confirm entry
+			</Button>
+		</form>
+	);
+}
+
+/**
+ * A reservable bay admits only the reservation whose arrival window is open. Windows on one bay
+ * never overlap (bookings last at least 30 minutes), so at most one reservation is due. The
+ * server rechecks the window, the plate and any overstaying vehicle.
+ */
+export function ArrivalPanel({
+	bay,
+	location,
+}: {
+	bay: Bay;
+	location: Location;
+}) {
+	const zone = location.timezone;
+	const reservations = useStaffReservations({
+		locationId: location.id,
+		date: todayIn(zone),
+	});
+	const admit = useAdmit();
+	const [plate, setPlate] = useState("");
+	const plateInput = useRef<HTMLInputElement>(null);
+
+	useEffect(() => plateInput.current?.focus(), []);
+
+	if (bay.state !== "ACTIVE") {
+		return (
+			<PanelNote title={`Bay ${bay.label}`}>
+				This bay is out of service.
+			</PanelNote>
+		);
+	}
+	if (reservations.isPending) {
+		return <p className="text-ink-muted">Loading reservations…</p>;
+	}
+	if (reservations.isError) {
+		return <FormAlert>{errorMessage(reservations.error)}</FormAlert>;
+	}
+
+	const now = Date.now();
+	const waiting = reservations.data.filter(
+		(item) => item.bayId === bay.id && item.status === "CONFIRMED",
+	);
+	const due = waiting.find(
+		(item) =>
+			Date.parse(item.arrivalOpensAt) <= now &&
+			now <= Date.parse(item.arrivalClosesAt),
+	);
+	if (!due) {
+		const next = waiting.find((item) => Date.parse(item.arrivalOpensAt) > now);
+		return (
+			<PanelNote title={`Bay ${bay.label}`}>
+				{next
+					? `Kept for reservation ${next.reference}. Check-in opens at ${formatClock(next.arrivalOpensAt, zone)}.`
+					: "This bay is kept for reservations. None is due to arrive now."}
+			</PanelNote>
+		);
+	}
+	const reservation = due;
+
+	function onSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		admit.mutate({
+			locationId: location.id,
+			bayId: bay.id,
+			plate,
+			vehicleClass: bay.vehicleClass,
+			reservationId: reservation.id,
+		});
+	}
+
+	return (
+		<form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+			<div>
+				<h2 className="text-section font-semibold">
+					Check in to bay {bay.label}
+				</h2>
+				<p className="text-dense text-ink-muted">
+					Reservation <span className="font-mono">{reservation.reference}</span>{" "}
+					· {reservation.customerName} ·{" "}
+					{formatClock(reservation.startsAt, zone)}–
+					{formatClock(reservation.endsAt, zone)}
+				</p>
+				<p className="text-dense">
+					Expected plate{" "}
+					<span className="font-medium">{reservation.plate}</span>
+				</p>
+			</div>
+			{admit.isError && <FormAlert>{errorMessage(admit.error)}</FormAlert>}
+			<TextField
+				ref={plateInput}
+				label="Plate"
+				autoComplete="off"
+				maxLength={16}
+				hint="Type or scan the plate on the vehicle."
+				value={plate}
+				onChange={(event) => setPlate(event.target.value)}
+			/>
+			<Button type="submit" pending={admit.isPending} disabled={!plate.trim()}>
+				Confirm check-in
 			</Button>
 		</form>
 	);
