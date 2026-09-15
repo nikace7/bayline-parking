@@ -17,6 +17,7 @@ from modules.accounts import services as accounts
 from modules.accounts.models import OrgMember, Role, User
 from modules.billing import services as billing
 from modules.billing.models import Shift
+from modules.parking import reservations
 from modules.parking import services as parking
 from modules.sites import services as sites
 from modules.sites.models import Bay, BayMode, Location, LocationAssignment, VehicleClass
@@ -88,6 +89,61 @@ class Command(BaseCommand):
             self.stdout.write(
                 "Added a North Gate Central cash day: 8 visits, 2 shifts, 4 receipts."
             )
+        if self._seed_reservations(password):
+            self.stdout.write(
+                "Added 2 customer accounts and 3 reservations, one waiting on an overstay."
+            )
+
+    @transaction.atomic
+    def _seed_reservations(self, password) -> bool:
+        """Two customers' bookings at North Gate Central on the fixture clock: a vehicle still
+        parked after its reservation ended, the next booking for that bay flagged as a conflict to
+        relocate, and a missed arrival swept to no-show. Runs once, also on databases seeded
+        before M4."""
+        if User.objects.filter(email="asha@customer.test").exists():
+            return False
+        staff = OrgMember.objects.select_related("organisation", "user")
+        operator = staff.filter(user__email="operator@northgate.test").first()
+        if operator is None:
+            return False
+        location = Location.objects.for_org(operator.organisation).get(receipt_prefix="NGC")
+        asha, bina = (
+            accounts.register_customer(name=name, email=email, password=password)
+            for name, email in (("Asha", "asha@customer.test"), ("Bina", "bina@customer.test"))
+        )
+        now = clock.now().replace(second=0, microsecond=0)
+        tag = {"correlation_id": CORRELATION_ID}
+
+        def book(user, plate, starts_at):
+            with clock.frozen(now - timedelta(minutes=150)):
+                held = reservations.hold_reservation(
+                    user=user,
+                    location_id=location.pk,
+                    vehicle_class=VehicleClass.CAR,
+                    plate=plate,
+                    starts_at=starts_at,
+                    ends_at=starts_at + timedelta(hours=1),
+                    **tag,
+                )
+                return reservations.confirm_reservation(user=user, reservation_id=held.pk, **tag)
+
+        # Bays go to the first free one, so Asha and Bina's upcoming booking share a bay.
+        overstaying = book(asha, "BA 8 PA 8008", now - timedelta(minutes=90))
+        book(bina, "बा ९ च ९००९", now - timedelta(minutes=120))  # never arrives
+        book(bina, "बा ९ च ९००९", now + timedelta(minutes=20))
+        with clock.frozen(overstaying.arrival_opens_at + timedelta(minutes=5)):
+            parking.admit_vehicle(
+                member=operator,
+                actor=operator.user,
+                location_id=location.pk,
+                bay_id=overstaying.bay_id,
+                plate="BA 8 PA 8008",
+                vehicle_class=VehicleClass.CAR,
+                reservation_id=overstaying.pk,
+                **tag,
+            )
+        reservations.sweep_elapsed(now)
+        return True
 
     def _assign_gate_staff(self) -> int:
         """Operators and cashiers act only at assigned locations. Idempotent, so databases seeded
