@@ -1,5 +1,63 @@
 # Progress
 
+## Design system update — built, audit half done (15 September 2026)
+
+Branch `feat/design-system`, stacked on `feat/m4-reservations`. The user asked for a deliberate, professional look with no generic template styling. The web app now follows the IBM Design Language family (D51–D54):
+- IBM Plex type and Carbon icons;
+- flat surfaces with 1px borders;
+- one cool grey family and one teal brand colour, with other colours only for state.
+
+### Delivered
+
+- **Colour (D52):**
+  - A cool neutral palette replaces the warm beige set: `canvas` #F2F4F3, `inset` #E8EDEB, `control` #6B7D78.
+  - A new `line` token (#D3DCD8) draws panel, table and divider borders. They used `inset` before, at 1.05:1 against the page.
+  - `src/lib/contrast.test.ts` reads the tokens from `styles.css`. It fails if a text pair drops below 4.5:1 or a control border below 3:1.
+- **Type (D53):**
+  - Nepali text uses IBM Plex Sans Devanagari, downloaded only for Devanagari characters.
+  - Plex Mono loads a real 600 weight, so plates and references are no longer synthesised bold.
+  - Noto is removed from the web app. PDF reports keep their committed Noto fonts (D38).
+- **Icons (D54):**
+  - 18 Carbon glyphs are copied into `components/icons.tsx`, with IBM's Apache-2.0 licence beside them.
+  - Both Carbon npm packages run a telemetry postinstall script, so none is installed. Lucide is removed.
+  - The logo is a typographic "P" mark, and the button spinner is CSS.
+- **Gate:**
+  - The occupancy strip shows parked and free walk-in counts at the 40px count size.
+  - A reservable bay shows "Reserved" while a confirmed booking's arrival window is open. `dueReservation` makes that check and is shared with the arrival panel.
+  - Empty states are left-aligned panels with a next step, not a centred icon.
+- **Gallery:** `/gallery` shows the palette, the three typefaces with a Devanagari sample, and every icon.
+
+### Verification (actual runs, Windows 11)
+
+| Check | Command | Result |
+|---|---|---|
+| Frontend unit | `pnpm test:unit` | 61 passed in 13 files (adds 20 contrast pairs and the arrival-window helper) |
+| Backend unit | `pnpm test:unit` | 36 passed (unchanged) |
+| Lint | `pnpm lint` | Biome: 52 files, no issues. Ruff: all checks passed, 84 files formatted |
+| Typecheck | `pnpm typecheck` | No errors |
+| Build | `pnpm build` | JS 437.63 kB (131.67 kB gzip), was 435.77 kB. CSS 44.02 kB (13.58 kB gzip), was 29.24 kB. The extra CSS is `@font-face` rules for the new weights and scripts; a font file downloads only when a page uses its unicode range |
+| Dependencies | grep across `apps/web` and `pnpm-lock.yaml` | No `lucide` or `noto-sans-devanagari` left |
+| Browser, public pages | `pnpm dev`, computed styles and `document.fonts` | Page background `rgb(242, 244, 243)`, secondary button border `rgb(107, 125, 120)`, panel border `rgb(211, 220, 216)`. Plex Sans Devanagari 500 and Plex Mono 400 and 600 loaded, with no Noto faces. At 360px, `/park`, `/login`, `/register`, `/account/register`, `/gallery` and the 404 page do not scroll sideways |
+
+Backend integration tests were not rerun. This branch changes no backend code since the M4 run, which passed 77.
+
+### Found during the design update
+
+- Vitest blanks CSS imports even with `?raw`, so the contrast test first failed on a missing token. `test.css.include` in `vite.config.ts` now lets `styles.css` through.
+- `@carbon/icons` and `@carbon/icons-react` both depend on `@ibm/telemetry-js` and run it at install, so the glyphs are vendored instead (D54).
+- Vite's HMR websocket fails when the browser opens `localhost` while the dev server listens on `127.0.0.1`. Reload to see changes.
+- The first token edit missed the control colour and the font stacks. Computed styles in the browser caught it.
+
+### Not verified / known limitations
+
+- **Signed-in screens not checked visually** at 360, 768 or 1280px: `/operations` with its panels, `/reservations`, `/shifts`, `/reports`, a receipt, `/settings/sites`, `/settings/staff`, `/account/reservations` and its detail. No page had a 768px pass. The agent cannot type passwords; the user can sign in in the Browser pane to continue the audit.
+- **Structural gaps left for M8:**
+  - mobile tabs for Entry, Find vehicle, Reservations and Shift;
+  - a navigation rail from 768 to 1199px;
+  - a top bar with location, shift and connectivity.
+- **PDF reports** still use Noto Sans Devanagari.
+- **Biome** still does not lint `styles.css`; the contrast test guards only the colour tokens.
+
 ## M4 Reservations — built and verified (15 September 2026)
 
 Branch `feat/m4-reservations`. Adds customer bookings on reservable bays: find a location, hold and confirm a bay, check in at the gate, and handle no-shows and overstays by relocating the next booking. An independent code review covered:
