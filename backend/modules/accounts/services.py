@@ -3,7 +3,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.exceptions import NotFound
 
 from config.api import ApiError
-from modules.accounts.models import AuditEvent, Organisation, OrgMember, Role, User
+from modules.accounts.models import AuditEvent, Customer, Organisation, OrgMember, Role, User
 
 
 def record_audit(*, organisation, actor, action, entity, summary, correlation_id) -> AuditEvent:
@@ -74,6 +74,25 @@ def add_member(*, organisation, actor, email, name, password, roles, correlation
         correlation_id=correlation_id,
     )
     return member
+
+
+@transaction.atomic
+def register_customer(*, name, email, password) -> User:
+    """A global account for booking parking. Organisation profiles are created on first booking."""
+    return _create_user(
+        email=email,
+        password=password,
+        name=name,
+        conflict_message="An account with this email already exists. Sign in instead.",
+    )
+
+
+def customer_profile(*, organisation, user) -> Customer:
+    """The user's profile in this organisation, created on their first booking there."""
+    customer, _ = Customer.objects.get_or_create(
+        organisation=organisation, user=user, defaults={"name": user.name}
+    )
+    return customer
 
 
 def _is_enabled_owner(member: OrgMember) -> bool:
