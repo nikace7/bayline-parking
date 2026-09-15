@@ -37,6 +37,21 @@ services:
       timeout: 5s
       retries: 20
 
+  worker:
+    build:
+      context: ../backend
+    command: ["python", "manage.py", "worker"]
+    environment:
+      APP_ORIGIN: ${APP_ORIGIN}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "false"
+      DATABASE_URL: postgres://bayline:${POSTGRES_PASSWORD}@db:5432/bayline
+      LOCATION_TIMEZONE: ${LOCATION_TIMEZONE}
+    depends_on:
+      # The api container applies migrations on start.
+      api:
+        condition: service_healthy
+
   gateway:
     build:
       context: ..
