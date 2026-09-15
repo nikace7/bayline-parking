@@ -1,10 +1,10 @@
 import {
-	Bike,
-	CalendarClock,
 	Car,
-	CircleCheck,
-	TriangleAlert,
-} from "lucide-react";
+	CheckmarkOutline,
+	EventSchedule,
+	Scooter,
+	WarningAlt,
+} from "./icons";
 
 export type BayState = "available" | "occupied" | "reserved" | "outOfService";
 export type VehicleClass = "CAR" | "MOTORBIKE";
@@ -12,7 +12,7 @@ export type VehicleClass = "CAR" | "MOTORBIKE";
 const states = {
 	available: {
 		word: "Available",
-		Icon: CircleCheck,
+		Icon: CheckmarkOutline,
 		className: "border-available bg-available-bg text-available",
 	},
 	occupied: {
@@ -22,19 +22,19 @@ const states = {
 	},
 	reserved: {
 		word: "Reserved",
-		Icon: CalendarClock,
+		Icon: EventSchedule,
 		className: "border-control bg-inset text-ink",
 	},
 	outOfService: {
 		word: "Out of service",
-		Icon: TriangleAlert,
+		Icon: WarningAlt,
 		className: "border-warning bg-warning-bg text-warning",
 	},
 } as const;
 
 const classes = {
 	CAR: { word: "car", Icon: Car },
-	MOTORBIKE: { word: "motorbike", Icon: Bike },
+	MOTORBIKE: { word: "motorbike", Icon: Scooter },
 } as const;
 
 type BayTileProps = {
@@ -75,13 +75,13 @@ export function BayTile({
 			className={`flex h-24 w-28 flex-col justify-between rounded-panel border p-2 text-left transition-colors duration-120 hover:brightness-95 ${className} ${selected ? "ring-2 ring-brand ring-offset-2" : ""}`}
 		>
 			<span className="flex items-center justify-between">
-				<span className="font-mono text-dense font-medium text-ink">
+				<span className="font-mono text-dense font-semibold text-ink">
 					{label}
 				</span>
-				<ClassIcon aria-hidden className="size-4 text-ink-muted" />
+				<ClassIcon className="size-4 text-ink-muted" />
 			</span>
 			<span className="flex items-center gap-1 text-meta font-medium">
-				<Icon aria-hidden className="size-3.5" />
+				<Icon className="size-3.5" />
 				{word}
 			</span>
 			<span className="text-meta tabular-nums text-ink-muted">

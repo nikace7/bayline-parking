@@ -135,7 +135,7 @@ function CloseShiftForm({
 	}
 
 	return (
-		<div className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-4">
+		<div className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4">
 			<p className="text-dense text-ink-muted">
 				{`${shift.locationName} · opened ${formatDateTime(shift.openedAt, timeZone)}`}
 			</p>

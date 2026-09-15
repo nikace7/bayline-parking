@@ -1,5 +1,5 @@
-import { CircleAlert, SquareParking } from "lucide-react";
 import type { ReactNode } from "react";
+import { BaylineMark, ErrorFilled } from "./icons";
 
 export function AuthLayout({
 	title,
@@ -10,9 +10,9 @@ export function AuthLayout({
 }) {
 	return (
 		<main className="flex min-h-dvh items-center justify-center p-4">
-			<div className="w-full max-w-md rounded-panel border border-inset bg-surface p-6 md:p-8">
+			<div className="w-full max-w-md rounded-panel border border-line bg-surface p-6 md:p-8">
 				<p className="mb-6 flex items-center gap-2 font-semibold text-brand">
-					<SquareParking aria-hidden className="size-6" />
+					<BaylineMark />
 					Bayline
 				</p>
 				<h1 className="mb-6 text-page font-semibold">{title}</h1>
@@ -28,7 +28,7 @@ export function FormAlert({ children }: { children: ReactNode }) {
 			role="alert"
 			className="flex items-start gap-2 rounded-control bg-error-bg p-3 text-dense text-error"
 		>
-			<CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+			<ErrorFilled className="mt-0.5 size-4 shrink-0" />
 			<span>{children}</span>
 		</div>
 	);

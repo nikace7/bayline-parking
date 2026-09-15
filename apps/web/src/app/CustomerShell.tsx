@@ -1,12 +1,12 @@
-import {
-	CalendarClock,
-	LogIn,
-	LogOut,
-	MapPin,
-	SquareParking,
-} from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "../components/Button";
+import {
+	BaylineMark,
+	EventSchedule,
+	Location,
+	Login,
+	Logout,
+} from "../components/icons";
 import { useSession, useSignOut } from "./session";
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -26,13 +26,13 @@ export function CustomerShell() {
 
 	return (
 		<div className="min-h-dvh">
-			<header className="border-b border-inset bg-surface">
+			<header className="border-b border-line bg-surface">
 				<div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2">
 					<Link
 						to="/park"
 						className="flex min-h-11 items-center gap-2 font-semibold text-brand"
 					>
-						<SquareParking aria-hidden className="size-6" />
+						<BaylineMark />
 						Bayline
 					</Link>
 					<nav
@@ -40,12 +40,12 @@ export function CustomerShell() {
 						className="flex flex-wrap items-center gap-1"
 					>
 						<NavLink to="/park" className={linkClass}>
-							<MapPin aria-hidden className="size-4" />
+							<Location className="size-4" />
 							Find parking
 						</NavLink>
 						{user && (
 							<NavLink to="/account/reservations" className={linkClass}>
-								<CalendarClock aria-hidden className="size-4" />
+								<EventSchedule className="size-4" />
 								My reservations
 							</NavLink>
 						)}
@@ -59,12 +59,12 @@ export function CustomerShell() {
 									})
 								}
 							>
-								<LogOut aria-hidden className="size-4" />
+								<Logout className="size-4" />
 								Sign out
 							</Button>
 						) : (
 							<NavLink to="/login" className={linkClass}>
-								<LogIn aria-hidden className="size-4" />
+								<Login className="size-4" />
 								Sign in
 							</NavLink>
 						)}

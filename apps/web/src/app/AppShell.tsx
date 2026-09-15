@@ -1,33 +1,33 @@
-import {
-	CalendarClock,
-	FileText,
-	LayoutGrid,
-	LogOut,
-	MapPin,
-	Palette,
-	SquareParking,
-	Users,
-	Wallet,
-} from "lucide-react";
 import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "../components/Button";
+import {
+	BaylineMark,
+	ColorPalette,
+	EventSchedule,
+	Grid,
+	Location,
+	Logout,
+	Report,
+	UserMultiple,
+	Wallet,
+} from "../components/icons";
 import { FullPageMessage } from "../components/Page";
 import { useSession, useSignOut, useSwitchOrganisation } from "./session";
 
 // The four `mobile` entries fill the bottom bar below 768px.
 const NAV = [
-	{ to: "/operations", label: "Operations", Icon: LayoutGrid, mobile: true },
+	{ to: "/operations", label: "Operations", Icon: Grid, mobile: true },
 	{
 		to: "/reservations",
 		label: "Reservations",
-		Icon: CalendarClock,
+		Icon: EventSchedule,
 		mobile: true,
 	},
 	{ to: "/shifts", label: "Shifts", Icon: Wallet, mobile: true },
-	{ to: "/reports", label: "Reports", Icon: FileText, mobile: true },
-	{ to: "/settings/sites", label: "Sites", Icon: MapPin, mobile: false },
-	{ to: "/settings/staff", label: "Staff", Icon: Users, mobile: false },
-	{ to: "/gallery", label: "UI gallery", Icon: Palette, mobile: false },
+	{ to: "/reports", label: "Reports", Icon: Report, mobile: true },
+	{ to: "/settings/sites", label: "Sites", Icon: Location, mobile: false },
+	{ to: "/settings/staff", label: "Staff", Icon: UserMultiple, mobile: false },
+	{ to: "/gallery", label: "UI gallery", Icon: ColorPalette, mobile: false },
 ];
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -92,17 +92,17 @@ export function AppShell() {
 			<nav
 				aria-label="Main"
 				data-print="hide"
-				className="hidden border-r border-inset bg-surface md:block"
+				className="hidden border-r border-line bg-surface md:block"
 			>
 				<p className="flex h-16 items-center gap-2 px-4 font-semibold text-brand">
-					<SquareParking aria-hidden className="size-6" />
+					<BaylineMark />
 					Bayline
 				</p>
 				<ul className="flex flex-col gap-1 p-2">
 					{NAV.map(({ to, label, Icon }) => (
 						<li key={to}>
 							<NavLink to={to} className={navClass}>
-								<Icon aria-hidden className="size-5" />
+								<Icon className="size-5" />
 								{label}
 							</NavLink>
 						</li>
@@ -113,7 +113,7 @@ export function AppShell() {
 			<div data-print="bare" className="flex min-w-0 flex-col pb-16 md:pb-0">
 				<header
 					data-print="hide"
-					className="flex h-16 items-center justify-between gap-3 border-b border-inset bg-surface px-4"
+					className="flex h-16 items-center justify-between gap-3 border-b border-line bg-surface px-4"
 				>
 					<label className="flex min-w-0 items-center gap-2 text-dense">
 						<span className="hidden text-ink-muted sm:inline">
@@ -147,7 +147,7 @@ export function AppShell() {
 							pending={signOut.isPending}
 							onClick={handleSignOut}
 						>
-							<LogOut aria-hidden className="size-4" />
+							<Logout className="size-4" />
 							Sign out
 						</Button>
 					</div>
@@ -161,7 +161,7 @@ export function AppShell() {
 			<nav
 				aria-label="Main"
 				data-print="hide"
-				className="fixed inset-x-0 bottom-0 border-t border-inset bg-surface md:hidden"
+				className="fixed inset-x-0 bottom-0 border-t border-line bg-surface md:hidden"
 			>
 				<ul className="grid grid-cols-4">
 					{NAV.filter((item) => item.mobile).map(({ to, label, Icon }) => (
@@ -174,7 +174,7 @@ export function AppShell() {
 									}`
 								}
 							>
-								<Icon aria-hidden className="size-5" />
+								<Icon className="size-5" />
 								{label}
 							</NavLink>
 						</li>
