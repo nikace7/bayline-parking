@@ -2,15 +2,18 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from config import clock
-from config.api import CursorPage
+from config.api import ApiError, CursorPage
 from modules.accounts.models import Role
 from modules.accounts.permissions import current_member, ensure_roles, require_roles
+from modules.parking import services as parking
 from modules.sites import services
 from modules.sites.models import Bay, Location
 from modules.sites.serializers import (
     BaySerializer,
+    BayUpdateSerializer,
     LocationSerializer,
     TariffPublishSerializer,
     TariffVersionSerializer,
@@ -75,6 +78,31 @@ class BayListView(ListAPIView):
             **serializer.validated_data,
         )
         return Response(BaySerializer(bay).data, status=201)
+
+
+class BayDetailView(APIView):
+    permission_classes = [AnyMember]
+
+    @extend_schema(request=BayUpdateSerializer, responses=BaySerializer)
+    def patch(self, request, location_id, bay_id):
+        location = _scoped_location(request, location_id)
+        ensure_roles(current_member(request), *SETUP_ROLES)
+        serializer = BayUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        if "expected_revision" not in data:
+            raise ApiError(428, "PRECONDITION_REQUIRED", "Send expectedRevision with this change.")
+        # Occupancy and reservations live in parking, which owns the guard and the bay lock.
+        bay = parking.change_bay(
+            location=location,
+            actor=request.user,
+            bay_id=bay_id,
+            expected_revision=data["expected_revision"],
+            mode=data.get("mode"),
+            state=data.get("state"),
+            correlation_id=request.request_id,
+        )
+        return Response(BaySerializer(bay).data)
 
 
 class TariffListView(ListAPIView):

@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     "rest_framework",
     "drf_spectacular",
-    "config",  # Cross-module management commands (seed_demo); no models.
+    "config",  # Cross-module management commands (seed_demo, worker); no models.
     "modules.accounts",
     "modules.sites",
     "modules.parking",
@@ -88,7 +88,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "config.api.exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"auth": "10/minute"},
+    # Public discovery is anonymous; holds claim capacity, so they are limited per account too.
+    "DEFAULT_THROTTLE_RATES": {
+        "auth": "10/minute",
+        "public": "120/minute",
+        "reservations": "30/minute",
+    },
     # Throttles key on client IP. 0 = socket address only (native dev); Compose sets 1 because
     # Caddy replaces any X-Forwarded-For sent by the client with the real address.
     "NUM_PROXIES": int(env("TRUSTED_PROXY_COUNT", "0")),
@@ -107,6 +112,7 @@ SPECTACULAR_SETTINGS = {
         "BayStateEnum": "modules.sites.models.BayState",
         "TariffStatusEnum": "modules.sites.models.TariffStatus",
         "SessionStatusEnum": "modules.parking.models.SessionStatus",
+        "ReservationStatusEnum": "modules.parking.models.ReservationStatus",
         "SessionStageEnum": "modules.billing.models.SessionStage",
         "InvoiceStatusEnum": "modules.billing.models.InvoiceStatus",
         "PaymentMethodEnum": "modules.billing.models.PaymentMethod",
