@@ -20,6 +20,20 @@ export function formatElapsed(fromIso: string, nowMs: number): string {
 	return hours ? `${hours}h ${pad(minutes % 60)}m` : `${minutes}m`;
 }
 
+/** Date and time in the location's time zone, for shift and report rows. */
+export function formatDateTime(iso: string, timeZone: string): string {
+	return new Intl.DateTimeFormat("en-GB", {
+		dateStyle: "medium",
+		timeStyle: "short",
+		timeZone,
+	}).format(new Date(iso));
+}
+
+/** Today's calendar date as YYYY-MM-DD in a time zone, for report date filters. */
+export function todayIn(timeZone: string, nowMs = Date.now()): string {
+	return new Intl.DateTimeFormat("en-CA", { timeZone }).format(nowMs);
+}
+
 /** Wall-clock time in the location's time zone, not the browser's. */
 export function formatClock(
 	iso: string,
