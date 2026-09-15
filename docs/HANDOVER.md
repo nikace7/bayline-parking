@@ -12,6 +12,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
   - `feat/m4-reservations` was never pushed on its own.
 - **Verification:** all checks pass. See the design system and M4 sections of PROGRESS.md.
 - **M4 code review:** the independent review found one medium issue (an unlocked hold-limit count), now fixed and covered by a race test.
+- **Design review:** one medium finding is fixed with a test: bookings starting just after midnight were missing at the gate before midnight. PROGRESS has all three findings.
 - **Design audit is half done:**
   - Tokens, fonts and the public pages were checked in the browser.
   - Signed-in screens have not been checked visually; PROGRESS lists them.
