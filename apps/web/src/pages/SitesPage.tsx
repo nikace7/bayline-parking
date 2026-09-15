@@ -68,7 +68,7 @@ export function SitesPage() {
 			)}
 			{locations.isError && <LoadError what="Locations" />}
 			{locations.isSuccess && !location && (
-				<div className="rounded-panel border border-inset bg-surface p-8 text-center">
+				<div className="rounded-panel border border-line bg-surface p-6">
 					<h2 className="text-section font-semibold">No locations yet</h2>
 					<p className="mt-1 text-ink-muted">
 						Locations, bays and tariffs appear here once an owner sets them up.
@@ -112,7 +112,7 @@ function LocationDetail({ location }: { location: Location }) {
 
 	return (
 		<>
-			<div className="rounded-panel border border-inset bg-surface p-4">
+			<div className="rounded-panel border border-line bg-surface p-4">
 				<h2 className="text-section font-semibold">{location.name}</h2>
 				<p className="text-ink-muted">{location.address}</p>
 				<dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-dense">
@@ -145,7 +145,7 @@ function LocationDetail({ location }: { location: Location }) {
 				)}
 				{tariffs.isError && <LoadError what="Tariffs" />}
 				{tariffs.isSuccess && (
-					<div className="overflow-x-auto rounded-panel border border-inset bg-surface">
+					<div className="overflow-x-auto rounded-panel border border-line bg-surface">
 						<table className="w-full min-w-[48rem] text-left text-dense tabular-nums">
 							<caption className="sr-only">Tariff versions</caption>
 							<thead className="bg-inset text-ink-muted">
@@ -178,7 +178,7 @@ function LocationDetail({ location }: { location: Location }) {
 											b.effectiveFrom.localeCompare(a.effectiveFrom),
 									)
 									.map((tariff) => (
-										<tr key={tariff.id} className="border-t border-inset">
+										<tr key={tariff.id} className="border-t border-line">
 											<td className="px-4 py-3 font-medium">
 												{VEHICLE_LABEL[tariff.vehicleClass]}
 											</td>
@@ -228,7 +228,7 @@ function LocationDetail({ location }: { location: Location }) {
 						{bays.data.map((bay) => (
 							<li
 								key={bay.id}
-								className="flex flex-col gap-1 rounded-control border border-inset bg-surface p-3"
+								className="flex flex-col gap-1 rounded-control border border-line bg-surface p-3"
 							>
 								<span className="font-mono font-semibold">{bay.label}</span>
 								<span className="text-meta text-ink-muted">

@@ -15,7 +15,7 @@ export function DataTable({
 	empty: string;
 }) {
 	return (
-		<div className="overflow-x-auto rounded-panel border border-inset bg-surface">
+		<div className="overflow-x-auto rounded-panel border border-line bg-surface">
 			<table className="w-full min-w-[48rem] text-left text-dense tabular-nums">
 				<caption className="sr-only">{caption}</caption>
 				<thead className="bg-inset text-ink-muted">
@@ -39,7 +39,7 @@ export function DataTable({
 						</tr>
 					) : (
 						rows.map((row) => (
-							<tr key={row.key} className="border-t border-inset">
+							<tr key={row.key} className="border-t border-line">
 								{row.cells.map((cell, column) => (
 									<td key={headings[column]} className="px-4 py-3">
 										{cell}

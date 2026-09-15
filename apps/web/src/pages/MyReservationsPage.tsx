@@ -63,7 +63,7 @@ export function MyReservationsPage() {
 							<Link
 								key="reference"
 								to={`/account/reservations/${reservation.id}`}
-								className="font-mono font-medium text-brand underline"
+								className="font-mono font-semibold text-brand underline"
 							>
 								{reservation.reference}
 							</Link>,
@@ -126,7 +126,7 @@ export function ReservationDetailPage() {
 				</StatusBadge>
 			</div>
 			{failure && <FormAlert>{errorMessage(failure)}</FormAlert>}
-			<div className="rounded-panel border border-inset bg-surface p-4">
+			<div className="rounded-panel border border-line bg-surface p-4">
 				<ReservationFacts reservation={reservation.data} />
 			</div>
 			{status === "HOLD" && reservation.data.holdExpiresAt && (

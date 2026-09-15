@@ -1,9 +1,11 @@
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans-devanagari/400.css";
+import "@fontsource/ibm-plex-sans-devanagari/500.css";
+import "@fontsource/ibm-plex-sans-devanagari/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
-import "@fontsource/noto-sans-devanagari/400.css";
-import "@fontsource/noto-sans-devanagari/600.css";
+import "@fontsource/ibm-plex-mono/600.css";
 // Outside src/ because Biome's CSS parser rejects Tailwind's @theme without a config change.
 import "../styles.css";
 
