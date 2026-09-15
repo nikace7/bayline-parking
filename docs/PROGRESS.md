@@ -11,8 +11,8 @@ Branch `feat/design-system`, stacked on `feat/m4-reservations`. The user asked f
 
 - **Colour (D52):**
   - A cool neutral palette replaces the warm beige set: `canvas` #F2F4F3, `inset` #E8EDEB, `control` #6B7D78.
-  - A new `line` token (#D3DCD8) draws panel, table and divider borders. They used `inset` before, at 1.05:1 against the page.
-  - `src/lib/contrast.test.ts` reads the tokens from `styles.css`. It fails if a text pair drops below 4.5:1 or a control border below 3:1.
+  - A new `line` token (#D3DCD8) draws panel, table and divider borders at 1.27:1 against the page and 1.40:1 on panels; the old `inset` borders measured 1.05–1.16:1. These borders are decorative, so WCAG's 3:1 non-text minimum applies only to control borders.
+  - `src/lib/contrast.test.ts` reads the tokens from `styles.css`. It fails if a text pair drops below 4.5:1, a control border below 3:1, or `line` below 1.25:1.
 - **Type (D53):**
   - Nepali text uses IBM Plex Sans Devanagari, downloaded only for Devanagari characters.
   - Plex Mono loads a real 600 weight, so plates and references are no longer synthesised bold.
@@ -31,7 +31,8 @@ Branch `feat/design-system`, stacked on `feat/m4-reservations`. The user asked f
 
 | Check | Command | Result |
 |---|---|---|
-| Frontend unit | `pnpm test:unit` | 61 passed in 13 files (adds 20 contrast pairs and the arrival-window helper) |
+| Frontend unit | `pnpm test:unit` | 63 passed in 13 files (adds 22 contrast checks and the arrival-window helper) |
+| Backend integration on real PostgreSQL | `pnpm test:integration` | 78 passed (adds the staff board's midnight arrival test) |
 | Backend unit | `pnpm test:unit` | 36 passed (unchanged) |
 | Lint | `pnpm lint` | Biome: 52 files, no issues. Ruff: all checks passed, 84 files formatted |
 | Typecheck | `pnpm typecheck` | No errors |
@@ -39,14 +40,19 @@ Branch `feat/design-system`, stacked on `feat/m4-reservations`. The user asked f
 | Dependencies | grep across `apps/web` and `pnpm-lock.yaml` | No `lucide` or `noto-sans-devanagari` left |
 | Browser, public pages | `pnpm dev`, computed styles and `document.fonts` | Page background `rgb(242, 244, 243)`, secondary button border `rgb(107, 125, 120)`, panel border `rgb(211, 220, 216)`. Plex Sans Devanagari 500 and Plex Mono 400 and 600 loaded, with no Noto faces. At 360px, `/park`, `/login`, `/register`, `/account/register`, `/gallery` and the 404 page do not scroll sideways |
 
-Backend integration tests were not rerun. This branch changes no backend code since the M4 run, which passed 77.
-
 ### Found during the design update
 
 - Vitest blanks CSS imports even with `?raw`, so the contrast test first failed on a missing token. `test.css.include` in `vite.config.ts` now lets `styles.css` through.
 - `@carbon/icons` and `@carbon/icons-react` both depend on `@ibm/telemetry-js` and run it at install, so the glyphs are vendored instead (D54).
 - Vite's HMR websocket fails when the browser opens `localhost` while the dev server listens on `127.0.0.1`. Reload to see changes.
 - The first token edit missed the control colour and the font stacks. Computed styles in the browser caught it.
+- **Independent review of the design commits:**
+  - **High, not accepted as filed:** `line` measures 1.27:1 on the page, below WCAG's 3:1 non-text minimum. That minimum covers borders needed to identify a control, and control borders have their own 3:1 check. Panel and table borders are decorative, and `line` sits between Carbon's two subtle borders. D52 now records its contrast, and the contrast test keeps it at 1.25:1 or more, which the old borders fail.
+  - **Medium, fixed:** the staff board's `date` filter matched a booking's stay, not its arrival window.
+    - A booking starting at 00:05 was missing from the previous day's list, although check-in opens at 23:55. Neither the arrival panel nor the "Reserved" tile showed it for those 10 minutes.
+    - The filter now reaches 10 minutes past midnight. `test_staff_board_lists_a_booking_due_before_local_midnight` failed without the fix and passes with it.
+    - The bug came from M4.
+  - **Low, not changed:** the gallery's colour labels copy the hex values, so a palette change could leave them stale. The page only displays them.
 
 ### Not verified / known limitations
 
