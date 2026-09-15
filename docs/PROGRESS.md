@@ -1,5 +1,51 @@
 # Progress
 
+## M3 Shift, receipts, reports — built and verified (15 September 2026)
+
+Branch `feat/m3-shift-receipts-reports`. Completes the cash success journey: admit, check out, take cash against a numbered receipt, exit, close the shift against the counted drawer, and report the day. An independent code review (tenant isolation and roles, capture/close races, receipt numbering, report time zones, PDF markup and spreadsheet formula injection, migrations, print flow, seed) found no critical, high or medium issues. Its one low finding is fixed: the seed backdates every demo organisation's tariffs, not only North Gate's, and the comment now says so.
+
+### Delivered
+
+- **Shift close:** `POST /shifts/{id}/close` by the shift holder stores expected cash (opening float plus every cash entry on the shift), counted cash and variance under the shift lock. `GET /shifts` (own shifts for cash staff, every shift for owners, managers and auditors; `status` and `locationId` filters) and `GET /shifts/{id}/summary`. A CHECK requires a complete close summary and a trigger rejects changes to a closed shift (D34, D35).
+- **Receipts:** a `ReceiptCounter` per location is upserted inside the capture transaction, last in the lock order, giving `NGC-000001`-style numbers without gaps. `GET /receipts/{id}`; `POST /receipts/{id}/print-events` numbers copies under the receipt lock. Receipts and print events are append-only, with a composite organisation foreign key to the invoice. Payments and session detail carry the receipt reference (D33, D39).
+- **`reports` app:** `GET /reports/collections` and `GET /reports/vehicle-log` take `locationId`, `fromDate`, `toDate` (at most 31 days) and `format=json|pdf|xlsx`. Local dates use the location's time zone and rows stop at `asOf`. PDFs embed Noto Sans Devanagari shaped by HarfBuzz; XLSX text cells are always strings (D36–D38).
+- **Web:** `/shifts` shows the drawer summary, a counted-cash field with a live variance and the closed shifts table. `/receipts/:id` prints an 80 or 58 mm slip, logging each print before the dialog opens and marking reprints "Copy n". `/reports` switches report, location and dates, shows totals and links the PDF and XLSX downloads. Print CSS hides the app shell, the visit panel links to its receipt, and the navigation adds Shifts and Reports.
+- **Seed:** one North Gate Central cash day through the services on the fixture clock (D40): NPR 1,000 float and NPR 300 taken, closed with NPR 1,280 counted (−NPR 20), then an open shift with visits in every M2 stage.
+
+### Verification (actual runs, Windows 11, PostgreSQL 17.11)
+
+| Check | Command | Result |
+|---|---|---|
+| Backend unit | `pnpm test:unit` | 36 passed (adds 3 export tests: font coverage per script, markup escaping, NPR format) |
+| Frontend unit | `pnpm test:unit` | 36 passed in 8 files (adds receipt printing, shift close, variance wording and local date) |
+| Backend integration on real PostgreSQL | `pnpm test:integration` | 61 passed (3 shift close, 2 receipts, 2 capture/close races on separate connections, 3 reports, seed cash fixture, 50 from M2) |
+| Lint | `pnpm lint` | Biome: 39 files, no issues. Ruff: all checks passed, 79 files formatted |
+| Typecheck | `pnpm typecheck` | No errors |
+| Build | `pnpm build` | JS 414.40 kB (126.92 kB gzip), CSS 28.93 kB |
+| Migrations and seed on the development database | `pnpm db:migrate`, `pnpm db:seed` twice | `sites.0004`, `billing.0003`/`0004` applied; the first seed run added the cash day (8 visits, 2 shifts, 4 receipts), the second changed nothing |
+| Containerised stack | `pnpm demo:up` (rebuilt api image) | db, api, gateway healthy. Through Caddy: `/api/v1/health/ready` 200; `/shifts`, `/reports` and `/receipts/:id` serve the SPA; anonymous `/api/v1/shifts` and a `format=pdf` report answer 403 `NOT_AUTHENTICATED` as JSON. Inside the api container the seeded day's collections report has 4 rows, NPR 500 captured and receipts `NGC-000001`–`0004`; the vehicle log has 8 entries, 3 exits and 5 still parked; its PDF (23,342 bytes) and XLSX (5,741 bytes) build with the image's fonts |
+| PDF rendering | Rendered vehicle log opened as an image | Devanagari plates and names shaped correctly (conjuncts and pre-base vowel signs) |
+
+Acceptance matrix: P15 (a capture committed before a close is counted; a capture waiting behind a close gets `SHIFT_NOT_OPEN` and leaves no entry or receipt), P16 (the XLSX net total equals the screen total, and the seeded day's report matches the fixture; refund dates and memberships wait for M6 and M5), P17 (reprints keep the receipt number and number copies; a capture that fails after numbering leaves no gap) and P20 (formula-like plates stay text cells; a foreign location answers 404 and another organisation sees no rows) are covered.
+
+### Found during M3
+
+- Both @fontsource Noto Sans Devanagari subsets are internally named `NotoSansDevanagari-Regular`. ReportLab caches faces by that name, so Devanagari text was drawn with the Latin subset as boxes. The fonts are renamed on conversion, and `test_each_pdf_face_covers_its_script` guards it.
+- Declaring the binary PDF/XLSX responses made openapi-fetch type every report body as possibly a string; the web client is now typed for `application/json` only.
+- A CHECK constraint passes when its expression is NULL, so the close-summary CHECK tests each column for NULL explicitly.
+- On a fresh database the demo tariffs started at seed time, so a backdated visit found no tariff in force; the seed now publishes them a day earlier (D40).
+- Biome requires a `<fieldset>` rather than `role="group"` for the report switcher.
+- The database container was stopped when verification resumed; `pnpm db:up` started it.
+
+### Not verified / known limitations
+
+- The signed-in screens (`/shifts`, `/receipts/:id`, `/reports`) were not exercised in a browser (agent browser policy forbids entering passwords). They are covered by component tests with a mocked API, API integration tests and the in-container export run. For a manual pass, sign in as `cashier@northgate.test` to print a receipt and close the open shift, then as `owner@northgate.test` for reports.
+- No physical 58 or 80 mm printer was tested. A cancelled print dialog still counts as a printed copy (D39).
+- Exports are built in memory, not streamed (D37).
+- No exceptions report, no adjustment entries after close, and no manager close of an abandoned shift (D34).
+- The seed has 8 visits in the M2 stages; the blueprint's 20 sessions with reservations, offline visits and passes wait for those features, and the fixture's NPR 50 refund waits for M6 (D40).
+- The closed shifts table shows the latest 25.
+
 ## M2 Gate journey (cash) — built and verified (14 September 2026)
 
 Branch `feat/m2-gate-journey`. An independent code review (authorisation and location access, lock order, double charge and double exit, idempotency replay, quote tokens, migrations, frontend retries) found no critical or high issues, one medium and one low; both are fixed. See "Found during M2" below.
@@ -136,9 +182,9 @@ Acceptance matrix started, not complete: P01 is covered for staff membership end
 - Biome does not lint `apps/web/styles.css`: its CSS parser rejects Tailwind `@theme` without a `biome.json` change, which the user's config-protection hook blocks.
 - Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a OneDrive-synced folder, so `node_modules` and `.venv` are synced too.
 
-## Next: M3 Shift, receipts, reports
+## Next: M4 Reservations
 
-- Shift close with counted cash, expected cash and variance under the shift lock; adjustment entries after close.
-- ReceiptCounter per location, incremented inside the capture transaction; 58/80 mm print CSS.
-- Collections and vehicle log reports; streamed PDF and XLSX.
-- Seed open and closed shifts and synthetic sessions in every stage.
+- Global customer accounts; holds on reservable bays guarded by a PostgreSQL exclusion constraint; arrivals and relocation.
+- Worker sweeps as PostgreSQL rows: expire holds, mark no-shows, and purge idempotency records older than 7 days (D32).
+- Bay mode and state updates behind the occupancy and reservation guards.
+- Race and overstay tests; the seed gains confirmed and no-show reservations.
