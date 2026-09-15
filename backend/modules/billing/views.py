@@ -11,18 +11,24 @@ from modules.accounts.idempotency import IDEMPOTENCY_KEY, idempotent
 from modules.accounts.models import Role
 from modules.accounts.permissions import current_member, require_roles
 from modules.billing import services
-from modules.billing.models import CheckoutInvoice
+from modules.billing.models import CheckoutInvoice, Receipt, ShiftStatus
 from modules.billing.serializers import (
     CashPaymentSerializer,
     CheckoutSerializer,
     CurrentShiftSerializer,
     PaymentEntrySerializer,
+    PrintEventSerializer,
+    PrintRequestSerializer,
     QuoteSerializer,
+    ReceiptSerializer,
     SessionDetailSerializer,
     SessionFilterSerializer,
     SessionSummarySerializer,
+    ShiftCloseSerializer,
+    ShiftFilterSerializer,
     ShiftOpenSerializer,
     ShiftSerializer,
+    ShiftSummarySerializer,
 )
 
 AnyRole = require_roles(*Role.values)
@@ -37,6 +43,11 @@ def _session_detail(member, session_id) -> dict:
         raise NotFound()
     session.invoice = (
         CheckoutInvoice.objects.filter(pk=session.invoice_id).first()
+        if session.invoice_id
+        else None
+    )
+    session.receipt = (
+        Receipt.objects.filter(invoice_id=session.invoice_id).order_by("-sequence").first()
         if session.invoice_id
         else None
     )
@@ -153,6 +164,27 @@ class CashPaymentView(APIView):
         return idempotent(request, operation="billing.cash", payload=payload, perform=perform)
 
 
+class ShiftListView(ListAPIView):
+    """Owners, managers and auditors see every shift; cash staff see their own."""
+
+    serializer_class = ShiftSerializer
+    permission_classes = [AnyRole]
+
+    @extend_schema(parameters=[ShiftFilterSerializer])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        filters = ShiftFilterSerializer(data=self.request.query_params)
+        filters.is_valid(raise_exception=True)
+        shifts = services.shifts_visible_to(current_member(self.request))
+        if location_id := filters.validated_data.get("locationId"):
+            shifts = shifts.filter(location_id=location_id)
+        if status := filters.validated_data.get("status"):
+            shifts = shifts.filter(closed_at__isnull=status == ShiftStatus.OPEN)
+        return shifts
+
+
 class ShiftOpenView(APIView):
     permission_classes = [CashRole]
 
@@ -176,3 +208,55 @@ class CurrentShiftView(APIView):
     def get(self, request):
         shift = services.open_shift_for(current_member(request).organisation, request.user)
         return Response(CurrentShiftSerializer({"shift": shift}).data)
+
+
+class ShiftSummaryView(APIView):
+    permission_classes = [AnyRole]
+
+    @extend_schema(responses=ShiftSummarySerializer)
+    def get(self, request, shift_id):
+        summary = services.shift_summary(member=current_member(request), shift_id=shift_id)
+        return Response(ShiftSummarySerializer(summary).data)
+
+
+class ShiftCloseView(APIView):
+    permission_classes = [CashRole]
+
+    @extend_schema(request=ShiftCloseSerializer, responses=ShiftSummarySerializer)
+    def post(self, request, shift_id):
+        serializer = ShiftCloseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        summary = services.close_shift(
+            member=current_member(request),
+            actor=request.user,
+            shift_id=shift_id,
+            correlation_id=request.request_id,
+            **serializer.validated_data,
+        )
+        return Response(ShiftSummarySerializer(summary).data)
+
+
+class ReceiptView(APIView):
+    permission_classes = [AnyRole]
+
+    @extend_schema(responses=ReceiptSerializer)
+    def get(self, request, receipt_id):
+        receipt = services.receipt_detail(member=current_member(request), receipt_id=receipt_id)
+        return Response(ReceiptSerializer(receipt).data)
+
+
+class PrintEventView(APIView):
+    permission_classes = [CheckoutRole]
+
+    @extend_schema(request=PrintRequestSerializer, responses={201: PrintEventSerializer})
+    def post(self, request, receipt_id):
+        serializer = PrintRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        event = services.record_print(
+            member=current_member(request),
+            actor=request.user,
+            receipt_id=receipt_id,
+            correlation_id=request.request_id,
+            **serializer.validated_data,
+        )
+        return Response(PrintEventSerializer(event).data, status=201)
