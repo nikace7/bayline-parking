@@ -2,21 +2,43 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { BayTile } from "../components/BayTile";
 import { Button } from "../components/Button";
+import {
+	ArrowLeft,
+	Car,
+	CheckmarkOutline,
+	ColorPalette,
+	Download,
+	ErrorFilled,
+	EventSchedule,
+	Grid,
+	type IconComponent,
+	Location,
+	Login,
+	Logout,
+	Printer,
+	Report,
+	Scooter,
+	Time,
+	UserMultiple,
+	Wallet,
+	WarningAlt,
+} from "../components/icons";
 import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { formatPaisa } from "../lib/money";
 
 const COLOURS = [
-	["Canvas", "bg-canvas", "#F5F3EE"],
+	["Canvas", "bg-canvas", "#F2F4F3"],
 	["Surface", "bg-surface", "#FFFFFF"],
-	["Inset", "bg-inset", "#EAEFEA"],
+	["Inset", "bg-inset", "#E8EDEB"],
+	["Line", "bg-line", "#D3DCD8"],
+	["Control border", "bg-control", "#6B7D78"],
 	["Primary text", "bg-ink", "#172B2B"],
 	["Secondary text", "bg-ink-muted", "#4B6262"],
 	["Brand / available", "bg-brand", "#00645C"],
 	["Occupied", "bg-occupied", "#385B94"],
 	["Warning", "bg-warning", "#805600"],
 	["Error", "bg-error", "#A62B34"],
-	["Control border", "bg-control", "#718681"],
 ] as const;
 
 const TYPE_SCALE = [
@@ -27,6 +49,27 @@ const TYPE_SCALE = [
 	["Dense table · 14", "text-dense"],
 	["Metadata · 12", "text-meta"],
 ] as const;
+
+const ICONS: [string, IconComponent][] = [
+	["Grid", Grid],
+	["EventSchedule", EventSchedule],
+	["Wallet", Wallet],
+	["Report", Report],
+	["Location", Location],
+	["UserMultiple", UserMultiple],
+	["ColorPalette", ColorPalette],
+	["Login", Login],
+	["Logout", Logout],
+	["CheckmarkOutline", CheckmarkOutline],
+	["Car", Car],
+	["Scooter", Scooter],
+	["WarningAlt", WarningAlt],
+	["ErrorFilled", ErrorFilled],
+	["Time", Time],
+	["Download", Download],
+	["ArrowLeft", ArrowLeft],
+	["Printer", Printer],
+];
 
 const AMOUNTS = [5_000, 10_000, 130_000, -2_000, 12_345_678_901];
 
@@ -42,7 +85,7 @@ function Section({
 	return (
 		<section
 			aria-labelledby={id}
-			className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-6"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-6"
 		>
 			<h2 id={id} className="text-section font-semibold">
 				{title}
@@ -63,11 +106,11 @@ export function GalleryPage() {
 			</header>
 
 			<Section id="gallery-colour" title="Colour tokens">
-				<ul className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+				<ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 					{COLOURS.map(([name, swatch, hex]) => (
 						<li key={name} className="flex flex-col gap-1">
 							<span
-								className={`h-12 rounded-control border border-inset ${swatch}`}
+								className={`h-12 rounded-control border border-line ${swatch}`}
 							/>
 							<span className="text-dense font-medium">{name}</span>
 							<span className="font-mono text-meta text-ink-muted">{hex}</span>
@@ -76,15 +119,40 @@ export function GalleryPage() {
 				</ul>
 			</Section>
 
-			<Section id="gallery-type" title="Type scale">
+			<Section id="gallery-type" title="Type">
 				{TYPE_SCALE.map(([label, size]) => (
 					<p key={size} className={`${size} font-medium`}>
 						{label}
 					</p>
 				))}
 				<p className="text-body">
-					Devanagari plate: <span className="font-medium">बा २ प ४५६७</span>
+					IBM Plex Sans 400 · <span className="font-medium">500</span> ·{" "}
+					<span className="font-semibold">600</span>
 				</p>
+				<p className="text-body">
+					IBM Plex Sans Devanagari:{" "}
+					<span className="font-medium">बा २ प ४५६७</span>
+				</p>
+				<p className="text-body">
+					IBM Plex Mono:{" "}
+					<span className="font-mono font-semibold">BA 12 PA 3456</span> ·{" "}
+					<span className="font-mono">NGC-000042</span>
+				</p>
+			</Section>
+
+			<Section id="gallery-icons" title="Icons">
+				<p className="text-dense text-ink-muted">
+					IBM Carbon glyphs: 16px in dense UI, 20px in navigation, always beside
+					a word.
+				</p>
+				<ul className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
+					{ICONS.map(([name, Icon]) => (
+						<li key={name} className="flex items-center gap-2">
+							<Icon className="size-5" />
+							<span className="font-mono text-meta text-ink-muted">{name}</span>
+						</li>
+					))}
+				</ul>
 			</Section>
 
 			<Section id="gallery-controls" title="Controls">
@@ -145,7 +213,7 @@ export function GalleryPage() {
 					</thead>
 					<tbody className="tabular-nums">
 						{AMOUNTS.map((paisa) => (
-							<tr key={paisa} className="border-t border-inset">
+							<tr key={paisa} className="border-t border-line">
 								<td className="py-2 font-mono">{paisa}</td>
 								<td className="py-2 text-right">{formatPaisa(paisa)}</td>
 							</tr>

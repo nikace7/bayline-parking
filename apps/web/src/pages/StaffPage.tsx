@@ -28,7 +28,7 @@ export function StaffPage() {
 			)}
 
 			{members.isSuccess && (
-				<div className="overflow-x-auto rounded-panel border border-inset bg-surface">
+				<div className="overflow-x-auto rounded-panel border border-line bg-surface">
 					<table className="w-full min-w-[36rem] text-left text-dense">
 						<caption className="sr-only">Staff in this organisation</caption>
 						<thead className="bg-inset text-ink-muted">
@@ -49,7 +49,7 @@ export function StaffPage() {
 						</thead>
 						<tbody>
 							{members.data.map((member) => (
-								<tr key={member.id} className="border-t border-inset">
+								<tr key={member.id} className="border-t border-line">
 									<td className="px-4 py-3 font-medium">{member.name}</td>
 									<td className="px-4 py-3">{member.email}</td>
 									<td className="px-4 py-3">

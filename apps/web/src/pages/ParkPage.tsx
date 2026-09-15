@@ -63,7 +63,7 @@ export function ParkPage() {
 						{locations.data.map((location) => (
 							<li
 								key={location.id}
-								className={`flex flex-wrap items-center justify-between gap-3 rounded-panel border bg-surface p-4 ${location.id === locationId ? "border-brand" : "border-inset"}`}
+								className={`flex flex-wrap items-center justify-between gap-3 rounded-panel border bg-surface p-4 ${location.id === locationId ? "border-brand" : "border-line"}`}
 							>
 								<div>
 									<h2 className="font-semibold">{location.name}</h2>
@@ -89,7 +89,7 @@ export function ParkPage() {
 					{selected ? (
 						<ReserveForm key={selected.id} location={selected} />
 					) : (
-						<p className="rounded-panel border border-inset bg-surface p-4 text-ink-muted">
+						<p className="rounded-panel border border-line bg-surface p-4 text-ink-muted">
 							Choose a location to see its free bays.
 						</p>
 					)}
@@ -149,7 +149,7 @@ function ReserveForm({ location }: { location: PublicLocation }) {
 			onSubmit={onSubmit}
 			noValidate
 			aria-labelledby="reserve-heading"
-			className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4"
 		>
 			<div>
 				<h2 id="reserve-heading" className="text-section font-semibold">
@@ -251,7 +251,7 @@ function HeldReservation({
 }) {
 	const confirmed = reservation.status === "CONFIRMED";
 	return (
-		<div className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-4">
+		<div className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4">
 			{confirmed ? (
 				<p
 					role="status"

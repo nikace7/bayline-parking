@@ -22,7 +22,7 @@ import {
 	useVisit,
 	type Visit,
 } from "../app/gate";
-import { useStaffReservations } from "../app/reservations";
+import { dueReservation, useStaffReservations } from "../app/reservations";
 import { Button } from "../components/Button";
 import { FormAlert } from "../components/Page";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
@@ -94,7 +94,7 @@ export function ShiftBar({ location }: { location: Location }) {
 		<form
 			onSubmit={onSubmit}
 			noValidate
-			className="flex flex-wrap items-end gap-3 rounded-panel border border-inset bg-surface p-4"
+			className="flex flex-wrap items-end gap-3 rounded-panel border border-line bg-surface p-4"
 		>
 			<TextField
 				label="Opening cash float (NPR)"
@@ -213,11 +213,7 @@ export function ArrivalPanel({
 	const waiting = reservations.data.filter(
 		(item) => item.bayId === bay.id && item.status === "CONFIRMED",
 	);
-	const due = waiting.find(
-		(item) =>
-			Date.parse(item.arrivalOpensAt) <= now &&
-			now <= Date.parse(item.arrivalClosesAt),
-	);
+	const due = dueReservation(waiting, bay.id, now);
 	if (!due) {
 		const next = waiting.find((item) => Date.parse(item.arrivalOpensAt) > now);
 		return (

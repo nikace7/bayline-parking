@@ -1,20 +1,23 @@
+import type { ReactNode } from "react";
 import {
 	Car,
-	CircleAlert,
-	CircleCheck,
-	Clock,
-	type LucideIcon,
-	TriangleAlert,
-} from "lucide-react";
-import type { ReactNode } from "react";
+	CheckmarkOutline,
+	ErrorFilled,
+	type IconComponent,
+	Time,
+	WarningAlt,
+} from "./icons";
 
 const tones = {
-	available: { Icon: CircleCheck, className: "bg-available-bg text-available" },
+	available: {
+		Icon: CheckmarkOutline,
+		className: "bg-available-bg text-available",
+	},
 	occupied: { Icon: Car, className: "bg-occupied-bg text-occupied" },
-	warning: { Icon: TriangleAlert, className: "bg-warning-bg text-warning" },
-	error: { Icon: CircleAlert, className: "bg-error-bg text-error" },
-	neutral: { Icon: Clock, className: "bg-inset text-ink-muted" },
-} satisfies Record<string, { Icon: LucideIcon; className: string }>;
+	warning: { Icon: WarningAlt, className: "bg-warning-bg text-warning" },
+	error: { Icon: ErrorFilled, className: "bg-error-bg text-error" },
+	neutral: { Icon: Time, className: "bg-inset text-ink-muted" },
+} satisfies Record<string, { Icon: IconComponent; className: string }>;
 
 export type Tone = keyof typeof tones;
 
@@ -31,7 +34,7 @@ export function StatusBadge({
 		<span
 			className={`inline-flex items-center gap-1 rounded-control px-2 py-0.5 text-meta font-medium ${className}`}
 		>
-			<Icon aria-hidden className="size-3.5" />
+			<Icon className="size-3.5" />
 			{children}
 		</span>
 	);

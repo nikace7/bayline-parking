@@ -88,6 +88,21 @@ export function useStaffReservations(filters: {
 	});
 }
 
+/** The confirmed booking for this bay whose arrival window is open at `now`, if any. */
+export function dueReservation(
+	reservations: Reservation[],
+	bayId: string,
+	now: number,
+): Reservation | undefined {
+	return reservations.find(
+		(item) =>
+			item.bayId === bayId &&
+			item.status === "CONFIRMED" &&
+			Date.parse(item.arrivalOpensAt) <= now &&
+			now <= Date.parse(item.arrivalClosesAt),
+	);
+}
+
 function useRefreshReservations() {
 	const queryClient = useQueryClient();
 	return () =>

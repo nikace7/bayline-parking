@@ -266,7 +266,7 @@ function MoveForm({
 			onSubmit={onSubmit}
 			noValidate
 			aria-labelledby="move-heading"
-			className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4"
 		>
 			<h2 id="move-heading" className="text-section font-semibold">
 				Move {reservation.reference} from bay {reservation.bayLabel}
@@ -336,7 +336,7 @@ function CancelForm({
 			onSubmit={onSubmit}
 			noValidate
 			aria-labelledby="cancel-heading"
-			className="flex flex-col gap-4 rounded-panel border border-inset bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4"
 		>
 			<h2 id="cancel-heading" className="text-section font-semibold">
 				Cancel {reservation.reference} for {reservation.customerName}
