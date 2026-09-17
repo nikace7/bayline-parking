@@ -963,6 +963,8 @@ export interface components {
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
             /** Format: uuid */
             readonly tariffId: string;
+            readonly memberPassReference: string;
+            readonly coveredSeconds: number | null;
             readonly status: components["schemas"]["SessionStatusEnum"];
             /** Format: date-time */
             readonly enteredAt: string;
@@ -1175,6 +1177,8 @@ export interface components {
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
             /** Format: uuid */
             readonly tariffId: string;
+            readonly memberPassReference: string;
+            readonly coveredSeconds: number | null;
             readonly status: components["schemas"]["SessionStatusEnum"];
             /** Format: date-time */
             readonly enteredAt: string;
@@ -1214,6 +1218,8 @@ export interface components {
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
             /** Format: uuid */
             readonly tariffId: string;
+            readonly memberPassReference: string;
+            readonly coveredSeconds: number | null;
             readonly status: components["schemas"]["SessionStatusEnum"];
             /** Format: date-time */
             readonly enteredAt: string;

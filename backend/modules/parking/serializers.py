@@ -30,6 +30,10 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
         source="bay.vehicle_class", choices=VehicleClass.choices, read_only=True
     )
     tariff_id = serializers.UUIDField(read_only=True)
+    # The pass covering this visit, so a zero fee at the counter has a visible reason.
+    member_pass_reference = serializers.CharField(
+        source="member_pass.reference", read_only=True, default=None
+    )
 
     class Meta:
         model = ParkingSession
@@ -41,6 +45,8 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
             "plate",
             "vehicle_class",
             "tariff_id",
+            "member_pass_reference",
+            "covered_seconds",
             "status",
             "entered_at",
             "exited_at",

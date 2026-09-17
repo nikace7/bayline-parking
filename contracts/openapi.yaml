@@ -2338,6 +2338,13 @@ components:
           type: string
           format: uuid
           readOnly: true
+        memberPassReference:
+          type: string
+          readOnly: true
+        coveredSeconds:
+          type: integer
+          readOnly: true
+          nullable: true
         status:
           allOf:
           - $ref: '#/components/schemas/SessionStatusEnum'
@@ -2354,10 +2361,12 @@ components:
       required:
       - bayId
       - bayLabel
+      - coveredSeconds
       - enteredAt
       - exitedAt
       - id
       - locationId
+      - memberPassReference
       - plate
       - status
       - tariffId
@@ -2909,6 +2918,13 @@ components:
           type: string
           format: uuid
           readOnly: true
+        memberPassReference:
+          type: string
+          readOnly: true
+        coveredSeconds:
+          type: integer
+          readOnly: true
+          nullable: true
         status:
           allOf:
           - $ref: '#/components/schemas/SessionStatusEnum'
@@ -2950,12 +2966,14 @@ components:
       required:
       - bayId
       - bayLabel
+      - coveredSeconds
       - duePaisa
       - enteredAt
       - exitedAt
       - id
       - invoice
       - locationId
+      - memberPassReference
       - paidPaisa
       - plate
       - receipt
@@ -3015,6 +3033,13 @@ components:
           type: string
           format: uuid
           readOnly: true
+        memberPassReference:
+          type: string
+          readOnly: true
+        coveredSeconds:
+          type: integer
+          readOnly: true
+          nullable: true
         status:
           allOf:
           - $ref: '#/components/schemas/SessionStatusEnum'
@@ -3046,11 +3071,13 @@ components:
       required:
       - bayId
       - bayLabel
+      - coveredSeconds
       - duePaisa
       - enteredAt
       - exitedAt
       - id
       - locationId
+      - memberPassReference
       - paidPaisa
       - plate
       - stage
