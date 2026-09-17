@@ -5,7 +5,7 @@ from django.db.models import F, Q
 
 from config import clock
 from modules.accounts.models import Organisation, OrgScopedQuerySet, User
-from modules.parking.models import ParkingSession
+from modules.parking.models import MemberPass, ParkingSession
 from modules.sites.models import Location, TariffVersion
 
 
@@ -72,13 +72,30 @@ class InvoiceStatus(models.TextChoices):
     CONFIRMED = "CONFIRMED"
 
 
+class InvoicePurpose(models.TextChoices):
+    """A parking visit or the sale of a member pass; the two never mix on one invoice."""
+
+    PARKING = "PARKING"
+    MEMBERSHIP = "MEMBERSHIP"
+
+
 class CheckoutInvoice(models.Model):
     """Fee snapshot at a frozen cutoff; never edited. The paid amount is derived from the ledger."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
-    session = models.ForeignKey(ParkingSession, on_delete=models.PROTECT, related_name="+")
-    tariff = models.ForeignKey(TariffVersion, on_delete=models.PROTECT, related_name="+")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="+")
+    purpose = models.CharField(
+        max_length=16, choices=InvoicePurpose.choices, default=InvoicePurpose.PARKING
+    )
+    # A PARKING invoice prices exactly one visit; a MEMBERSHIP invoice sells exactly one pass.
+    session = models.ForeignKey(
+        ParkingSession, null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    tariff = models.ForeignKey(TariffVersion, null=True, on_delete=models.PROTECT, related_name="+")
+    member_pass = models.ForeignKey(
+        MemberPass, null=True, on_delete=models.PROTECT, related_name="invoices"
+    )
     cutoff_at = models.DateTimeField()
     billable_seconds = models.PositiveIntegerField()
     blocks = models.PositiveIntegerField()
@@ -104,10 +121,32 @@ class CheckoutInvoice(models.Model):
             models.UniqueConstraint(
                 fields=["id", "organisation"], name="invoice_id_organisation_unique"
             ),
+            models.UniqueConstraint(
+                fields=["member_pass"],
+                condition=Q(status=InvoiceStatus.CONFIRMED),
+                name="invoice_one_confirmed_per_pass",
+            ),
             models.CheckConstraint(
                 condition=Q(discount_paisa__lte=F("base_paisa"))
                 & Q(total_paisa=F("base_paisa") - F("discount_paisa") + F("tax_paisa")),
                 name="invoice_totals_add_up",
+            ),
+            # A PARKING invoice prices one visit and a MEMBERSHIP invoice sells one pass; the
+            # database refuses every other combination (blueprint section 4).
+            models.CheckConstraint(
+                condition=Q(
+                    purpose=InvoicePurpose.PARKING,
+                    session__isnull=False,
+                    tariff__isnull=False,
+                    member_pass__isnull=True,
+                )
+                | Q(
+                    purpose=InvoicePurpose.MEMBERSHIP,
+                    session__isnull=True,
+                    tariff__isnull=True,
+                    member_pass__isnull=False,
+                ),
+                name="invoice_purpose_references_match",
             ),
         ]
 

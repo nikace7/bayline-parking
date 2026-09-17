@@ -14,6 +14,8 @@ urlpatterns = [
     path("shifts/current", views.CurrentShiftView.as_view()),
     path("shifts/<uuid:shift_id>/summary", views.ShiftSummaryView.as_view()),
     path("shifts/<uuid:shift_id>/close", views.ShiftCloseView.as_view()),
+    path("memberships", views.MembershipListView.as_view()),
+    path("memberships/<uuid:pass_id>/renew", views.MembershipRenewView.as_view()),
     path("receipts/<uuid:receipt_id>", views.ReceiptView.as_view()),
     path("receipts/<uuid:receipt_id>/print-events", views.PrintEventView.as_view()),
 ]

@@ -265,6 +265,46 @@ export interface paths {
         patch: operations["members_partial_update"];
         trace?: never;
     };
+    "/api/v1/memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Every staff role reads passes, so the gate can see what a plate is entitled to; owners and
+         *     managers sell them.
+         */
+        get: operations["memberships_list"];
+        put?: never;
+        /**
+         * @description Every staff role reads passes, so the gate can see what a plate is entitled to; owners and
+         *     managers sell them.
+         */
+        post: operations["memberships_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memberships/{pass_id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["memberships_renew_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parking/entries": {
         parameters: {
             query?: never;
@@ -779,6 +819,64 @@ export interface components {
             /** Format: date-time */
             readonly createdAt: string;
         };
+        MemberPass: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly reference: string;
+            readonly customerName: string;
+            /** Format: email */
+            readonly customerEmail: string;
+            readonly plates: string[];
+            readonly locationNames: string[];
+            /** Format: date-time */
+            readonly startsAt: string;
+            /** Format: date-time */
+            readonly endsAt: string;
+            readonly coveredSeconds: number;
+            readonly maxVehicles: number;
+            readonly pricePaisa: number;
+            readonly status: components["schemas"]["MemberPassStatusEnum"];
+            /** Format: date-time */
+            readonly activatedAt: string | null;
+            readonly renewsReference: string;
+            /** Format: uuid */
+            readonly invoiceId: string | null;
+            readonly totalPaisa: number | null;
+            readonly paidPaisa: number;
+            readonly duePaisa: number | null;
+        };
+        /**
+         * @description * `PENDING` - Pending
+         *     * `ACTIVE` - Active
+         *     * `CANCELLED` - Cancelled
+         *     * `EXPIRED` - Expired
+         * @enum {string}
+         */
+        MemberPassStatusEnum: "PENDING" | "ACTIVE" | "CANCELLED" | "EXPIRED";
+        MembershipRenewRequest: {
+            /** Format: uuid */
+            locationId: string;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt: string;
+            pricePaisa: number;
+        };
+        MembershipSaleRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            locationId: string;
+            permittedLocationIds?: string[];
+            vehicles: components["schemas"]["PassVehicleRequest"][];
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            pricePaisa: number;
+            /** @default 1 */
+            maxVehicles: number;
+        };
         MembershipSummary: {
             /** Format: uuid */
             organisationId: string;
@@ -806,6 +904,13 @@ export interface components {
         };
         PaginatedMemberList: {
             data: components["schemas"]["Member"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedMemberPassList: {
+            data: components["schemas"]["MemberPass"][];
             page: {
                 next: string | null;
                 previous: string | null;
@@ -863,6 +968,10 @@ export interface components {
             readonly enteredAt: string;
             /** Format: date-time */
             readonly exitedAt: string | null;
+        };
+        PassVehicleRequest: {
+            plate: string;
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
         };
         PatchedBayUpdateRequest: {
             expectedRevision?: number;
@@ -1760,6 +1869,90 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Member"];
+                    };
+                };
+            };
+        };
+    };
+    memberships_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+                locationId?: string;
+                plate?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMemberPassList"];
+                };
+            };
+        };
+    };
+    memberships_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembershipSaleRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MemberPass"];
+                    };
+                };
+            };
+        };
+    };
+    memberships_renew_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                pass_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembershipRenewRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MemberPass"];
                     };
                 };
             };

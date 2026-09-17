@@ -602,6 +602,121 @@ paths:
                   data:
                     $ref: '#/components/schemas/Member'
           description: ''
+  /api/v1/memberships:
+    get:
+      operationId: memberships_list
+      description: |-
+        Every staff role reads passes, so the gate can see what a plate is entitled to; owners and
+        managers sell them.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: locationId
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: plate
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 32
+      tags:
+      - memberships
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMemberPassList'
+          description: ''
+    post:
+      operationId: memberships_create
+      description: |-
+        Every staff role reads passes, so the gate can see what a plate is entitled to; owners and
+        managers sell them.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipSaleRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MemberPass'
+          description: ''
+  /api/v1/memberships/{pass_id}/renew:
+    post:
+      operationId: memberships_renew_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: pass_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipRenewRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MemberPass'
+          description: ''
   /api/v1/parking/entries:
     post:
       operationId: parking_entries_create
@@ -1798,6 +1913,174 @@ components:
       - name
       - revision
       - roles
+    MemberPass:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        reference:
+          type: string
+          readOnly: true
+        customerName:
+          type: string
+          readOnly: true
+        customerEmail:
+          type: string
+          format: email
+          readOnly: true
+        plates:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        locationNames:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        startsAt:
+          type: string
+          format: date-time
+          readOnly: true
+        endsAt:
+          type: string
+          format: date-time
+          readOnly: true
+        coveredSeconds:
+          type: integer
+          readOnly: true
+        maxVehicles:
+          type: integer
+          readOnly: true
+        pricePaisa:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MemberPassStatusEnum'
+          readOnly: true
+        activatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        renewsReference:
+          type: string
+          readOnly: true
+        invoiceId:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        totalPaisa:
+          type: integer
+          readOnly: true
+          nullable: true
+        paidPaisa:
+          type: integer
+          readOnly: true
+        duePaisa:
+          type: integer
+          nullable: true
+          readOnly: true
+      required:
+      - activatedAt
+      - coveredSeconds
+      - customerEmail
+      - customerName
+      - duePaisa
+      - endsAt
+      - id
+      - invoiceId
+      - locationNames
+      - maxVehicles
+      - paidPaisa
+      - plates
+      - pricePaisa
+      - reference
+      - renewsReference
+      - startsAt
+      - status
+      - totalPaisa
+    MemberPassStatusEnum:
+      enum:
+      - PENDING
+      - ACTIVE
+      - CANCELLED
+      - EXPIRED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `ACTIVE` - Active
+        * `CANCELLED` - Cancelled
+        * `EXPIRED` - Expired
+    MembershipRenewRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+        pricePaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+      required:
+      - endsAt
+      - locationId
+      - pricePaisa
+    MembershipSaleRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        locationId:
+          type: string
+          format: uuid
+        permittedLocationIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 20
+        vehicles:
+          type: array
+          items:
+            $ref: '#/components/schemas/PassVehicleRequest'
+          maxItems: 10
+          minItems: 1
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        pricePaisa:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+        maxVehicles:
+          type: integer
+          maximum: 10
+          minimum: 1
+          default: 1
+      required:
+      - email
+      - endsAt
+      - locationId
+      - pricePaisa
+      - startsAt
+      - vehicles
     MembershipSummary:
       type: object
       properties:
@@ -1882,6 +2165,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Member'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedMemberPassList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberPass'
         page:
           type: object
           required:
@@ -2056,6 +2361,18 @@ components:
       - plate
       - status
       - tariffId
+      - vehicleClass
+    PassVehicleRequest:
+      type: object
+      properties:
+        plate:
+          type: string
+          minLength: 1
+          maxLength: 32
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+      required:
+      - plate
       - vehicleClass
     PatchedBayUpdateRequest:
       type: object

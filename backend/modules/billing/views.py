@@ -10,12 +10,16 @@ from rest_framework.views import APIView
 from modules.accounts.idempotency import IDEMPOTENCY_KEY, idempotent
 from modules.accounts.models import Role
 from modules.accounts.permissions import current_member, require_roles
-from modules.billing import services
+from modules.billing import memberships, services
 from modules.billing.models import CheckoutInvoice, Receipt, ShiftStatus
 from modules.billing.serializers import (
     CashPaymentSerializer,
     CheckoutSerializer,
     CurrentShiftSerializer,
+    MemberPassSerializer,
+    MembershipFilterSerializer,
+    MembershipRenewSerializer,
+    MembershipSaleSerializer,
     PaymentEntrySerializer,
     PrintEventSerializer,
     PrintRequestSerializer,
@@ -35,6 +39,7 @@ AnyRole = require_roles(*Role.values)
 GateRole = require_roles(Role.OWNER, Role.OPERATOR)
 CheckoutRole = require_roles(Role.OWNER, Role.OPERATOR, Role.CASHIER)
 CashRole = require_roles(Role.OWNER, Role.CASHIER)
+MembershipRole = require_roles(Role.OWNER, Role.MANAGER)
 
 
 def _session_detail(member, session_id) -> dict:
@@ -260,3 +265,92 @@ class PrintEventView(APIView):
             **serializer.validated_data,
         )
         return Response(PrintEventSerializer(event).data, status=201)
+
+
+def _pass_detail(member, pass_id) -> dict:
+    member_pass = memberships.passes_visible_to(member).filter(pk=pass_id).first()
+    if member_pass is None:
+        raise NotFound()
+    return MemberPassSerializer(member_pass).data
+
+
+class MembershipListView(ListAPIView):
+    """Every staff role reads passes, so the gate can see what a plate is entitled to; owners and
+    managers sell them."""
+
+    serializer_class = MemberPassSerializer
+    permission_classes = [AnyRole]
+
+    def get_permissions(self):
+        return [MembershipRole()] if self.request.method == "POST" else super().get_permissions()
+
+    @extend_schema(parameters=[MembershipFilterSerializer])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        filters = MembershipFilterSerializer(data=self.request.query_params)
+        filters.is_valid(raise_exception=True)
+        return memberships.passes_visible_to(
+            current_member(self.request),
+            plate=filters.validated_data.get("plate"),
+            location_id=filters.validated_data.get("locationId"),
+        )
+
+    @extend_schema(
+        request=MembershipSaleSerializer,
+        responses={201: MemberPassSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
+    def post(self, request):
+        serializer = MembershipSaleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        member = current_member(request)
+
+        def perform():
+            member_pass = memberships.sell_pass(
+                member=member,
+                actor=request.user,
+                correlation_id=request.request_id,
+                **serializer.validated_data,
+            )
+            return 201, _pass_detail(member, member_pass.pk)
+
+        return idempotent(
+            request,
+            operation="billing.membership_sale",
+            payload=serializer.validated_data,
+            perform=perform,
+        )
+
+
+class MembershipRenewView(APIView):
+    permission_classes = [MembershipRole]
+
+    @extend_schema(
+        request=MembershipRenewSerializer,
+        responses={201: MemberPassSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
+    def post(self, request, pass_id):
+        serializer = MembershipRenewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        member = current_member(request)
+
+        def perform():
+            renewal = memberships.renew_pass(
+                member=member,
+                actor=request.user,
+                pass_id=pass_id,
+                correlation_id=request.request_id,
+                **serializer.validated_data,
+            )
+            return 201, _pass_detail(member, renewal.pk)
+
+        payload = {"pass_id": pass_id, **serializer.validated_data}
+        return idempotent(
+            request,
+            operation="billing.membership_renewal",
+            payload=payload,
+            perform=perform,
+        )

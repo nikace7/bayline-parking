@@ -277,6 +277,7 @@ def test_database_rejects_money_rows_that_mix_organisations(gate, other_owner): 
         )
     foreign = other_owner.organisation
     zero_invoice = {
+        "location": gate.location,
         "tariff": session.tariff,
         "cutoff_at": ARRIVAL,
         "billable_seconds": 0,

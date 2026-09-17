@@ -1,6 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from config import clock
 from modules.billing.models import (
     CheckoutInvoice,
     PaymentEntry,
@@ -13,7 +14,7 @@ from modules.billing.models import (
     ShiftStatus,
 )
 from modules.billing.services import stage_of
-from modules.parking.models import SessionStatus
+from modules.parking.models import MemberPass, PassStatus, SessionStatus
 from modules.parking.serializers import ParkingSessionSerializer
 from modules.sites.models import VehicleClass
 from modules.sites.serializers import MAX_PAISA
@@ -236,3 +237,101 @@ class SessionFilterSerializer(serializers.Serializer):
     # Query parameters are not camelised by the parser, so the names are written as sent.
     locationId = serializers.UUIDField(required=False)
     status = serializers.ChoiceField(choices=SessionStatus.choices, required=False)
+
+
+class PassVehicleSerializer(serializers.Serializer):
+    plate = serializers.CharField(max_length=32)
+    vehicle_class = serializers.ChoiceField(choices=VehicleClass.choices)
+
+
+class MembershipSaleSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    # Where the sale is made: its receipt series and the cash shift that must be open.
+    location_id = serializers.UUIDField()
+    permitted_location_ids = serializers.ListField(
+        child=serializers.UUIDField(), required=False, default=list, max_length=20
+    )
+    vehicles = serializers.ListField(child=PassVehicleSerializer(), min_length=1, max_length=10)
+    starts_at = serializers.DateTimeField()
+    ends_at = serializers.DateTimeField()
+    price_paisa = serializers.IntegerField(min_value=1, max_value=MAX_PAISA)
+    max_vehicles = serializers.IntegerField(min_value=1, max_value=10, default=1)
+
+    def validate(self, attrs):
+        if attrs["ends_at"] <= attrs["starts_at"]:
+            raise serializers.ValidationError({"ends_at": ["A pass ends after it starts."]})
+        return attrs
+
+
+class MembershipRenewSerializer(serializers.Serializer):
+    location_id = serializers.UUIDField()
+    # The renewal starts at the later of this and the old expiry; now by default.
+    starts_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    ends_at = serializers.DateTimeField()
+    price_paisa = serializers.IntegerField(min_value=1, max_value=MAX_PAISA)
+
+
+class MembershipFilterSerializer(serializers.Serializer):
+    # Query parameters are not camelised by the parser, so the names are written as sent.
+    plate = serializers.CharField(required=False, max_length=32)
+    locationId = serializers.UUIDField(required=False)
+
+
+class MemberPassSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.user.name", read_only=True)
+    customer_email = serializers.EmailField(source="customer.user.email", read_only=True)
+    plates = serializers.SerializerMethodField()
+    location_names = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    renews_reference = serializers.CharField(
+        source="renews.reference", read_only=True, default=None
+    )
+    invoice_id = serializers.UUIDField(read_only=True, allow_null=True)
+    total_paisa = serializers.IntegerField(
+        source="invoice_total_paisa", read_only=True, allow_null=True
+    )
+    paid_paisa = serializers.IntegerField(read_only=True)
+    due_paisa = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MemberPass
+        fields = [
+            "id",
+            "reference",
+            "customer_name",
+            "customer_email",
+            "plates",
+            "location_names",
+            "starts_at",
+            "ends_at",
+            "covered_seconds",
+            "max_vehicles",
+            "price_paisa",
+            "status",
+            "activated_at",
+            "renews_reference",
+            "invoice_id",
+            "total_paisa",
+            "paid_paisa",
+            "due_paisa",
+        ]
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_plates(self, member_pass):
+        return [row.vehicle.plate for row in member_pass.permitted_vehicles.all()]
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_location_names(self, member_pass):
+        return [row.location.name for row in member_pass.permitted_locations.all()]
+
+    @extend_schema_field(serializers.ChoiceField(choices=PassStatus.choices))
+    def get_status(self, member_pass):
+        """EXPIRED is derived here rather than stored, so no worker has to keep up."""
+        return member_pass.status_at(clock.now())
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_due_paisa(self, member_pass):
+        if member_pass.invoice_total_paisa is None:
+            return None
+        return member_pass.invoice_total_paisa - member_pass.paid_paisa

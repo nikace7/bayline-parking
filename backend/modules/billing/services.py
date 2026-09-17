@@ -30,7 +30,7 @@ from modules.billing.models import (
     Shift,
 )
 from modules.parking import services as parking
-from modules.parking.models import ParkingSession, SessionStatus
+from modules.parking.models import MemberPass, ParkingSession, PassStatus, SessionStatus
 from modules.sites.models import Location
 from modules.sites.services import ensure_can_operate, next_receipt_sequence
 from modules.sites.tariff import Fee, calculate_fee
@@ -190,7 +190,12 @@ def quote_checkout(*, member, session_id) -> Quote:
     ensure_can_operate(member, session.location)
     _ensure_checkout_open(session)
     cutoff = clock.now()
-    fee = calculate_fee(session.tariff, entry=session.entered_at, cutoff=cutoff)
+    fee = calculate_fee(
+        session.tariff,
+        entry=session.entered_at,
+        cutoff=cutoff,
+        covered_seconds=session.covered_seconds,
+    )
     token = signing.dumps(
         {"session": str(session.pk), "cutoff": cutoff.isoformat(), "total": fee.total_paisa},
         salt=QUOTE_SALT,
@@ -204,13 +209,19 @@ def confirm_checkout(*, member, actor, session_id, quote_token, correlation_id) 
     ensure_can_operate(member, session.location)
     _ensure_checkout_open(session)
     cutoff, quoted_total = _read_quote(quote_token, session)
-    # Recalculated from the pinned, immutable tariff: the browser never supplies an amount.
-    fee = calculate_fee(session.tariff, entry=session.entered_at, cutoff=cutoff)
+    # Recalculated from the pinned tariff and pass coverage: the browser never supplies an amount.
+    fee = calculate_fee(
+        session.tariff,
+        entry=session.entered_at,
+        cutoff=cutoff,
+        covered_seconds=session.covered_seconds,
+    )
     if fee.total_paisa != quoted_total:
         raise ApiError(409, "QUOTE_INVALID", "This quote no longer matches the visit.")
     with conflict_on({"invoice_one_confirmed_per_session": CHECKOUT_EXISTS}):
         invoice = CheckoutInvoice.objects.create(
             organisation_id=session.organisation_id,
+            location_id=session.location_id,
             session=session,
             tariff_id=session.tariff_id,
             cutoff_at=cutoff,
@@ -260,17 +271,19 @@ def _read_quote(token: str, session: ParkingSession) -> tuple[datetime, int]:
 
 @transaction.atomic
 def capture_cash(*, member, actor, invoice_id, amount_paisa, correlation_id) -> PaymentEntry:
-    # Needs neither bay nor session: invoice, then shift, then receipt counter.
+    # Needs neither bay nor session: member pass (membership sales only), then invoice, then
+    # shift, then receipt counter.
+    sold_pass = _lock_pass_on_sale(member.organisation, invoice_id)
     invoice = (
         CheckoutInvoice.objects.for_org(member.organisation)
-        .select_related("session__location")
+        .select_related("location")
         .select_for_update(of=("self",))
         .filter(pk=invoice_id, status=InvoiceStatus.CONFIRMED)
         .first()
     )
     if invoice is None:
         raise NotFound()
-    location = invoice.session.location
+    location = invoice.location
     ensure_can_operate(member, location)
     due = invoice.total_paisa - paid_paisa(invoice)
     if due == 0:
@@ -324,7 +337,51 @@ def capture_cash(*, member, actor, invoice_id, amount_paisa, correlation_id) -> 
         },
         correlation_id=correlation_id,
     )
+    if sold_pass is not None and invoice.total_paisa == paid_paisa(invoice):
+        _activate_pass(
+            sold_pass,
+            member=member,
+            actor=actor,
+            at=entry.created_at,
+            correlation_id=correlation_id,
+        )
     return entry
+
+
+def _lock_pass_on_sale(organisation, invoice_id):
+    """The pass a membership invoice sells, locked before the invoice (global lock order). An
+    invoice never changes purpose or pass, so reading those two without the lock is safe."""
+    pass_id = (
+        CheckoutInvoice.objects.for_org(organisation)
+        .filter(pk=invoice_id)
+        .values_list("member_pass_id", flat=True)
+        .first()
+    )
+    if pass_id is None:
+        return None
+    return MemberPass.objects.select_for_update().filter(pk=pass_id).first()
+
+
+def _activate_pass(member_pass, *, member, actor, at, correlation_id) -> None:
+    """A sold pass starts entitling visits only once its invoice is settled, never when the
+    invoice is created (blueprint section 4)."""
+    if member_pass.status != PassStatus.PENDING:
+        return
+    member_pass.status = PassStatus.ACTIVE
+    member_pass.activated_at = at
+    member_pass.save(update_fields=["status", "activated_at"])
+    record_audit(
+        organisation=member.organisation,
+        actor=actor,
+        action="membership.activated",
+        entity=member_pass,
+        summary={
+            "reference": member_pass.reference,
+            "starts_at": member_pass.starts_at.isoformat(),
+            "ends_at": member_pass.ends_at.isoformat(),
+        },
+        correlation_id=correlation_id,
+    )
 
 
 def receipt_detail(*, member, receipt_id) -> Receipt:
