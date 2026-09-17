@@ -25,13 +25,20 @@ class Fee:
 
 
 def calculate_fee(
-    tariff: "TariffVersion", *, entry: datetime, cutoff: datetime, discount_paisa: int = 0
+    tariff: "TariffVersion",
+    *,
+    entry: datetime,
+    cutoff: datetime,
+    discount_paisa: int = 0,
+    covered_seconds: int | None = None,
 ) -> Fee:
     if discount_paisa < 0:
         raise ValueError("A discount cannot be negative.")
     # Whole elapsed seconds; a sub-second remainder never starts a block.
     elapsed = (cutoff - entry) // timedelta(seconds=1)
-    billable = max(0, elapsed - tariff.grace_seconds)
+    # A member pass covers the first `covered_seconds`; the excess gets no second grace.
+    free = tariff.grace_seconds if covered_seconds is None else covered_seconds
+    billable = max(0, elapsed - free)
     # The optional cap applies per rolling 24-hour segment. No block straddles a segment boundary
     # because block_seconds divides a day (database check).
     full_days, remainder = divmod(billable, DAY_SECONDS)

@@ -150,6 +150,42 @@
       "cutoff": "2026-09-14T10:05:00Z",
       "discountPaisa": 3283,
       "expected": { "billableSeconds": 3600, "blocks": 1, "basePaisa": 3333, "discountPaisa": 3283, "taxPaisa": 7, "totalPaisa": 57 }
+    },
+    {
+      "name": "covered visit inside the pass day is free",
+      "tariff": "car",
+      "coveredSeconds": 86400,
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-15T08:00:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 0, "blocks": 0, "basePaisa": 0, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 0 }
+    },
+    {
+      "name": "covered visit charges one second past the pass day, with no second grace",
+      "tariff": "car",
+      "coveredSeconds": 86400,
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-15T09:00:01Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 1, "blocks": 1, "basePaisa": 5000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 5000 }
+    },
+    {
+      "name": "covered excess uses whole blocks from entry plus the covered day",
+      "tariff": "car",
+      "coveredSeconds": 86400,
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-15T09:35:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 2100, "blocks": 2, "basePaisa": 10000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 10000 }
+    },
+    {
+      "name": "covered excess caps per rolling day like any other stay",
+      "tariff": "carCapped",
+      "coveredSeconds": 86400,
+      "entry": "2026-09-14T09:00:00Z",
+      "cutoff": "2026-09-16T09:00:00Z",
+      "discountPaisa": 0,
+      "expected": { "billableSeconds": 86400, "blocks": 48, "basePaisa": 60000, "discountPaisa": 0, "taxPaisa": 0, "totalPaisa": 60000 }
     }
   ]
 }

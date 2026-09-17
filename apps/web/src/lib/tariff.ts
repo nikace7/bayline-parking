@@ -32,6 +32,7 @@ export function calculateFee(
 	entry: Date,
 	cutoff: Date,
 	discountPaisa = 0,
+	coveredSeconds: number | null = null,
 ): Fee {
 	if (!Number.isSafeInteger(discountPaisa) || discountPaisa < 0) {
 		throw new RangeError(
@@ -40,7 +41,9 @@ export function calculateFee(
 	}
 	// Whole elapsed seconds; a sub-second remainder never starts a block.
 	const elapsed = Math.floor((cutoff.getTime() - entry.getTime()) / 1000);
-	const billableSeconds = Math.max(0, elapsed - tariff.graceSeconds);
+	// A member pass covers the first coveredSeconds of the visit; the excess gets no second grace.
+	const freeSeconds = coveredSeconds ?? tariff.graceSeconds;
+	const billableSeconds = Math.max(0, elapsed - freeSeconds);
 	// The optional cap applies per rolling 24-hour segment. No block straddles a segment boundary
 	// because blockSeconds divides a day (database check).
 	const fullDays = divide(billableSeconds, DAY_SECONDS);

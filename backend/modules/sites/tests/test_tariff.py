@@ -28,6 +28,7 @@ def test_shared_tariff_vector(case):
         entry=datetime.fromisoformat(case["entry"]),
         cutoff=datetime.fromisoformat(case["cutoff"]),
         discount_paisa=case["discountPaisa"],
+        covered_seconds=case.get("coveredSeconds"),
     )
 
     assert asdict(fee) == {snake(key): value for key, value in case["expected"].items()}
