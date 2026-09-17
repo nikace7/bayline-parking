@@ -4,28 +4,26 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (15 September 2026)
+## Current state (17 September 2026)
 
-- **M0–M3 are on `main`**, merged through PRs #1–#4 on `nikace7/bayline-parking` (private) with CI green.
-- **M4 Reservations and the design system update share one PR** from `feat/design-system` to `main`.
-  - The branch holds the 9 reviewed M4 commits, with the design commits on top.
-  - `feat/m4-reservations` was never pushed on its own.
+- **M0–M4 and the design system update are on `main`**, merged through PRs #1–#5 on `nikace7/bayline-parking` (private). CI is green on `main` after the rebase merge of #5.
+  - #5 carried the 9 reviewed M4 commits with the design commits on top; `feat/m4-reservations` was never pushed on its own.
 - **Verification:** all checks pass. See the design system and M4 sections of PROGRESS.md.
 - **M4 code review:** the independent review found one medium issue (an unlocked hold-limit count), now fixed and covered by a race test.
 - **Design review:** one medium finding is fixed with a test: bookings starting just after midnight were missing at the gate before midnight. PROGRESS has all three findings.
 - **Design audit is half done:**
   - Tokens, fonts and the public pages were checked in the browser.
   - Signed-in screens have not been checked visually; PROGRESS lists them.
+- **M4 has had no manual signed-in pass** through booking, relocation and check-in.
 - **Local database:** at the user's request, the demo accounts in the development database use a password the user chose, not `DEMO_PASSWORD`. A fresh seed brings back `DEMO_PASSWORD`. Ask the user for it; never write it down.
 
 ## Next session
 
-1. **Watch CI on the PR.** Rebase-merge only when the user asks.
-2. **Finish the design audit:**
+1. **Finish the design audit:**
    - The user signs in in the Browser pane: `owner@northgate.test` first, then `bina@customer.test`.
    - Check the screens PROGRESS lists at 360, 768 and 1280px, and fix cheap findings.
-3. **Start M5:** once merged, branch `feat/m5-member-passes` from `main`.
-4. **Read the spec before building M5:** the passes parts of blueprint sections 3–5, P09, and D25–D32 (the cash and idempotency rules passes must fit).
+2. **Build M5 on `feat/m5-member-passes`,** branched from `main` on 17 September 2026.
+3. **Read the spec before building M5:** the passes parts of blueprint sections 3–5, P09, and D25–D32 (the cash and idempotency rules passes must fit).
 
 ## Roadmap
 
@@ -35,8 +33,8 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 | M1 Sites and tariffs | Merged | Locations, bays, tariff versions, shared calculator vectors |
 | M2 Gate journey (cash) | Merged | Entry, quote, invoice, cash shift, capture, exit, idempotency, lock order |
 | M3 Shift, receipts, reports | Merged | Shift close, receipt counters, print CSS, PDF/XLSX reports |
-| M4 Reservations | In PR with the design system | Customers, holds, exclusion constraint, check-in, relocation, worker |
-| M5 Member passes | Next | Pass-first lock order, entitlement, renewal invoices; P09 |
+| M4 Reservations | Merged | Customers, holds, exclusion constraint, check-in, relocation, worker |
+| M5 Member passes | In progress | Pass-first lock order, entitlement, renewal invoices; P09 |
 | M6 Payment integrity | — | Fixture QR, Khalti sandbox adapter, lookup worker, refunds/voids; P10–P14 |
 | M7 Offline and devices | — | PWA outbox, device sync, conflict queue, Capacitor shell; P23, P24, P26, P27 |
 | M8 Polish and evidence | — | Responsive/keyboard passes, screenshots, `docs/API.md`, `OPERATIONS.md`, `EVALUATION.md`, `DEMO.md`, `CASE_STUDY.md` |
