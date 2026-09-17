@@ -183,6 +183,12 @@ class ParkingSession(models.Model):
     reservation = models.OneToOneField(
         Reservation, null=True, on_delete=models.PROTECT, related_name="session"
     )
+    # The member pass covering this visit, with its covered seconds pinned at entry so a
+    # renewal or a later purchase never reprices a stay that already started.
+    member_pass = models.ForeignKey(
+        "MemberPass", null=True, on_delete=models.PROTECT, related_name="sessions"
+    )
+    covered_seconds = models.PositiveIntegerField(null=True)
     status = models.CharField(
         max_length=16, choices=SessionStatus.choices, default=SessionStatus.PARKED
     )
@@ -221,5 +227,130 @@ class ParkingSession(models.Model):
                 ),
                 name="session_exit_matches_status",
             ),
+            models.CheckConstraint(
+                condition=Q(member_pass__isnull=True, covered_seconds__isnull=True)
+                | Q(member_pass__isnull=False, covered_seconds__isnull=False),
+                name="session_pass_coverage_pinned",
+            ),
         ]
         indexes = [models.Index(fields=["location", "status"])]
+
+
+# A pass covers this much of each visit; the excess is charged at the visit's pinned tariff.
+COVERED_SECONDS = 86_400
+
+
+class PassStatus(models.TextChoices):
+    PENDING = "PENDING"
+    ACTIVE = "ACTIVE"
+    CANCELLED = "CANCELLED"
+    # Derived from `ends_at` at read time and never stored, so no worker is needed.
+    EXPIRED = "EXPIRED"
+
+
+STORED_PASS_STATUSES = [PassStatus.PENDING, PassStatus.ACTIVE, PassStatus.CANCELLED]
+
+
+class MemberPassQuerySet(OrgScopedQuerySet):
+    def current(self, now: datetime):
+        """Passes that entitle a visit starting now: settled and inside their validity."""
+        return self.filter(status=PassStatus.ACTIVE, starts_at__lte=now, ends_at__gt=now)
+
+
+class MemberPass(models.Model):
+    """A customer's parking entitlement. The sale stores immutable price and validity terms; the
+    pass activates only once its MEMBERSHIP invoice is settled, never on invoice creation. A
+    renewal is a new row continuing this one, so a pinned visit is never altered afterwards.
+
+    Every entry that counts against a pass locks this row before any bay (global lock order)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="passes")
+    # Shown to staff and the member; access still needs the signed-in account.
+    reference = models.CharField(max_length=12)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    # Entitlement snapshot: later plan changes never reach a sold pass.
+    covered_seconds = models.PositiveIntegerField(default=COVERED_SECONDS)
+    max_vehicles = models.PositiveIntegerField(default=1)
+    price_paisa = models.PositiveIntegerField()
+    status = models.CharField(max_length=16, choices=PassStatus.choices, default=PassStatus.PENDING)
+    # The pass this one renews, if any.
+    renews = models.ForeignKey("self", null=True, on_delete=models.PROTECT, related_name="renewals")
+    activated_at = models.DateTimeField(null=True)
+    cancel_reason = models.CharField(max_length=240, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = MemberPassQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organisation", "reference"], name="pass_reference_unique"
+            ),
+            # Target of the composite (id, organisation_id) foreign key from invoices.
+            models.UniqueConstraint(
+                fields=["id", "organisation"], name="pass_id_organisation_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(ends_at__gt=F("starts_at")), name="pass_interval_valid"
+            ),
+            models.CheckConstraint(
+                condition=Q(max_vehicles__gte=1), name="pass_admits_one_vehicle"
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=STORED_PASS_STATUSES), name="pass_status_stored"
+            ),
+            models.CheckConstraint(
+                condition=Q(status=PassStatus.ACTIVE, activated_at__isnull=False)
+                | (~Q(status=PassStatus.ACTIVE) & Q(activated_at__isnull=True)),
+                name="pass_activated_when_active",
+            ),
+        ]
+        indexes = [models.Index(fields=["customer", "ends_at"])]
+
+    def status_at(self, now: datetime) -> str:
+        """The stored status, or EXPIRED once an activated pass has run out."""
+        if self.status == PassStatus.ACTIVE and self.ends_at <= now:
+            return PassStatus.EXPIRED
+        return self.status
+
+
+class MemberPassVehicle(models.Model):
+    """A plate this pass admits. `max_vehicles` limits how many of them may be parked at once."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    member_pass = models.ForeignKey(
+        MemberPass, on_delete=models.PROTECT, related_name="permitted_vehicles"
+    )
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, related_name="+")
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["member_pass", "vehicle"], name="pass_vehicle_unique"),
+        ]
+
+
+class MemberPassLocation(models.Model):
+    """A location this pass covers. Entry anywhere else is charged as a walk-in."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    member_pass = models.ForeignKey(
+        MemberPass, on_delete=models.PROTECT, related_name="permitted_locations"
+    )
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="+")
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["member_pass", "location"], name="pass_location_unique"
+            ),
+        ]

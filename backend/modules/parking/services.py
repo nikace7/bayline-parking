@@ -1,7 +1,7 @@
 """Gate entry and exit, and bay changes guarded by occupancy and reservations (blueprint section 4).
 
-Lock order: customer account (holds only) -> bays (UUID ascending) -> reservation -> vehicle
--> parking session -> invoice -> shift -> receipt counter.
+Lock order: member pass -> customer account (holds only) -> bays (UUID ascending) -> reservation
+-> vehicle -> parking session -> invoice -> shift -> receipt counter.
 """
 
 from django.db import transaction
@@ -12,6 +12,7 @@ from config import clock
 from config.api import ApiError
 from config.transactions import conflict_on
 from modules.accounts.services import record_audit
+from modules.parking import passes
 from modules.parking.models import (
     ParkingSession,
     Reservation,
@@ -40,14 +41,21 @@ def admit_vehicle(
     correlation_id,
     reservation_id=None,
 ) -> ParkingSession:
-    """Blueprint section 4 entry. Locks the bay, then the reservation being checked in, then touches
-    the vehicle and inserts the session; the partial unique constraints are the final guard against
-    a second occupant. Walk-ins use WALK_IN bays; reservations check in at their RESERVABLE bay."""
+    """Blueprint section 4 entry. Locks any covering member pass, then the bay, then the
+    reservation being checked in, then touches the vehicle and inserts the session; the partial
+    unique constraints are the final guard against a second occupant. Walk-ins use WALK_IN bays;
+    reservations check in at their RESERVABLE bay."""
     organisation = member.organisation
     location = Location.objects.for_org(organisation).filter(pk=location_id, enabled=True).first()
     if location is None:
         raise NotFound()
     ensure_can_operate(member, location)
+    now = clock.now()
+    # First lock in the global order: a pass is claimed before any bay, so two entries on one
+    # pass cannot both find room under its simultaneous-vehicle limit.
+    entitlement = passes.lock_entitlement(
+        organisation=organisation, location=location, plate=plate, now=now
+    )
     bay = (
         Bay.objects.for_org(organisation)
         .select_for_update()
@@ -74,7 +82,6 @@ def admit_vehicle(
     if ParkingSession.objects.filter(bay=bay, status=SessionStatus.PARKED).exists():
         raise ApiError(409, *OCCUPIED)
 
-    now = clock.now()
     tariff = tariff_at(location, bay.vehicle_class, now)
     if tariff is None:
         raise ApiError(409, "TARIFF_MISSING", "No tariff is in force for this vehicle class here.")
@@ -96,10 +103,14 @@ def admit_vehicle(
             vehicle=vehicle,
             tariff=tariff,
             reservation=reservation,
+            member_pass=entitlement,
+            covered_seconds=entitlement.covered_seconds if entitlement else None,
             entered_at=now,
             entered_by=actor,
         )
     summary = {"bay": bay.label, "tariff_id": str(tariff.pk)}
+    if entitlement:
+        summary["member_pass"] = entitlement.reference
     if reservation:
         reservation.status = ReservationStatus.CHECKED_IN
         reservation.revision += 1
