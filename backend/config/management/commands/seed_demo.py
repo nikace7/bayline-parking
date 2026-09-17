@@ -2,7 +2,8 @@
 
 Lives in `config` because it spans modules. Each milestone extends it as its services land:
 M1 seeds staff, locations, bays and tariffs; M2 assigns gate staff to locations; M3 adds a cash day
-at North Gate Central with a closed and an open shift.
+at North Gate Central with a closed and an open shift; M4 adds customers and reservations; M5 adds
+member passes.
 """
 
 import os
@@ -15,10 +16,12 @@ from django.db import transaction
 from config import clock
 from modules.accounts import services as accounts
 from modules.accounts.models import OrgMember, Role, User
+from modules.billing import memberships
 from modules.billing import services as billing
-from modules.billing.models import Shift
+from modules.billing.models import CheckoutInvoice, Shift
 from modules.parking import reservations
 from modules.parking import services as parking
+from modules.parking.models import MemberPass
 from modules.sites import services as sites
 from modules.sites.models import Bay, BayMode, Location, LocationAssignment, VehicleClass
 
@@ -61,6 +64,7 @@ OPENING_FLOAT_PAISA = 100_000
 COUNTED_CASH_PAISA = 128_000
 # The cash day starts this long before the seed runs, so visits carry fees and none is in future.
 CASH_DAY_OFFSET = timedelta(hours=4)
+MONTHLY_PASS_PAISA = 500_000
 
 
 class Command(BaseCommand):
@@ -93,6 +97,8 @@ class Command(BaseCommand):
             self.stdout.write(
                 "Added 2 customer accounts and 3 reservations, one waiting on an overstay."
             )
+        if self._seed_passes():
+            self.stdout.write("Added 2 member passes: one settled and one awaiting payment.")
 
     @transaction.atomic
     def _seed_reservations(self, password) -> bool:
@@ -313,3 +319,48 @@ class Command(BaseCommand):
                     # All demo tariffs start a day early so the backdated cash day finds one.
                     effective_from=clock.now() - timedelta(days=1),
                 )
+
+    @transaction.atomic
+    def _seed_passes(self) -> bool:
+        """One settled monthly pass for Asha covering both North Gate locations, and one still
+        awaiting payment for Bina. The settled sale is taken on the cashier's open shift, so it
+        appears in the day's cash. Runs once, also on databases seeded before M5."""
+        if MemberPass.objects.exists():
+            return False
+        staff = OrgMember.objects.select_related("organisation", "user")
+        owner = staff.filter(user__email=MARKER_EMAIL).first()
+        cashier = staff.filter(user__email="cashier@northgate.test").first()
+        if owner is None or cashier is None:
+            return False
+        if not User.objects.filter(email="asha@customer.test").exists():
+            return False
+        locations = list(Location.objects.for_org(owner.organisation).order_by("receipt_prefix"))
+        central = next(location for location in locations if location.receipt_prefix == "NGC")
+        now = clock.now().replace(second=0, microsecond=0)
+
+        def sell(email, plate):
+            return memberships.sell_pass(
+                member=owner,
+                actor=owner.user,
+                email=email,
+                location_id=central.pk,
+                permitted_location_ids=[location.pk for location in locations],
+                vehicles=[{"plate": plate, "vehicle_class": VehicleClass.CAR}],
+                starts_at=now - timedelta(days=5),
+                ends_at=now + timedelta(days=25),
+                price_paisa=MONTHLY_PASS_PAISA,
+                max_vehicles=1,
+                correlation_id=CORRELATION_ID,
+            )
+
+        settled = sell("asha@customer.test", "BA 7 PA 7007")
+        invoice = CheckoutInvoice.objects.get(member_pass=settled)
+        billing.capture_cash(
+            member=cashier,
+            actor=cashier.user,
+            invoice_id=invoice.pk,
+            amount_paisa=invoice.total_paisa,
+            correlation_id=CORRELATION_ID,
+        )
+        sell("bina@customer.test", "बा ९ च ९००९")
+        return True

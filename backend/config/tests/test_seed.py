@@ -8,7 +8,7 @@ from modules.accounts.models import Customer, Organisation, OrgMember
 from modules.billing import services as billing
 from modules.billing.models import Receipt, SessionStage, Shift
 from modules.parking import reservations
-from modules.parking.models import Reservation, ReservationStatus
+from modules.parking.models import MemberPass, PassStatus, Reservation, ReservationStatus
 from modules.sites.models import Bay, BayMode, Location, LocationAssignment, TariffVersion
 
 pytestmark = pytest.mark.django_db
@@ -42,6 +42,8 @@ def test_seed_builds_demo_data_once(monkeypatch):
         "NGC-000002",
         "NGC-000003",
         "NGC-000004",
+        # The settled membership sale, taken on the open shift.
+        "NGC-000005",
     ]
     north_gate = Organisation.objects.get(name="North Gate Parking")
     visits = billing.sessions_with_settlement(north_gate)
@@ -58,6 +60,10 @@ def test_seed_builds_demo_data_once(monkeypatch):
         ReservationStatus.CHECKED_IN: 1,
         ReservationStatus.CONFIRMED: 1,
         ReservationStatus.NO_SHOW: 1,
+    }
+    assert Counter(MemberPass.objects.values_list("status", flat=True)) == {
+        PassStatus.ACTIVE: 1,
+        PassStatus.PENDING: 1,
     }
     operator = OrgMember.objects.get(user__email="operator@northgate.test")
     waiting = reservations.staff_reservations(operator).get(status=ReservationStatus.CONFIRMED)
