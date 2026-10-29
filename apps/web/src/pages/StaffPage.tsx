@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, api, unwrap } from "../api/client";
+import { ApiError, allPages, api } from "../api/client";
 import { StatusBadge } from "../components/StatusBadge";
 
 const roleLabel = (role: string) =>
@@ -8,7 +8,15 @@ const roleLabel = (role: string) =>
 export function StaffPage() {
 	const members = useQuery({
 		queryKey: ["members"],
-		queryFn: () => unwrap(api.GET("/api/v1/members")),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/members", {
+						params: { query: { cursor, limit: 100 } },
+						signal,
+					}),
+				signal,
+			),
 	});
 
 	return (

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { components } from "../../generated/schema";
-import { api, unwrap } from "../api/client";
+import { allPages, api, unwrap } from "../api/client";
 import { useIdempotencyKey } from "./gate";
 
 type Schemas = components["schemas"];
@@ -15,16 +15,20 @@ export type AvailabilityQuery = {
 	endsAt: string;
 };
 
-// ponytail: first page only; follow `page.next` once a list outgrows 100 rows.
-const FIRST_PAGE = { limit: 100 };
+const PAGE = { limit: 100 };
 const BOARD_REFRESH_MS = 30_000;
 
 export function usePublicLocations() {
 	return useQuery({
 		queryKey: ["public-locations"],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/public/locations", { params: { query: FIRST_PAGE } }),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/public/locations", {
+						params: { query: { ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 	});
 }
@@ -48,11 +52,14 @@ export function useAvailability(query: AvailabilityQuery | null) {
 export function useMyReservations(enabled: boolean) {
 	return useQuery({
 		queryKey: ["my-reservations"],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/customer/reservations", {
-					params: { query: FIRST_PAGE },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/customer/reservations", {
+						params: { query: { ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 		enabled,
 	});
@@ -78,11 +85,14 @@ export function useStaffReservations(filters: {
 }) {
 	return useQuery({
 		queryKey: ["reservations", filters],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/reservations", {
-					params: { query: { ...filters, ...FIRST_PAGE } },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/reservations", {
+						params: { query: { ...filters, ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 		refetchInterval: BOARD_REFRESH_MS,
 	});

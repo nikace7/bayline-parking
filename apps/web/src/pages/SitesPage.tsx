@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { components } from "../../generated/schema";
-import { api, unwrap } from "../api/client";
+import { allPages, api } from "../api/client";
 import { type Location, useLocations } from "../app/gate";
 import { LocationSelect } from "../components/LocationSelect";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
@@ -10,8 +10,7 @@ import { formatPaisa } from "../lib/money";
 
 type Schemas = components["schemas"];
 
-// ponytail: first page only; follow `page.next` once a location has more than 100 bays or versions.
-const FIRST_PAGE = { limit: 100 };
+const PAGE = { limit: 100 };
 
 const MODE: Record<Schemas["BayModeEnum"], string> = {
 	WALK_IN: "Walk-in",
@@ -84,20 +83,26 @@ function LocationDetail({ location }: { location: Location }) {
 	const path = { location_id: location.id };
 	const bays = useQuery({
 		queryKey: ["bays", location.id],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/locations/{location_id}/bays", {
-					params: { path, query: FIRST_PAGE },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/locations/{location_id}/bays", {
+						params: { path, query: { ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 	});
 	const tariffs = useQuery({
 		queryKey: ["tariffs", location.id],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/locations/{location_id}/tariffs", {
-					params: { path, query: FIRST_PAGE },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/locations/{location_id}/tariffs", {
+						params: { path, query: { ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 	});
 	const startsAt = new Intl.DateTimeFormat("en-GB", {

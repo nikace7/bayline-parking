@@ -73,7 +73,7 @@ const responses: Record<string, unknown> = {
 
 vi.mocked(api.GET).mockImplementation(((path: string) =>
 	Promise.resolve({
-		data: { data: responses[path] },
+		data: { data: responses[path], page: { next: null, previous: null } },
 		response: new Response(),
 	})) as never);
 

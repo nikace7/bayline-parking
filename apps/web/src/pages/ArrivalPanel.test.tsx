@@ -58,7 +58,13 @@ const confirmed = {
 };
 
 const ok = (data: unknown) =>
-	Promise.resolve({ data: { data }, response: new Response() });
+	Promise.resolve({
+		data: {
+			data,
+			...(Array.isArray(data) ? { page: { next: null, previous: null } } : {}),
+		},
+		response: new Response(),
+	});
 
 describe("ArrivalPanel", () => {
 	afterEach(() => {

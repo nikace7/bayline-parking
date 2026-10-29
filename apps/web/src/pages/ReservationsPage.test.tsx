@@ -60,7 +60,13 @@ const waiting = {
 };
 
 const ok = (data: unknown) =>
-	Promise.resolve({ data: { data }, response: new Response() });
+	Promise.resolve({
+		data: {
+			data,
+			...(Array.isArray(data) ? { page: { next: null, previous: null } } : {}),
+		},
+		response: new Response(),
+	});
 
 describe("ReservationsPage", () => {
 	it("flags an overstay conflict and moves the reservation to a compatible bay", async () => {

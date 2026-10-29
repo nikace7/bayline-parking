@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { components } from "../../generated/schema";
-import { api, unwrap } from "../api/client";
+import { allPages, api, unwrap } from "../api/client";
 
 type Schemas = components["schemas"];
 export type Shift = Schemas["Shift"];
@@ -19,8 +19,7 @@ export const METHOD_LABEL: Record<Schemas["PaymentMethodEnum"], string> = {
 	CASH: "Cash",
 };
 
-// ponytail: first page only; follow `page.next` once staff need more than 25 closed shifts.
-const RECENT = { limit: 25 };
+const PAGE = { limit: 100 };
 
 export function useShiftSummary(shiftId: string) {
 	return useQuery({
@@ -37,11 +36,14 @@ export function useShiftSummary(shiftId: string) {
 export function useClosedShifts() {
 	return useQuery({
 		queryKey: ["shifts", "CLOSED"],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/shifts", {
-					params: { query: { status: "CLOSED", ...RECENT } },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/shifts", {
+						params: { query: { status: "CLOSED", ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
 			),
 	});
 }

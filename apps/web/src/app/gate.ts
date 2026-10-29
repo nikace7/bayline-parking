@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import type { components } from "../../generated/schema";
-import { ApiError, api, unwrap } from "../api/client";
+import { ApiError, allPages, api, unwrap } from "../api/client";
 import { useSession } from "./session";
 
 type Schemas = components["schemas"];
@@ -11,26 +11,38 @@ export type Quote = Schemas["Quote"];
 export type Visit = Schemas["SessionDetail"];
 export type VisitSummary = Schemas["SessionSummary"];
 
-// ponytail: first page only; follow `page.next` once a location has more than 100 bays or visits.
-const FIRST_PAGE = { limit: 100 };
+const PAGE = { limit: 100 };
 const OCCUPANCY_REFRESH_MS = 5_000;
 
 export function useLocations() {
 	return useQuery({
 		queryKey: ["locations"],
-		queryFn: () =>
-			unwrap(api.GET("/api/v1/locations", { params: { query: FIRST_PAGE } })),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/locations", {
+						params: { query: { ...PAGE, cursor } },
+						signal,
+					}),
+				signal,
+			),
 	});
 }
 
 export function useBays(locationId: string) {
 	return useQuery({
 		queryKey: ["bays", locationId],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/locations/{location_id}/bays", {
-					params: { path: { location_id: locationId }, query: FIRST_PAGE },
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/locations/{location_id}/bays", {
+						params: {
+							path: { location_id: locationId },
+							query: { ...PAGE, cursor },
+						},
+						signal,
+					}),
+				signal,
 			),
 	});
 }
@@ -39,13 +51,16 @@ export function useBays(locationId: string) {
 export function useParkedVisits(locationId: string) {
 	return useQuery({
 		queryKey: ["visits", locationId],
-		queryFn: () =>
-			unwrap(
-				api.GET("/api/v1/parking/sessions", {
-					params: {
-						query: { locationId, status: "PARKED", ...FIRST_PAGE },
-					},
-				}),
+		queryFn: ({ signal }) =>
+			allPages(
+				(cursor) =>
+					api.GET("/api/v1/parking/sessions", {
+						params: {
+							query: { locationId, status: "PARKED", ...PAGE, cursor },
+						},
+						signal,
+					}),
+				signal,
 			),
 		refetchInterval: OCCUPANCY_REFRESH_MS,
 	});

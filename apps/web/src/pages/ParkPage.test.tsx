@@ -47,7 +47,13 @@ const held = {
 };
 
 const ok = (data: unknown) =>
-	Promise.resolve({ data: { data }, response: new Response() });
+	Promise.resolve({
+		data: {
+			data,
+			...(Array.isArray(data) ? { page: { next: null, previous: null } } : {}),
+		},
+		response: new Response(),
+	});
 
 describe("ParkPage", () => {
 	it("holds a bay for a local arrival time and confirms it", async () => {
