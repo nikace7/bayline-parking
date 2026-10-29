@@ -71,6 +71,34 @@ api.use(csrf);
 
 type Outcome<T> = { data?: T; error?: unknown; response: Response };
 
+/** Publish a list only after every page succeeds; cursors are tokens, never URLs to follow. */
+export async function allPages<T extends { id: string }>(
+	fetchPage: (
+		cursor?: string,
+	) => Promise<Outcome<{ data: T[]; page: { next: string | null } }>>,
+	signal?: AbortSignal,
+): Promise<T[]> {
+	const rows = new Map<string, T>();
+	const seen = new Set<string>();
+	let cursor: string | undefined;
+	do {
+		signal?.throwIfAborted();
+		const result = await fetchPage(cursor);
+		const items = await unwrap(Promise.resolve(result));
+		signal?.throwIfAborted();
+		const next = result.data?.page?.next;
+		if (!Array.isArray(items) || (next !== null && typeof next !== "string")) {
+			throw new Error("Incomplete list response");
+		}
+		for (const item of items) rows.set(item.id, item);
+		if (next === null) return [...rows.values()];
+		if (seen.has(next)) throw new Error("Pagination cursor repeated");
+		seen.add(next);
+		cursor = next;
+	} while (cursor !== undefined);
+	return [...rows.values()];
+}
+
 /** Resolves a JSON call to its `data` payload, or throws ApiError carrying the error envelope. */
 export async function unwrap<T>(
 	call: Promise<Outcome<{ data: T }>>,

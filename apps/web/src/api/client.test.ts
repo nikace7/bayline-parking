@@ -1,5 +1,56 @@
-import { describe, expect, it, vi } from "vitest";
-import { ApiError, allPages } from "./client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError, allPages, errorMessage, unwrap } from "./client";
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
+});
+
+it("preserves actionable API errors and safely describes network failures", () => {
+	const error = new ApiError(409, {
+		error: {
+			code: "CONFLICT",
+			message: "Refresh the quote",
+			fieldErrors: { plate: ["Check plate"] },
+			retryable: false,
+		},
+		requestId: null,
+	});
+	expect(error.code).toBe("CONFLICT");
+	expect(error.fieldError("plate")).toBe("Check plate");
+	expect(error.fieldError("missing")).toBeUndefined();
+	expect(errorMessage(error)).toBe("Refresh the quote");
+	expect(errorMessage(new TypeError())).toContain("could not be reached");
+	expect(new ApiError(503, null).message).toContain("503");
+	expect(new ApiError(503, null).code).toBeUndefined();
+});
+
+it("rejects an empty successful response instead of inventing data", async () => {
+	await expect(
+		unwrap(Promise.resolve({ response: new Response() })),
+	).rejects.toBeInstanceOf(ApiError);
+});
+
+it("reads the current CSRF cookie for each write and omits it on reads", async () => {
+	const requests: Request[] = [];
+	const fetch = vi.fn().mockImplementation(async (request: Request) => {
+		requests.push(request);
+		return new Response(null, { status: 204 });
+	});
+	vi.stubGlobal("fetch", fetch);
+	vi.resetModules();
+	const { api } = await import("./client");
+	const cookie = vi
+		.spyOn(document, "cookie", "get")
+		.mockReturnValue("csrftoken=first-token");
+	await api.GET("/api/v1/auth/session", { baseUrl: "http://localhost" });
+	await api.POST("/api/v1/auth/logout", { baseUrl: "http://localhost" });
+	cookie.mockReturnValue("csrftoken=rotated-token");
+	await api.POST("/api/v1/auth/logout", { baseUrl: "http://localhost" });
+	expect(requests[0]?.headers.has("X-CSRFToken")).toBe(false);
+	expect(requests[1]?.headers.get("X-CSRFToken")).toBe("first-token");
+	expect(requests[2]?.headers.get("X-CSRFToken")).toBe("rotated-token");
+});
 
 function page(ids: string[], next: string | null) {
 	return {
