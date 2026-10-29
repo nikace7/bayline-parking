@@ -4,7 +4,14 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (17 September 2026)
+## Current state (29 October 2026)
+
+### Membership continuation
+
+- Staff membership UI now exists at `/members`: sale/renewal, plate lookup/pagination and cash collection with receipt links. It is reachable in mobile navigation.
+- Sale UI creates one vehicle at one location using an existing customer's email. Broader customer-profile changes from the Nepal proposal remain pending.
+- Verified: 85 frontend tests, 40 backend unit tests, 4 Chromium tests (membership API mocked), lint, typecheck and build. No current live database/browser verification is claimed.
+- Detailed results and limitations are in the M5 staff section of `docs/PROGRESS.md`. All changes have focused local commits; the branch has not been pushed.
 
 ### PWA continuation — 29 October 2026
 
@@ -26,6 +33,12 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 - **Local database:** at the user's request, the demo accounts in the development database use a password the user chose, not `DEMO_PASSWORD`. A fresh seed brings back `DEMO_PASSWORD`. Ask the user for it; never write it down.
 
 ## Next session
+
+1. Run current PostgreSQL integration tests and a real seeded-account membership sale/payment/receipt/renewal walkthrough.
+2. Complete operational pagination/occupancy totals, then the customer-profile and open-lot changes in the Nepal architecture proposal.
+3. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
+
+## Earlier next-session notes (17 September 2026)
 
 1. **Finish the design audit:**
    - The user signs in in the Browser pane: `owner@northgate.test` first, then `bina@customer.test`.

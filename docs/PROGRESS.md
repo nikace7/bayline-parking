@@ -1,5 +1,29 @@
 # Progress
 
+## M5 staff membership workflows — 29 October 2026
+
+### Delivered
+
+- `/members`, accessible from desktop and mobile navigation, lists pass/customer/plate/coverage details, filters by location and plate, and follows cursor pagination.
+- Owners/managers sell single-vehicle passes at one location and renew active/expired passes. Dates use the selected location's clock; rupees parse to integer paisa. Existing customer accounts are required by the backend.
+- Owners/cashiers take the outstanding cash payment using an open shift at the selected location. The API checks the invoice's actual location and settlement; the UI refreshes passes and shift totals and links the receipt.
+- Sales, renewals and cash payments reuse idempotency keys after network/server failures. Completed forms require a new-sale action before resubmission; a completed cash action is disabled while its invoice remains visible.
+- Membership receipt rendering no longer formats absent parking-session dates. Renewal forms receive keyboard focus and restore the initiating control when closed.
+
+### Verification
+
+- Frontend: 85 tests passed across 16 files. Includes sales, exact paisa/Kathmandu time, roles, renewal focus, pagination, failed-response retry keys, duplicate collection prevention and membership receipts.
+- Backend unit: 40 passed. No backend/API/schema changes; PostgreSQL integration suite not rerun.
+- Chromium: 4 passed, including a mobile sale → collection → activation → receipt-link flow with mocked API responses, plus the three existing real service-worker tests.
+- TypeScript, production build and canonical lint passed. Targeted membership page/hooks coverage before the final focus test: 85.55% lines, 82.02% branches.
+- React and paired TypeScript review completed; the renewal focus issue was reproduced and fixed. No remaining confirmed findings.
+
+### Limits and next work
+
+- Browser payment tests do not prove the live backend/database journey. Run PostgreSQL integration and a real synthetic-account walkthrough before treating M5 as production verified.
+- The sale form creates one vehicle/one-location passes; existing richer API-created passes can be read. Email-free customer profiles, offline transaction sync and historic receipt discovery are separate work.
+- No deployment or push was performed. Work is recorded in focused local Git commits: tests, API actions, receipt fix, staff UI, then documentation.
+
 ## PWA offline shell — 29 October 2026
 
 The user selected PWA-only development; Flutter/Capacitor are excluded (D55). This delivery implements installation/static offline access, not offline financial transactions (D56).

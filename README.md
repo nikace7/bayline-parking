@@ -48,6 +48,7 @@ Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). R
 - **Shifts and reports:** `/shifts` closes the cashier's shift against the counted cash. `/reports` shows collections and the vehicle log with PDF and XLSX downloads.
 - **Reservations:** `/reservations` shows each day's bookings with overstay conflicts, and owners and managers can move or cancel them.
 - **Customers:** `/park` lists locations and free bays for a time, holds a bay and confirms it, and `/account/reservations` shows a customer's bookings. Create a customer account at `/account/register`.
+- **Members:** `/members` searches passes by plate and loads further pages. Owners/managers sell single-vehicle passes at the selected location and renew existing passes. Customers currently need an existing account email. Owners/cashiers collect the outstanding amount against an open shift at that location; payment activates the pass and links its receipt. Passes with multiple vehicles or locations created through the API remain visible, but the sale form currently creates one vehicle at one location.
 
 `pnpm dev` does not start the background worker. Run `uv run --env-file ../.env python manage.py worker` from `backend/` to sweep lapsed holds and no-shows; screens show them correctly either way.
 
