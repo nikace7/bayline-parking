@@ -1,7 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import { MembersPage } from "./MembersPage";
 
@@ -13,6 +19,7 @@ const state = vi.hoisted(() => ({
 	roles: ["OWNER"],
 	shift: { id: "shift", locationId: "loc" },
 }));
+afterEach(() => vi.restoreAllMocks());
 vi.mock("../app/gate", async (original) => ({
 	...(await original<typeof import("../app/gate")>()),
 	useActiveRoles: () => state.roles,
@@ -41,6 +48,8 @@ const pass = {
 };
 const ok = (data: unknown) =>
 	Promise.resolve({ data: { data }, response: new Response() });
+const paged = (data: unknown) =>
+	Promise.resolve({ data, response: new Response() });
 function open() {
 	render(
 		<MemoryRouter>
@@ -63,7 +72,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	state.roles = ["OWNER"];
 	vi.mocked(api.GET).mockImplementation((() =>
-		ok({ data: [pass], page: { next: null, previous: null } })) as never);
+		paged({ data: [pass], page: { next: null, previous: null } })) as never);
 	vi.mocked(api.POST).mockImplementation((() => ok(pass)) as never);
 });
 
@@ -124,15 +133,17 @@ it("lets a cashier collect a pending pass and links its receipt without selling 
 });
 
 it("shows later pages and allows a manager to renew an active pass", async () => {
+	vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-29T00:00:00Z"));
 	state.roles = ["MANAGER"];
 	vi.mocked(api.GET).mockImplementation(((
 		_path: unknown,
 		options: { params: { query: { cursor?: string } } },
 	) =>
-		ok({
+		paged({
 			data: [
 				{
 					...pass,
+					id: options.params.query.cursor ? "pass2" : "pass",
 					reference: options.params.query.cursor ? "PAGE2" : "PASS001",
 					status: "ACTIVE",
 					duePaisa: 0,
@@ -146,7 +157,12 @@ it("shows later pages and allows a manager to renew an active pass", async () =>
 	open();
 	fireEvent.click(await screen.findByRole("button", { name: "Next page" }));
 	expect(await screen.findByText("PAGE2")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "Renew" }));
+	fireEvent.click(
+		within(screen.getByRole("article", { name: "Pass PAGE2" })).getByRole(
+			"button",
+			{ name: "Renew" },
+		),
+	);
 	fireEvent.change(screen.getByLabelText("Renewal ends at"), {
 		target: { value: "2026-12-29T10:00" },
 	});
@@ -166,4 +182,67 @@ it("shows later pages and allows a manager to renew an active pass", async () =>
 			}),
 		),
 	);
+});
+
+it("focuses renewal on opening and returns focus on close", async () => {
+	vi.mocked(api.GET).mockImplementation((() =>
+		paged({
+			data: [{ ...pass, status: "ACTIVE", duePaisa: 0 }],
+			page: { next: null, previous: null },
+		})) as never);
+	open();
+	const trigger = await screen.findByRole("button", { name: "Renew" });
+	trigger.focus();
+	fireEvent.click(trigger);
+	expect(screen.getByRole("heading", { name: "Renew PASS001" })).toHaveFocus();
+	fireEvent.click(screen.getByRole("button", { name: "Close renewal" }));
+	expect(trigger).toHaveFocus();
+});
+
+it("reports invalid sale dates without sending a write", async () => {
+	open();
+	fireEvent.change(await screen.findByLabelText("Starts at"), {
+		target: { value: "2026-11-29T10:00" },
+	});
+	fireEvent.change(screen.getByLabelText("Ends at"), {
+		target: { value: "2026-10-29T10:00" },
+	});
+	fireEvent.submit(
+		screen
+			.getByRole("button", { name: "Sell pass" })
+			.closest("form") as HTMLFormElement,
+	);
+	expect(await screen.findByRole("alert")).toHaveTextContent("positive price");
+	expect(api.POST).not.toHaveBeenCalled();
+});
+
+it("reuses the payment key after a lost response and prevents a repeated successful collection", async () => {
+	state.roles = ["CASHIER"];
+	vi.mocked(api.POST).mockRejectedValueOnce(new TypeError("Lost response"));
+	vi.mocked(api.POST).mockImplementationOnce((() =>
+		ok({ receiptId: "receipt", receiptNumber: "NG-001" })) as never);
+	open();
+	fireEvent.click(await screen.findByRole("button", { name: /Take cash/ }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"could not be reached",
+	);
+	fireEvent.click(screen.getByRole("button", { name: /Take cash/ }));
+	await screen.findByRole("link", { name: "Receipt NG-001" });
+	const calls = vi.mocked(api.POST).mock.calls as unknown as [
+		string,
+		{ params: { header: { "Idempotency-Key": string } } },
+	][];
+	expect(calls[0]?.[1].params.header["Idempotency-Key"]).toBe(
+		calls[1]?.[1].params.header["Idempotency-Key"],
+	);
+	expect(screen.getByRole("button", { name: /Take cash/ })).toBeDisabled();
+});
+
+it("keeps auditors read-only", async () => {
+	state.roles = ["AUDITOR"];
+	open();
+	await screen.findByText("PASS001");
+	expect(
+		screen.queryByRole("button", { name: /Take cash|Sell pass|Renew/ }),
+	).not.toBeInTheDocument();
 });

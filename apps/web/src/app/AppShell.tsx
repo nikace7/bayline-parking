@@ -14,7 +14,7 @@ import {
 import { FullPageMessage } from "../components/Page";
 import { useSession, useSignOut, useSwitchOrganisation } from "./session";
 
-// The four `mobile` entries fill the bottom bar below 768px.
+// The mobile entries fill the bottom bar below 768px.
 const NAV = [
 	{ to: "/operations", label: "Operations", Icon: Grid, mobile: true },
 	{
@@ -27,6 +27,7 @@ const NAV = [
 	{ to: "/reports", label: "Reports", Icon: Report, mobile: true },
 	{ to: "/settings/sites", label: "Sites", Icon: Location, mobile: false },
 	{ to: "/settings/staff", label: "Staff", Icon: UserMultiple, mobile: false },
+	{ to: "/members", label: "Members", Icon: UserMultiple, mobile: true },
 	{ to: "/gallery", label: "UI gallery", Icon: ColorPalette, mobile: false },
 ];
 
@@ -163,7 +164,7 @@ export function AppShell() {
 				data-print="hide"
 				className="fixed inset-x-0 bottom-0 border-t border-line bg-surface md:hidden"
 			>
-				<ul className="grid grid-cols-4">
+				<ul className="grid grid-cols-5">
 					{NAV.filter((item) => item.mobile).map(({ to, label, Icon }) => (
 						<li key={to}>
 							<NavLink

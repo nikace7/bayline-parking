@@ -21,6 +21,7 @@ import { PwaBoundary } from "./app/PwaBoundary";
 import { CustomerRegisterPage } from "./pages/CustomerRegisterPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MembersPage } from "./pages/MembersPage";
 import {
 	MyReservationsPage,
 	ReservationDetailPage,
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
 				children: [
 					{ index: true, element: <Navigate to="/operations" replace /> },
 					{ path: "operations", element: <OperationsPage /> },
+					{ path: "members", element: <MembersPage /> },
 					{ path: "reservations", element: <ReservationsPage /> },
 					{ path: "shifts", element: <ShiftsPage /> },
 					{ path: "reports", element: <ReportsPage /> },
