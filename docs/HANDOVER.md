@@ -6,6 +6,13 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (29 October 2026)
 
+### Latest pagination/database verification
+
+- Operational list queries follow all cursor pages and preserve filters/cancellation. A large-site browser regression verifies 105 bays and 101 parked visits without truncating totals.
+- The real PostgreSQL integration suite now passes all 88 tests. Older notes below saying database integration was not run are historical.
+- Totals remain a polled multi-request view, not a transactional snapshot. Offline cash/entry sync is still pending.
+- Keep manual login troubleshooting distinct: automated login works, but the user has not yet confirmed successful sign-in in their browser. Do not change tenancy or bypass authentication to resolve it.
+
 ### Membership continuation
 
 - Staff membership UI now exists at `/members`: sale/renewal, plate lookup/pagination and cash collection with receipt links. It is reachable in mobile navigation.
@@ -34,8 +41,8 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Next session
 
-1. Run current PostgreSQL integration tests and a real seeded-account membership sale/payment/receipt/renewal walkthrough.
-2. Complete operational pagination/occupancy totals, then the customer-profile and open-lot changes in the Nepal architecture proposal.
+1. Complete a real seeded-account membership sale/payment/receipt/renewal walkthrough; PostgreSQL integration is now verified.
+2. Continue customer-profile and open-lot changes in the Nepal architecture proposal; operational pagination is now fixed.
 3. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
 
 ## Earlier next-session notes (17 September 2026)

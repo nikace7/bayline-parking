@@ -1,5 +1,29 @@
 # Progress
 
+## Complete operational lists and database verification — 29 October 2026
+
+### Delivered
+
+- Shared cursor reader follows every page for locations, bays, parked visits, public locations, reservations, closed shifts, tariffs and staff. Member passes retain their explicit load-more workflow.
+- Keeps location/status/date/plate filters on the original endpoint; cursor values are opaque query parameters, never URLs to navigate.
+- Deduplicates rows by identity, rejects missing pagination metadata/repeated cursors and rejects later-page failures instead of publishing partial lists. Query cancellation propagates through each request and stops page traversal.
+- Operational totals now use the complete loaded bay/visit lists. These are still polled, multi-request views rather than an atomic database snapshot; server-side admission/settlement checks remain authoritative.
+- Updated test fixtures to include real pagination metadata and added a Chromium large-site regression: 105 bays, 101 parked visits, 4 walk-in bays free, and the last bay visible.
+
+### Verification
+
+- Real PostgreSQL integration: **88 passed**, including auth, tenant isolation, memberships and separate-connection concurrency tests. The suite uses the isolated test database, not demo records.
+- Frontend API tests cover pagination failures/cancellation plus current-cookie CSRF handling and error propagation. API client coverage: **97.36% lines, 100% branches**.
+- Full frontend suite: **93 tests passed across 17 files**.
+- Production build, typecheck, lint and five Chromium scenarios passed. Membership/occupancy browser scenarios mock API data; the existing PWA scenarios exercise actual service workers/cache storage.
+- React and paired TypeScript review found no confirmed issues. No backend/API/schema changes were required.
+
+### Limits and next
+
+- Full-list polling removes truncation at current scale; it is not an unbounded-scale reporting design. Measure busy-site load before replacing the board with a server summary and windowed list.
+- Manual sign-in in the user's browser remains unresolved; fresh automated browser login previously succeeded. No credential reset or authentication bypass was introduced.
+- Next domain work remains email-independent customer profiles/open-lot capacity, then registered-device offline transaction sync. PWA offline entries/payments remain disabled.
+
 ## M5 staff membership workflows — 29 October 2026
 
 ### Delivered
