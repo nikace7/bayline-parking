@@ -45,6 +45,31 @@ const ok = (data: unknown) =>
 
 describe("ReceiptPage", () => {
 	beforeEach(() => vi.clearAllMocks());
+	it("renders a membership receipt without parking visit fields", async () => {
+		const {
+			plate: _plate,
+			vehicleClass: _class,
+			bayLabel: _bay,
+			enteredAt: _entry,
+			...membership
+		} = receipt;
+		vi.mocked(api.GET).mockImplementation((() => ok(membership)) as never);
+		render(
+			<MemoryRouter initialEntries={["/receipts/receipt-1"]}>
+				<QueryClientProvider
+					client={
+						new QueryClient({ defaultOptions: { queries: { retry: false } } })
+					}
+				>
+					<Routes>
+						<Route path="/receipts/:receiptId" element={<ReceiptPage />} />
+					</Routes>
+				</QueryClientProvider>
+			</MemoryRouter>,
+		);
+		expect(await screen.findByText("Member pass")).toBeVisible();
+		expect(screen.queryByText("Entered")).not.toBeInTheDocument();
+	});
 
 	it("logs each print before printing and marks reprints as copies of the same number", async () => {
 		let printedCopies = 0;

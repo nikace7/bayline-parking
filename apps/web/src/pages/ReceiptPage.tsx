@@ -138,18 +138,25 @@ function ReceiptSlip({
 	copy: string;
 }) {
 	const { invoice, timezone } = receipt;
-	const fee: [string, string][] = [
-		["Plate", receipt.plate],
-		[
-			"Vehicle",
-			`${VEHICLE_LABEL[receipt.vehicleClass]} · Bay ${receipt.bayLabel}`,
-		],
-		["Entered", formatDateTime(receipt.enteredAt, timezone)],
-		["Charged to", formatDateTime(invoice.cutoffAt, timezone)],
-		["Billed time", formatDuration(invoice.billableSeconds)],
-		["Started blocks", String(invoice.blocks)],
-		["Base charge", formatPaisa(invoice.basePaisa)],
-	];
+	// Membership receipts have no session, so the API omits the visit fields.
+	const fee: [string, string][] = receipt.enteredAt
+		? [
+				["Plate", receipt.plate],
+				[
+					"Vehicle",
+					`${VEHICLE_LABEL[receipt.vehicleClass]} · Bay ${receipt.bayLabel}`,
+				],
+				["Entered", formatDateTime(receipt.enteredAt, timezone)],
+				["Charged to", formatDateTime(invoice.cutoffAt, timezone)],
+				["Billed time", formatDuration(invoice.billableSeconds)],
+				["Started blocks", String(invoice.blocks)],
+				["Base charge", formatPaisa(invoice.basePaisa)],
+			]
+		: [
+				["Charge", "Member pass"],
+				["Invoice", invoice.id],
+				["Base charge", formatPaisa(invoice.basePaisa)],
+			];
 	if (invoice.discountPaisa) {
 		fee.push(["Discount", formatPaisa(-invoice.discountPaisa)]);
 	}
