@@ -7,4 +7,6 @@ __pycache__/
 .ruff_cache/
 *.tsbuildinfo
 coverage/
+test-results/
+playwright-report/
 artifacts/tmp/

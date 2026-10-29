@@ -2,6 +2,15 @@
 
 Product-level revisions live in `docs/BLUEPRINT.md` section 0. This log records implementation choices, why they were made, and what would reopen them.
 
+## PWA continuation — 29 October 2026
+
+| # | Date | Decision | Why | Revisit when |
+|---|---|---|---|---|
+| D55 | 2026-10-29 | PWA-only client; no Flutter or Capacitor shell. Supersedes D3's native adapter plan | User selected an offline-accessible PWA. Use browser/OS printing and keyboard scanners | Actual target hardware requires a separately approved printer bridge |
+| D56 | 2026-10-29 | Ship the static offline shell with prompted updates first; no API caching or disconnected mutation replay | Install/navigation support can be verified without persisting private data or claiming unsafe offline money handling | Registered devices, durable IndexedDB outbox and acknowledged server sync are implemented and tested |
+
+## Earlier decisions
+
 | # | Date | Decision | Why | Revisit when |
 |---|---|---|---|---|
 | D1 | 2026-09-13 | Build in the `parking_personal` workspace rather than `portfolio-recreations/parking-platform` | The user opened this workspace for the project; the blueprint allows the user's actual workspace | The portfolio is reorganised |

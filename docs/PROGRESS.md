@@ -1,5 +1,36 @@
 # Progress
 
+## PWA offline shell — 29 October 2026
+
+The user selected PWA-only development; Flutter/Capacitor are excluded (D55). This delivery implements installation/static offline access, not offline financial transactions (D56).
+
+### Delivered
+
+- Production service worker and manifest/icons; static app/font precache and deep-link offline reload.
+- Explicit offline screen; no API response cache and no queued parking/payment writes. Existing forms survive a temporary disconnect, with keyboard focus handed to the offline heading and restored on reconnect.
+- Prompted updates and registration/update error states; no involuntary app reload during a form.
+- Real Chromium offline/cache/manifest tests and CI integration. Instructions and next sync milestone: `docs/PWA.md`.
+
+### Verification
+
+- The initial cache-policy tests failed before implementation. The subsequent keyboard-focus regression test also failed before its fix.
+- Targeted PWA component coverage: 96.66% lines and 95.65% branches. Coverage applies to `PwaBoundary.tsx`, not the whole application.
+- Production build, TypeScript and lint passed. The generated worker precaches 48 entries, approximately 1.12 MiB.
+- Three Chromium browser scenarios passed: offline navigation/reload/reconnect, API cache isolation, and manifest/icon validation.
+- Full frontend suite: 77 passed across 15 files.
+- Backend unit suite: 40 passed. Database integration tests were not rerun because this delivery changes no backend/API/schema code.
+
+### Review and limitations
+
+- Build review resolved a pnpm runtime import failure by making `workbox-window` a direct dependency.
+- React review identified focus loss during offline transitions; fixed with a regression test.
+- No physical devices/printers, Android/iOS installation UX, production HTTPS deployment or persistent offline transaction sync was verified. `navigator.onLine` does not prove server/database health.
+- No changes were made to the sibling parking projects. No external deployment was performed.
+
+### Next
+
+Complete the current operator workflows and Nepal domain fit described in `docs/NEPAL-ARCHITECTURE-PROPOSAL.md`, then implement the registered-device/IndexedDB/server-sync milestone in `docs/PWA.md`. Do not treat an installable shell as completed M7 offline cash capture.
+
 ## Design system update — built, audit half done (15 September 2026)
 
 Branch `feat/design-system`, stacked on `feat/m4-reservations`. The user asked for a deliberate, professional look with no generic template styling. The web app now follows the IBM Design Language family (D51–D54):

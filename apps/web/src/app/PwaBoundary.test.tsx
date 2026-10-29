@@ -84,11 +84,20 @@ describe("PwaBoundary", () => {
 	});
 
 	it("moves focus to the offline heading and restores the original field on reconnect", () => {
-		render(<PwaBoundary><label>Plate<input /></label></PwaBoundary>);
+		render(
+			<PwaBoundary>
+				<label>
+					Plate
+					<input />
+				</label>
+			</PwaBoundary>,
+		);
 		const plate = screen.getByRole("textbox", { name: "Plate" });
 		plate.focus();
 		act(() => connection(false));
-		expect(screen.getByRole("heading", { name: "You’re offline" })).toHaveFocus();
+		expect(
+			screen.getByRole("heading", { name: "You’re offline" }),
+		).toHaveFocus();
 		act(() => connection(true));
 		expect(plate).toHaveFocus();
 	});

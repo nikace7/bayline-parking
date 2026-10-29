@@ -17,6 +17,7 @@ import { RouterProvider } from "react-router/dom";
 import { ApiError } from "./api/client";
 import { AppShell } from "./app/AppShell";
 import { CustomerShell } from "./app/CustomerShell";
+import { PwaBoundary } from "./app/PwaBoundary";
 import { CustomerRegisterPage } from "./pages/CustomerRegisterPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -37,6 +38,8 @@ import { NotFoundPage, RouteErrorPage } from "./pages/StatusPages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
+		// Until durable sync exists, fail disconnected writes instead of pausing them for replay.
+		mutations: { networkMode: "always", retry: false },
 		queries: {
 			// A 4xx answer will not change on retry; network and 5xx failures get two more attempts.
 			retry: (failureCount, error) =>
@@ -91,7 +94,9 @@ if (!container) {
 createRoot(container).render(
 	<StrictMode>
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
+			<PwaBoundary>
+				<RouterProvider router={router} />
+			</PwaBoundary>
 		</QueryClientProvider>
 	</StrictMode>,
 );

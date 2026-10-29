@@ -57,6 +57,12 @@ To run the full containerised stack instead (Caddy on the same port, so stop `pn
 pnpm demo:up
 ```
 
+## PWA and offline access
+
+The client target is a browser PWA; Flutter and a native Android shell are not planned. Build with `pnpm build`, then run `pnpm --filter web exec vite preview --host 127.0.0.1 --port 4430` to try the production app locally. Open it online once and wait for “App saved for offline access” before testing offline reload. Supported browsers can install it from their install menu. Service workers require HTTPS outside localhost/loopback; the development server does not enable offline caching.
+
+This milestone caches the static app and fonts, displays an offline screen, and preserves mounted forms during a temporary connection loss. Private API responses are not cached. Parking entries, payments and reservations still require a connection; no durable offline transaction queue exists yet. Updates ask before reloading. Full offline cash walk-in capture needs the device/outbox/sync work in [docs/PWA.md](docs/PWA.md).
+
 ## Checks
 
 | Command | What it runs |
@@ -66,10 +72,11 @@ pnpm demo:up
 | `pnpm test:unit` | Vitest, plus backend tests that need no database |
 | `pnpm test:integration` | pytest against a dedicated PostgreSQL test database (`TEST_DATABASE_URL`) |
 | `pnpm build` | Production SPA build |
+| `pnpm --filter web test:pwa` | Chromium checks against a production build: offline reload/reconnect, API cache isolation and install assets; first install Chromium with `pnpm --filter web exec playwright install chromium` |
 | `pnpm contracts:generate` | OpenAPI from Django → `contracts/openapi.yaml` → `apps/web/generated/schema.d.ts` |
 | `pnpm contracts:check` | Regenerates contracts and fails if committed ones differ |
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build and `contracts:check` on every pull request and every push to `main`.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build, PWA browser checks and `contracts:check` on every pull request and every push to `main`.
 
 ## Layout
 

@@ -48,5 +48,9 @@ jobs:
         run: pnpm test:integration
       - name: Build
         run: pnpm build
+      - name: Install PWA test browser
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: PWA offline browser checks
+        run: pnpm --filter web test:pwa
       - name: Contracts match the committed schema
         run: pnpm contracts:check

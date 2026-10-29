@@ -6,6 +6,14 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (17 September 2026)
 
+### PWA continuation — 29 October 2026
+
+- User selected PWA-only development, with offline accessibility; no Flutter or Capacitor client.
+- Static PWA assets, offline reload/screen, form preservation across temporary disconnects and prompted updates are implemented. Details and test commands: `docs/PWA.md`.
+- This is offline shell access, not offline parking/cash operation. API data is not persisted, and durable IndexedDB outbox/device sync remain pending.
+- Continue the new Nepal architecture with `docs/NEPAL-ARCHITECTURE-PROPOSAL.md`, completing core operator flows and domain fit before transactional offline sync. The M5 backend code exists on this branch; membership screens remain pending.
+- The state and next-session notes dated 17 September below are historical and do not supersede this PWA direction.
+
 - **M0–M4 and the design system update are on `main`**, merged through PRs #1–#5 on `nikace7/bayline-parking` (private). CI is green on `main` after the rebase merge of #5.
   - #5 carried the 9 reviewed M4 commits with the design commits on top; `feat/m4-reservations` was never pushed on its own.
 - **Verification:** all checks pass. See the design system and M4 sections of PROGRESS.md.
@@ -36,7 +44,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 | M4 Reservations | Merged | Customers, holds, exclusion constraint, check-in, relocation, worker |
 | M5 Member passes | In progress | Pass-first lock order, entitlement, renewal invoices; P09 |
 | M6 Payment integrity | — | Fixture QR, Khalti sandbox adapter, lookup worker, refunds/voids; P10–P14 |
-| M7 Offline and devices | — | PWA outbox, device sync, conflict queue, Capacitor shell; P23, P24, P26, P27 |
+| M7 Offline and devices | Shell implemented | PWA only; transaction outbox, device sync and conflict queue pending; P23, P24, P26, P27 |
 | M8 Polish and evidence | — | Responsive/keyboard passes, screenshots, `docs/API.md`, `OPERATIONS.md`, `EVALUATION.md`, `DEMO.md`, `CASE_STUDY.md` |
 
 ## Working agreements

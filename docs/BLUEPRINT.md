@@ -5,6 +5,10 @@
 > Version 1.1 — 13 September 2026. Revises v1.0 (8 September 2026), kept unchanged at the repository root as `02-parking-platform.md`. Build in progress; see `docs/PROGRESS.md`.
 > This file is a standalone handoff. No other blueprint or previous conversation is required.
 
+## Client direction update — 29 October 2026
+
+The client is PWA only: no Flutter or Capacitor/native Android shell. The installable static app and offline screen are implemented; IndexedDB transaction outbox, registered-device sync and offline cash capture remain planned. See `docs/PWA.md` for the current delivery boundary and verification. Earlier milestone descriptions below are specifications, not claims that all features are built. Browser printing requires OS/browser-compatible hardware; vendor SDK-only POS printers are outside this delivery.
+
 ## 0. Revision 1.1 summary
 
 | Area | v1.0 | v1.1 | Reason |
@@ -18,7 +22,7 @@
 | Khalti lost initiation | UNKNOWN and manual reconciliation | `FAILED (INITIATION_LOST)`, new attempt allowed | Lookup accepts only `pidx`; without a returned payment URL nobody can pay |
 | Pending Khalti vs cash | Gate blocked until resolved | Lookup-then-abandon; a late completion becomes an unapplied capture refunded through the workflow | Payment links live 60 minutes; a gate cannot wait |
 | Offline | Forbidden | Cash walk-in facts queued on the device and synced idempotently | Unreliable gate connectivity; physical facts cannot oversell |
-| Devices | Browser print only | PC browser (PWA) and Android POS (Capacitor shell with a printer plugin) | Vendor POS printer SDKs are native-only |
+| Devices | Browser print only | Installable PWA on supported desktop, tablet and Android browsers | One web client; browser-compatible printers and keyboard scanners |
 | Identity | Organisation-scoped Customer; `User/Membership` | Global User with per-organisation Customer profile; staff role row renamed `OrgMember` | Cross-operator discovery; removes clash with member passes |
 | Tenancy | Implicit | Shared-schema row scoping stated; subdomains and schema-per-tenant out of scope | Subdomains are branding, not isolation |
 | Gaps closed | — | Global lock order with retry, idempotency inside the business transaction, cap/tax/discount rules, receipt counters, append-only trigger, composite foreign keys on the money path, `btree_gist`, single clock, explicit CSRF on anonymous auth endpoints | v1.0 ambiguities |
@@ -45,7 +49,7 @@ flowchart LR
   Operator[Gate and cashier workspace<br/>PC browser or Android POS] --> SPA[Vite React SPA / PWA]
   Customer[Customer reservation portal] --> SPA
   SPA --> Outbox[(IndexedDB offline outbox)]
-  SPA --> Print[Browser print or<br/>Capacitor printer plugin]
+  SPA --> Print[Browser print through OS driver]
   SPA --> Gateway[Same-origin Caddy gateway<br/>serves static SPA]
   Gateway --> API[Django REST API]
   API --> DB[(PostgreSQL<br/>records and job rows)]
@@ -58,7 +62,7 @@ flowchart LR
 |---|---|
 | Frontend | Node 24 LTS, pnpm 10, Vite 8, React 19, React Router 8, TypeScript 5.9 (openapi-typescript requires TypeScript 5) |
 | UI | Tailwind 4, Base UI (added with the first dialog/menu), Lucide, TanStack Query/Table, React Hook Form/Zod |
-| Offline and devices | vite-plugin-pwa service worker, IndexedDB outbox; Capacitor Android shell with a small native printer plugin for vendor POS SDKs |
+| Offline and devices | vite-plugin-pwa service worker; planned IndexedDB outbox and registered-device sync; browser print and keyboard scanners |
 | Backend | Python 3.12, uv lockfile, Django 5.2 LTS, DRF, drf-spectacular, djangorestframework-camel-case |
 | Persistence | PostgreSQL 17 with `btree_gist`; database-backed Django sessions; Django `DatabaseCache` for throttling |
 | Jobs | `manage.py worker` loop claiming due rows with `FOR UPDATE SKIP LOCKED`; no Redis or Celery |
@@ -69,7 +73,7 @@ flowchart LR
 
 Pin compatible patched dependencies during setup. Read the installed Vite, React Router, Tailwind and Vitest documentation before framework-specific code; these move faster than any fixed reference. Use Django migrations, never schema synchronization against an inherited database. All payment arithmetic uses integer paisa; tax rates use integer basis points. Never use binary floating point for fees.
 
-Repository: `apps/web`, `apps/pos-android` (Capacitor shell, M7), `backend/config`, `backend/modules/{accounts,sites,parking,billing,reports}`, `contracts`, `fixtures`, `infra`, `scripts`, `docs`. Module boundaries follow transaction and lock boundaries:
+Repository: `apps/web` (the sole client, including PWA assets), `backend/config`, `backend/modules/{accounts,sites,parking,billing,reports}`, `contracts`, `fixtures`, `infra`, `scripts`, `docs`. Module boundaries follow transaction and lock boundaries:
 
 | App | Owns | Why together |
 |---|---|---|
@@ -328,14 +332,14 @@ Receipt layout supports 58mm and 80mm widths with monochrome print styles, no cl
 
 ### Devices: printing and scanning
 
-One web codebase runs in both device modes; a runtime check (`Capacitor.isNativePlatform()`) selects the printer path. Both paths print the same receipt model and log PrintEvent identically.
+One PWA runs on supported desktop and Android browsers. Browser printing uses the same receipt model and records PrintEvent; there is no native printer adapter. Prove compatibility on the intended hardware before deployment.
 
-| Capability | PC browser (installed PWA) | Android POS (Capacitor shell) |
+| Capability | PC browser (installed PWA) | Android browser (installed PWA) |
 |---|---|---|
-| Hardware scanner | USB/Bluetooth scanner in keyboard-wedge mode types into the focused plate/code field and sends Enter; no SDK | Built-in scanner set to keyboard-wedge output; a native intent plugin only if the device lacks wedge mode |
-| Camera QR | `BarcodeDetector` is unavailable on Windows Chrome/Edge (MDN compatibility data), so use `zxing-wasm` | `BarcodeDetector` (Android WebView) with `zxing-wasm` fallback |
-| Receipt print | 58/80mm print CSS through the OS printer driver; Chrome `--kiosk-printing` for dialog-free printing | Small Capacitor plugin calling the vendor printer SDK (ESC/POS), exposing `printReceipt` and `openCashDrawer` |
-| Not supported | Raw TCP network printers (need a bridge), Bluetooth Classic printers via Web Bluetooth, iOS hardware | Devices without a vendor SDK or ESC/POS access |
+| Hardware scanner | USB/Bluetooth scanner in keyboard-wedge mode types into the focused plate/code field and sends Enter; no SDK | Scanner must provide keyboard-wedge output; vendor intent-only scanners are outside scope |
+| Camera QR | Browser-compatible camera decoding, subject to hardware/browser verification | Browser-compatible camera decoding, subject to hardware/browser verification |
+| Receipt print | 58/80mm print CSS through the OS printer driver | Browser print through an available OS print service; actual receipt layout/printer must be tested |
+| Not supported | Direct raw TCP/Bluetooth Classic printer access without a separately scoped bridge | Vendor SDK-only printing, cash drawer and scanner integrations without a separately scoped bridge |
 
 Use local synthetic parking-plan artwork and schematic pins; avoid paid maps. Self-host fonts and licence notices. Motion is reduced to immediate state changes under reduced-motion preference. Complete keyboard flows, field error summaries, focus restoration and screen-reader labels; auto-refresh must not steal focus or announce every bay repeatedly.
 
@@ -358,7 +362,7 @@ Seed two organisations, two locations in the first, 12 walk-in and 6 reservable 
 | M4 Reservations | Global customer accounts, holds, exclusion constraint, arrivals, relocation, worker sweeps; race and overstay tests |
 | M5 Member passes | Pass-first lock order, entitlement, renewal invoices; concurrent pass usage tests |
 | M6 Payment integrity | QR fixture, Khalti sandbox adapter, lookup worker, abandon flow, refunds/voids; duplicate, expired, lost-initiation and late-completion outcomes tested |
-| M7 Offline and devices | PWA, IndexedDB outbox, device registration/sync, conflict queue, Capacitor Android shell with printer plugin, scanner input; replay and conflict tests |
+| M7 Offline and devices | PWA shell delivered; planned IndexedDB outbox, device registration/sync, conflict queue and browser-compatible scanner input; replay and conflict tests |
 | M8 Polish and evidence | Responsive screens, keyboard flows, failure recovery, fresh setup, screenshots, demo, API/runbooks and actual sandbox evidence |
 
 If sandbox credentials or POS hardware are unavailable, continue fixture/mocked-plugin work but label sandbox or hardware validation pending. Do not mark a real integration complete solely because its adapter compiles.
@@ -395,7 +399,7 @@ Use real isolated PostgreSQL for transaction tests; SQLite cannot establish lock
 | P24 | Offline conflicts (plate already parked, no free bay, revoked staff, amount mismatch, disabled device) reach the Exceptions queue and are never dropped or duplicated |
 | P25 | Shared tariff vectors produce identical paisa in Python and TypeScript |
 | P26 | Shift close is blocked while a device holds unsynced cash events for it |
-| P27 | Browser print and mocked Capacitor printer paths both log PrintEvent without duplicating receipt numbers |
+| P27 | Browser printing on supported devices logs PrintEvent without duplicating receipt numbers; physical printer compatibility is verified separately |
 | P28 | Database rejects mixed-organisation rows on the money path even when application checks are bypassed |
 | P29 | Deadlock/serialization failures in money transactions retry to one consistent outcome |
 
