@@ -31,6 +31,32 @@ it("rejects an empty successful response instead of inventing data", async () =>
 	).rejects.toBeInstanceOf(ApiError);
 });
 
+it.each([
+	{ error: null },
+	{ error: { code: "BAD", message: null } },
+	{
+		error: {
+			code: "BAD",
+			message: "Bad",
+			fieldErrors: { plate: [42] },
+			retryable: false,
+		},
+		requestId: null,
+	},
+])(
+	"keeps malformed HTTP errors as ApiError instead of crashing",
+	async (error) => {
+		await expect(
+			unwrap(
+				Promise.resolve({
+					response: new Response(null, { status: 502 }),
+					error,
+				}),
+			),
+		).rejects.toMatchObject({ name: "Error", status: 502, body: null });
+	},
+);
+
 it("reads the current CSRF cookie for each write and omits it on reads", async () => {
 	const requests: Request[] = [];
 	const fetch = vi.fn().mockImplementation(async (request: Request) => {
