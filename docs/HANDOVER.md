@@ -4,7 +4,14 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (29 October 2026)
+## Current state (30 October 2026)
+
+### Latest structure review
+
+- Shared retry identity is in `api/useIdempotencyKey.ts`; site queries/types are in `app/sites.ts`; membership sale/renewal forms are in `pages/MembershipForms.tsx`. Preserve these owners when adding screens.
+- Fixed malformed API error handling and membership pagination/cancellation drift. Verified 100 frontend tests, five Chromium scenarios, lint, typecheck and build. Backend was unchanged; the preceding PostgreSQL run passed 88 integration tests.
+- Read `CODE_STRUCTURE.md` for findings, maintenance conventions and remaining priorities. Billing still directly creates/activates parking pass records; the blueprint now documents that exception instead of claiming strict isolation.
+- The user explicitly authorized pushing all commits to GitHub. Push the complete `feat/m5-member-passes` branch and verify the remote tip before reporting success; a push does not deploy or merge it.
 
 ### Latest pagination/database verification
 
@@ -18,14 +25,14 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 - Staff membership UI now exists at `/members`: sale/renewal, plate lookup/pagination and cash collection with receipt links. It is reachable in mobile navigation.
 - Sale UI creates one vehicle at one location using an existing customer's email. Broader customer-profile changes from the Nepal proposal remain pending.
 - Verified: 85 frontend tests, 40 backend unit tests, 4 Chromium tests (membership API mocked), lint, typecheck and build. No current live database/browser verification is claimed.
-- Detailed results and limitations are in the M5 staff section of `docs/PROGRESS.md`. All changes have focused local commits; the branch has not been pushed.
+- Detailed results and limitations are in the M5 staff section of `docs/PROGRESS.md`; the latest verification above supersedes its older test counts.
 
 ### PWA continuation — 29 October 2026
 
 - User selected PWA-only development, with offline accessibility; no Flutter or Capacitor client.
 - Static PWA assets, offline reload/screen, form preservation across temporary disconnects and prompted updates are implemented. Details and test commands: `docs/PWA.md`.
 - This is offline shell access, not offline parking/cash operation. API data is not persisted, and durable IndexedDB outbox/device sync remain pending.
-- Continue the new Nepal architecture with `docs/NEPAL-ARCHITECTURE-PROPOSAL.md`, completing core operator flows and domain fit before transactional offline sync. The M5 backend code exists on this branch; membership screens remain pending.
+- Continue the new Nepal architecture with `docs/NEPAL-ARCHITECTURE-PROPOSAL.md`, completing core operator flows and domain fit before transactional offline sync. M5 backend and membership screens now exist on this branch.
 - The state and next-session notes dated 17 September below are historical and do not supersede this PWA direction.
 
 - **M0–M4 and the design system update are on `main`**, merged through PRs #1–#5 on `nikace7/bayline-parking` (private). CI is green on `main` after the rebase merge of #5.

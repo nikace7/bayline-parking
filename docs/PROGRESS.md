@@ -1,5 +1,28 @@
 # Progress
 
+## Code structure cleanup — 30 October 2026
+
+### Delivered
+
+- Shared mutation retry identity now belongs to `api/useIdempotencyKey.ts`; gate, memberships and reservations reuse it.
+- Location/bay/tariff queries belong to `app/sites.ts`. All callers were updated, including Sites, which previously duplicated the bay query.
+- Membership sale/renewal forms moved to `MembershipForms.tsx`; the page retains selection, lookup and payment coordination. Validation, pending/success guards and focus restoration remain covered.
+- API error envelopes are validated before dereferencing; malformed bodies retain their HTTP error status. Membership pages reject missing continuation metadata and forward query cancellation. Single-page and complete-list validation share `unwrapPage`.
+- Added `CODE_STRUCTURE.md` with ownership rules, findings and priorities. Corrected the blueprint's unimplemented strict cross-domain write claim; no backend financial logic was moved.
+
+### Verification
+
+- Regression tests were committed before implementation. Full frontend suite: **100 tests passed in 19 files**. Lint, typecheck and production build passed.
+- Five Chromium scenarios passed: member sale/cash, large-site occupancy, offline reload/reconnect, private API cache exclusion and install assets. Membership/occupancy APIs are mocked.
+- Targeted API client/shared retry hook/membership form coverage: **90.38% lines, 91.95% branches**; this is not whole-project coverage.
+- Initial React/TypeScript review informed the fixes. A follow-up reviewer could not complete because of its usage limit; final diff/caller checks and automated checks were completed locally.
+- Backend/schema unchanged. Backend unit rerun: **40 passed**. Most recent PostgreSQL integration: **88 passed** from the preceding work.
+
+### Limits and next
+
+- The codebase has a sound modular foundation, with remaining legacy query ownership and a documented billing-to-parking write exception. This is not a complete security audit.
+- Real seeded-account browser walkthrough, customer/open-lot domain changes and offline transaction sync remain pending. See `CODE_STRUCTURE.md` and the current handover.
+
 ## Complete operational lists and database verification — 29 October 2026
 
 ### Delivered
