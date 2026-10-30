@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { components } from "../../generated/schema";
 import { allPages, api, unwrap } from "../api/client";
-import { useIdempotencyKey } from "./gate";
+import { useIdempotencyKey } from "../api/useIdempotencyKey";
 
 type Schemas = components["schemas"];
 export type Reservation = Schemas["Reservation"];

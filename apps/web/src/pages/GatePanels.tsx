@@ -9,8 +9,6 @@ import {
 import { Link } from "react-router";
 import { errorMessage } from "../api/client";
 import {
-	type Bay,
-	type Location,
 	type Quote,
 	useAdmit,
 	useCashPayment,
@@ -23,6 +21,7 @@ import {
 	type Visit,
 } from "../app/gate";
 import { dueReservation, useStaffReservations } from "../app/reservations";
+import type { Bay, Location } from "../app/sites";
 import { Button } from "../components/Button";
 import { FormAlert } from "../components/Page";
 import { StatusBadge, type Tone } from "../components/StatusBadge";

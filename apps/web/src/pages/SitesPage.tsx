@@ -1,16 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { components } from "../../generated/schema";
-import { allPages, api } from "../api/client";
-import { type Location, useLocations } from "../app/gate";
+import { type Location, useBays, useLocations, useTariffs } from "../app/sites";
 import { LocationSelect } from "../components/LocationSelect";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa } from "../lib/money";
 
 type Schemas = components["schemas"];
-
-const PAGE = { limit: 100 };
 
 const MODE: Record<Schemas["BayModeEnum"], string> = {
 	WALK_IN: "Walk-in",
@@ -80,31 +76,8 @@ export function SitesPage() {
 }
 
 function LocationDetail({ location }: { location: Location }) {
-	const path = { location_id: location.id };
-	const bays = useQuery({
-		queryKey: ["bays", location.id],
-		queryFn: ({ signal }) =>
-			allPages(
-				(cursor) =>
-					api.GET("/api/v1/locations/{location_id}/bays", {
-						params: { path, query: { ...PAGE, cursor } },
-						signal,
-					}),
-				signal,
-			),
-	});
-	const tariffs = useQuery({
-		queryKey: ["tariffs", location.id],
-		queryFn: ({ signal }) =>
-			allPages(
-				(cursor) =>
-					api.GET("/api/v1/locations/{location_id}/tariffs", {
-						params: { path, query: { ...PAGE, cursor } },
-						signal,
-					}),
-				signal,
-			),
-	});
+	const bays = useBays(location.id);
+	const tariffs = useTariffs(location.id);
 	const startsAt = new Intl.DateTimeFormat("en-GB", {
 		dateStyle: "medium",
 		timeStyle: "short",

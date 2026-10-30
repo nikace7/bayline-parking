@@ -38,7 +38,30 @@ export function errorMessage(error: unknown): string {
 }
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
-	return typeof value === "object" && value !== null && "error" in value;
+	if (typeof value !== "object" || value === null || !("error" in value))
+		return false;
+	const error = value.error;
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		typeof error.code === "string" &&
+		"message" in error &&
+		typeof error.message === "string" &&
+		"retryable" in error &&
+		typeof error.retryable === "boolean" &&
+		"fieldErrors" in error &&
+		typeof error.fieldErrors === "object" &&
+		error.fieldErrors !== null &&
+		!Array.isArray(error.fieldErrors) &&
+		Object.values(error.fieldErrors).every(
+			(messages) =>
+				Array.isArray(messages) &&
+				messages.every((message) => typeof message === "string"),
+		) &&
+		"requestId" in value &&
+		(value.requestId === null || typeof value.requestId === "string")
+	);
 }
 
 function readCookie(name: string): string | undefined {
@@ -70,12 +93,31 @@ export const api = createClient<paths, "application/json">({
 api.use(csrf);
 
 type Outcome<T> = { data?: T; error?: unknown; response: Response };
+type CursorPage<T> = {
+	data: T[];
+	page: { next: string | null; previous?: string | null };
+};
+
+/** Validate one page without discarding its continuation metadata. */
+export async function unwrapPage<T>(
+	call: Promise<Outcome<CursorPage<T>>>,
+): Promise<CursorPage<T>> {
+	const result = await call;
+	const items = await unwrap(Promise.resolve(result));
+	const page = result.data?.page;
+	if (
+		!Array.isArray(items) ||
+		!page ||
+		(page.next !== null && typeof page.next !== "string")
+	) {
+		throw new Error("Incomplete list response");
+	}
+	return { data: items, page };
+}
 
 /** Publish a list only after every page succeeds; cursors are tokens, never URLs to follow. */
 export async function allPages<T extends { id: string }>(
-	fetchPage: (
-		cursor?: string,
-	) => Promise<Outcome<{ data: T[]; page: { next: string | null } }>>,
+	fetchPage: (cursor?: string) => Promise<Outcome<CursorPage<T>>>,
 	signal?: AbortSignal,
 ): Promise<T[]> {
 	const rows = new Map<string, T>();
@@ -83,13 +125,9 @@ export async function allPages<T extends { id: string }>(
 	let cursor: string | undefined;
 	do {
 		signal?.throwIfAborted();
-		const result = await fetchPage(cursor);
-		const items = await unwrap(Promise.resolve(result));
+		const { data: items, page } = await unwrapPage(fetchPage(cursor));
 		signal?.throwIfAborted();
-		const next = result.data?.page?.next;
-		if (!Array.isArray(items) || (next !== null && typeof next !== "string")) {
-			throw new Error("Incomplete list response");
-		}
+		const next = page.next;
 		for (const item of items) rows.set(item.id, item);
 		if (next === null) return [...rows.values()];
 		if (seen.has(next)) throw new Error("Pagination cursor repeated");

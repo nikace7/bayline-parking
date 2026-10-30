@@ -7,12 +7,8 @@ import {
 	useCloseShift,
 	useShiftSummary,
 } from "../app/cash";
-import {
-	type Location,
-	useActiveRoles,
-	useCurrentShift,
-	useLocations,
-} from "../app/gate";
+import { useActiveRoles, useCurrentShift } from "../app/gate";
+import { type Location, useLocations } from "../app/sites";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
 import { FormAlert } from "../components/Page";

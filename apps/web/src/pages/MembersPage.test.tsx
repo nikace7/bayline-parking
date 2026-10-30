@@ -23,11 +23,14 @@ afterEach(() => vi.restoreAllMocks());
 vi.mock("../app/gate", async (original) => ({
 	...(await original<typeof import("../app/gate")>()),
 	useActiveRoles: () => state.roles,
+	useCurrentShift: () => ({ data: { shift: state.shift } }),
+}));
+vi.mock("../app/sites", async (original) => ({
+	...(await original<typeof import("../app/sites")>()),
 	useLocations: () => ({
 		data: [{ id: "loc", name: "Central", timezone: "Asia/Kathmandu" }],
 		isSuccess: true,
 	}),
-	useCurrentShift: () => ({ data: { shift: state.shift } }),
 }));
 const pass = {
 	id: "pass",

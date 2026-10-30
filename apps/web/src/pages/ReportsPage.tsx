@@ -10,7 +10,8 @@ import {
 	useVehicleLogReport,
 	type VehicleLogReport,
 } from "../app/cash";
-import { type Location, useActiveRoles, useLocations } from "../app/gate";
+import { useActiveRoles } from "../app/gate";
+import { type Location, useLocations } from "../app/sites";
 import { DataTable } from "../components/DataTable";
 import { Download } from "../components/icons";
 import { FormAlert } from "../components/Page";

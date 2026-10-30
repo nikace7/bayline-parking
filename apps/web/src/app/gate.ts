@@ -1,51 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
 import type { components } from "../../generated/schema";
-import { ApiError, allPages, api, unwrap } from "../api/client";
+import { allPages, api, unwrap } from "../api/client";
+import { useIdempotencyKey } from "../api/useIdempotencyKey";
 import { useSession } from "./session";
 
 type Schemas = components["schemas"];
-export type Bay = Schemas["Bay"];
-export type Location = Schemas["Location"];
 export type Quote = Schemas["Quote"];
 export type Visit = Schemas["SessionDetail"];
 export type VisitSummary = Schemas["SessionSummary"];
 
 const PAGE = { limit: 100 };
 const OCCUPANCY_REFRESH_MS = 5_000;
-
-export function useLocations() {
-	return useQuery({
-		queryKey: ["locations"],
-		queryFn: ({ signal }) =>
-			allPages(
-				(cursor) =>
-					api.GET("/api/v1/locations", {
-						params: { query: { ...PAGE, cursor } },
-						signal,
-					}),
-				signal,
-			),
-	});
-}
-
-export function useBays(locationId: string) {
-	return useQuery({
-		queryKey: ["bays", locationId],
-		queryFn: ({ signal }) =>
-			allPages(
-				(cursor) =>
-					api.GET("/api/v1/locations/{location_id}/bays", {
-						params: {
-							path: { location_id: locationId },
-							query: { ...PAGE, cursor },
-						},
-						signal,
-					}),
-				signal,
-			),
-	});
-}
 
 /** Occupancy is always the server's list of parked visits, refreshed while the page is visible. */
 export function useParkedVisits(locationId: string) {
@@ -102,29 +67,6 @@ export function useOpenShift() {
 		// No Idempotency-Key: a repeated open answers SHIFT_ALREADY_OPEN, and the refetch shows it.
 		onSettled: () => queryClient.invalidateQueries({ queryKey: ["shift"] }),
 	});
-}
-
-/**
- * One Idempotency-Key per intended change. It survives a network or server failure, so a retry
- * replays the first result instead of repeating the change. A different payload, or a definitive
- * answer from the server, starts a new key.
- */
-export function useIdempotencyKey() {
-	const current = useRef<{ key: string; payload: string } | null>(null);
-	return {
-		keyFor(payload: unknown): string {
-			const fingerprint = JSON.stringify(payload);
-			if (current.current?.payload !== fingerprint) {
-				current.current = { key: crypto.randomUUID(), payload: fingerprint };
-			}
-			return current.current.key;
-		},
-		settle(error: unknown) {
-			if (!error || (error instanceof ApiError && error.status < 500)) {
-				current.current = null;
-			}
-		},
-	};
 }
 
 function useRefreshVisits(visitId?: string) {

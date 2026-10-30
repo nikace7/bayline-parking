@@ -4,8 +4,8 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import type { components } from "../../generated/schema";
-import { api, unwrap } from "../api/client";
-import { useIdempotencyKey } from "./gate";
+import { api, unwrap, unwrapPage } from "../api/client";
+import { useIdempotencyKey } from "../api/useIdempotencyKey";
 
 type Schemas = components["schemas"];
 export type MemberPass = Schemas["MemberPass"];
@@ -14,22 +14,20 @@ export function useMemberPasses(locationId: string, plate: string) {
 	return useInfiniteQuery({
 		queryKey: ["member-passes", locationId, plate],
 		initialPageParam: undefined as string | undefined,
-		queryFn: async ({ pageParam }) => {
-			const result = await api.GET("/api/v1/memberships", {
-				params: {
-					query: {
-						locationId,
-						plate: plate || undefined,
-						cursor: pageParam,
-						limit: 25,
+		queryFn: ({ pageParam, signal }) =>
+			unwrapPage(
+				api.GET("/api/v1/memberships", {
+					params: {
+						query: {
+							locationId,
+							plate: plate || undefined,
+							cursor: pageParam,
+							limit: 25,
+						},
 					},
-				},
-			});
-			return {
-				data: await unwrap(Promise.resolve(result)),
-				page: result.data?.page ?? { next: null, previous: null },
-			};
-		},
+					signal,
+				}),
+			),
 		getNextPageParam: (page) => page.page.next ?? undefined,
 		enabled: !!locationId,
 	});

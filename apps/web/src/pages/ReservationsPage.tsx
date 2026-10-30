@@ -1,17 +1,13 @@
 import { type FormEvent, useState } from "react";
 import { errorMessage } from "../api/client";
-import {
-	type Location,
-	useActiveRoles,
-	useBays,
-	useLocations,
-} from "../app/gate";
+import { useActiveRoles } from "../app/gate";
 import {
 	type Reservation,
 	useCancelReservation,
 	useRelocate,
 	useStaffReservations,
 } from "../app/reservations";
+import { type Location, useBays, useLocations } from "../app/sites";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
 import { LocationSelect } from "../components/LocationSelect";
