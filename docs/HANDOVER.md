@@ -6,12 +6,20 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (30 October 2026)
 
+### Latest UI/UX refresh
+
+- Work is on `codex/ui-experience-refresh`, based on the published M5 branch. Design reference: the sibling `parking-project/parking-redesign-fe`, read only. See `UI_DESIGN.md` and D57 for the adapted navy/slate design, screen coverage and conventions.
+- Staff/customer/auth/receipt/offline surfaces share updated controls and headings. Operations has bay/plate search and status filters with whole-site totals; mobile More exposes all destinations and supports keyboard focus/Escape. Password visibility and scrollable table focus are supported.
+- Verified 108 frontend tests, 40 backend unit tests, lint/typecheck/build and 11 Chromium tests. Layout checks cover 11 staff/customer routes at 360/768/1440px and three auth screens. Synthetic APIs are mocked; PWA cache tests use actual browser storage.
+- Reviews caught and resolved receipt print decoration and mobile menu focus issues. Offline transactions, physical printers and production release remain pending.
+- Local gateway has been rebuilt and verified at `http://localhost:4330/login`, including API readiness and new asset content. Existing installed clients should accept the prompted update after finishing active work. This verification does not resolve the user's unconfirmed manual login issue.
+
 ### Latest structure review
 
 - Shared retry identity is in `api/useIdempotencyKey.ts`; site queries/types are in `app/sites.ts`; membership sale/renewal forms are in `pages/MembershipForms.tsx`. Preserve these owners when adding screens.
 - Fixed malformed API error handling and membership pagination/cancellation drift. Verified 100 frontend tests, five Chromium scenarios, lint, typecheck and build. Backend was unchanged; the preceding PostgreSQL run passed 88 integration tests.
 - Read `CODE_STRUCTURE.md` for findings, maintenance conventions and remaining priorities. Billing still directly creates/activates parking pass records; the blueprint now documents that exception instead of claiming strict isolation.
-- The user explicitly authorized pushing all commits to GitHub. Push the complete `feat/m5-member-passes` branch and verify the remote tip before reporting success; a push does not deploy or merge it.
+- The complete `feat/m5-member-passes` branch was pushed and verified at `e9fb462`. Subsequent UI changes use their own branch; a push does not deploy or merge it.
 
 ### Latest pagination/database verification
 
@@ -180,9 +188,9 @@ infra/                       compose.yaml, Caddyfile, gateway image
 - **Style (D51–D54):**
   - **Colours** come only from the tokens in `apps/web/styles.css`:
     - `canvas` for the page, `surface` for panels, `inset` for fills, `line` for borders, `control` for input borders;
-    - teal for primary actions and "available", blue for occupied, amber for warnings, red for errors.
+    - muted blue for primary actions, navy for navigation, teal for available, blue for occupied, amber for warnings, red for errors (D57).
     - `contrast.test.ts` must pass after any token change.
-  - **Surfaces** stay flat: no shadows, gradients or blur. Corners are 6px on controls and 10px on panels, on the 4px spacing scale.
+  - **Surfaces** stay flat: no shadows, gradients or blur. Corners are 8px on controls and 12px on panels, on the 4px spacing scale. Status badges may be pills (D57).
   - **Type:**
     - Plex Sans 400, 500 and 600.
     - Plex Mono at 600, never 500, for plates and references.

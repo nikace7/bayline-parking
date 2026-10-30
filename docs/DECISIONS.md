@@ -2,6 +2,12 @@
 
 Product-level revisions live in `docs/BLUEPRINT.md` section 0. This log records implementation choices, why they were made, and what would reopen them.
 
+## UI refresh — 30 October 2026
+
+| # | Date | Decision | Why | Revisit when |
+|---|---|---|---|---|
+| D57 | 2026-10-30 | Adapt the previous project's grouped dark sidebar and dashboard hierarchy into a navy/slate PWA with white work surfaces, 8px controls/12px panels and restrained status colours. Keep Plex/Carbon, visible labels, reduced motion and semantic tokens. Supersedes D51/D52 geometry and primary palette; see `UI_DESIGN.md` | User requested a modern UI/UX inspired by the previous project without neon or flashy effects. Existing components and financial guards remain | Real operator/device usability checks identify a concrete need |
+
 ## PWA continuation — 29 October 2026
 
 | # | Date | Decision | Why | Revisit when |

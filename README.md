@@ -6,6 +6,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
 - Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
 - Code ownership, review findings and maintenance conventions: [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md)
+- UI design direction, screen coverage and verification: [docs/UI_DESIGN.md](docs/UI_DESIGN.md)
 - Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
 
 ## Stack

@@ -1,5 +1,28 @@
 # Progress
 
+## Quiet UI/UX refresh — 30 October 2026
+
+### Delivered
+
+- Read the previous project's redesigned frontend as a reference, then adapted its grouped dark navigation and dashboard hierarchy to Bayline's current PWA. Added a navy/slate palette, restrained status colours, white work areas and consistent controls/headings across staff, customer, auth, receipt and offline screens.
+- Mobile More now exposes Reports, Sites, Staff and gallery, with keyboard entry/Escape/focus restoration. Added skip links, password visibility controls and keyboard-scrollable table frames.
+- Operations gains bay/plate search, status filters, empty/reset handling and four occupancy metrics. Filters preserve whole-site totals. Membership forms/cards, report filters/metrics and customer location/reservation layouts share the new design.
+- Updated gallery/PWA theme metadata, blueprint and design guide; no new dependency, backend or schema changes. The sibling project was unchanged.
+
+### Verification and review
+
+- **108 frontend tests**, **40 backend unit tests**, canonical lint, typecheck and production build passed.
+- **11 Chromium tests passed**. The new suite covers 11 staff/customer screens at 360/768/1440px, three auth screens at phone/desktop widths, real keyboard navigation, filters and receipt print-media styles at both widths. Existing PWA service-worker/cache and member/large-site browser regressions still pass.
+- Inspected generated desktop/mobile screenshots. New layout tests use mocked synthetic API data and check overflow, unexpected requests and uncaught page errors.
+- Rebuilt the local gateway without changing the database/API containers. `/login` and API readiness return 200; fetched JavaScript/CSS contain the new board and navy palette at `http://localhost:4330`.
+- React, paired TypeScript and general code review completed. Two confirmed issues were fixed: preview frame/background reaching print output, and keyboard focus skipping newly opened More destinations. Browser regressions verify the fixes.
+- Detailed design/reference/maintenance notes: `UI_DESIGN.md`. Latest PostgreSQL integration remains the earlier **88 passed**; unchanged backend was not retested against PostgreSQL for this UI work.
+
+### Limits and next
+
+- This is not offline transaction sync, a physical printer test or a production deployment. A real seeded-account browser walkthrough and actual mobile/accessibility checks remain useful next work.
+- Existing installed PWAs must accept the prompted update after finishing active work to load the new assets.
+
 ## Code structure cleanup — 30 October 2026
 
 ### Delivered

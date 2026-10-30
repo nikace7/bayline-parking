@@ -286,27 +286,30 @@ The worker retries payment lookups by attempt ID and never reuses a lease past e
 
 ### Direction and tokens
 
-Bayline is a bright, fast operational workspace. The defining visual is a labelled occupancy grid linked to a compact vehicle drawer. Financial screens emphasize alignment and numerical clarity. The public reservation flow uses the same identity with more spacing and simpler navigation.
+Bayline is a calm, fast operational workspace. D57 adapts the previous project's dark grouped sidebar and dashboard hierarchy into navy/slate navigation and white work surfaces, without neon or decorative effects. The defining visual is a labelled occupancy grid linked to a compact vehicle panel. Financial screens emphasize alignment and numerical clarity. The public reservation flow uses the same identity with more spacing and simpler navigation. Current implementation and evidence: `docs/UI_DESIGN.md`.
 
 | Token | Value / rule |
 |---|---|
-| Canvas / surface / inset | `#F5F3EE` / `#FFFFFF` / `#EAEFEA` |
-| Primary / secondary text | `#172B2B` / `#4B6262` |
-| Brand / on-brand | `#00645C` / `#FFFFFF` |
+| Canvas / surface / inset | `#F4F6F9` / `#FFFFFF` / `#EAF0F6` |
+| Primary / secondary text | `#1E293B` / `#526176` |
+| Brand / on-brand | `#36547D` / `#FFFFFF` |
+| Sidebar / active / text | `#18273E` / `#2D405C` / `#F2F5FA` |
 | Available / occupied | `#00645C` / `#385B94`, always with icon/label |
 | Warning / error | `#805600` / `#A62B34`; pale tinted backgrounds with dark text |
-| Control border / focus | `#718681` / `#00645C` with 2px ring and 2px offset |
-| Typeface | IBM Plex Sans; IBM Plex Mono for short IDs; Noto Sans Devanagari fallback |
+| Control border / focus | `#748296` / `#36547D` with 2px ring and 2px offset; light focus on dark sidebar |
+| Typeface | IBM Plex Sans; IBM Plex Mono for short IDs; IBM Plex Sans Devanagari fallback |
 | Type scale | 12 metadata, 14 dense table, 16 controls/body, 20 section, 28 page, 40 occupancy count |
 | Spacing | 4/8/12/16/24/32/48 px |
-| Geometry | 6px controls, 10px panels; avoid pill-shaped tables/cards |
+| Geometry | 8px controls, 12px panels; pill status badges, rectangular tables/cards |
 | Motion | 120ms feedback, 180ms drawer; no moving occupancy tiles during checkout |
 
 Tabular numerals for all money/time. Never rely on red/green alone. Each bay shows identifier, state word, class icon and optional duration. Focus/hover does not alter tile dimensions. Verify rendered AA contrast, including semantic backgrounds; listed palette is a design choice, not a completed accessibility audit.
 
-Desktop shell: 224px navigation, 64px top bar with persistent organisation/location/shift selector and connectivity status, flexible workspace and optional 360px vehicle drawer. Show which location a mutation affects inside its confirmation, not just in a distant header. Large location changes close stale drawers or require reload of entity context.
+Current shell: 224px navigation from 768px, a minimum 76px top bar with organisation/account context, flexible workspace and a 340px vehicle panel beside the board from 1280px. Location selectors and shift status stay with the workflow. Mobile has Operations, Reservations, Members, Shifts and a More disclosure for the remaining destinations. Show which location a mutation affects inside its confirmation, not just in a distant header. Large location changes close stale drawers or require reload of entity context.
 
 ### Screen specifications
+
+The route breakdown below includes planned screens. Current entry, checkout and exit work within `/operations`; current route coverage is recorded in `UI_DESIGN.md`.
 
 | Route | Composition and main action |
 |---|---|
