@@ -48,6 +48,9 @@ const TEXT: [string, string][] = [
 	["occupied", "occupied-bg"],
 	["warning", "warning-bg"],
 	["error", "error-bg"],
+	["on-rail", "rail"],
+	["on-rail", "rail-active"],
+	["rail-muted", "rail"],
 ];
 
 const CONTROL_BORDERS: [string, string][] = [

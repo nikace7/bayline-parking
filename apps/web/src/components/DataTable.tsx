@@ -2,6 +2,21 @@ import type { ReactNode } from "react";
 
 export type DataRow = { key: string; cells: ReactNode[] };
 
+export function TableScroll({
+	label,
+	children,
+}: {
+	label: string;
+	children: ReactNode;
+}) {
+	return (
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: Wide tables must be scrollable with the keyboard.
+		<section className="table-scroll" aria-label={label} tabIndex={0}>
+			{children}
+		</section>
+	);
+}
+
 /** A scrollable table; below its minimum width it scrolls instead of squeezing columns. */
 export function DataTable({
 	caption,
@@ -15,7 +30,7 @@ export function DataTable({
 	empty: string;
 }) {
 	return (
-		<div className="overflow-x-auto rounded-panel border border-line bg-surface">
+		<TableScroll label={caption}>
 			<table className="w-full min-w-[48rem] text-left text-dense tabular-nums">
 				<caption className="sr-only">{caption}</caption>
 				<thead className="bg-inset text-ink-muted">
@@ -32,7 +47,7 @@ export function DataTable({
 						<tr>
 							<td
 								colSpan={headings.length}
-								className="px-4 py-6 text-center text-ink-muted"
+								className="px-4 py-12 text-center text-ink-muted"
 							>
 								{empty}
 							</td>
@@ -50,6 +65,6 @@ export function DataTable({
 					)}
 				</tbody>
 			</table>
-		</div>
+		</TableScroll>
 	);
 }

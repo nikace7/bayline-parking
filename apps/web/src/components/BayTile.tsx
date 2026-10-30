@@ -72,7 +72,7 @@ export function BayTile({
 			onClick={onSelect}
 			aria-label={description}
 			aria-pressed={selected ?? undefined}
-			className={`flex h-24 w-28 flex-col justify-between rounded-panel border p-2 text-left transition-colors duration-120 hover:brightness-95 ${className} ${selected ? "ring-2 ring-brand ring-offset-2" : ""}`}
+			className={`bay-tile transition-colors duration-120 ${className} ${selected ? "ring-2 ring-brand ring-offset-2" : ""}`}
 		>
 			<span className="flex items-center justify-between">
 				<span className="font-mono text-dense font-semibold text-ink">

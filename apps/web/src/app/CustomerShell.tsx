@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
+import { errorMessage } from "../api/client";
 import { Button } from "../components/Button";
 import {
 	BaylineMark,
@@ -7,6 +8,7 @@ import {
 	Login,
 	Logout,
 } from "../components/icons";
+import { FormAlert } from "../components/Page";
 import { useSession, useSignOut } from "./session";
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -26,11 +28,14 @@ export function CustomerShell() {
 
 	return (
 		<div className="min-h-dvh">
+			<a href="#main-content" className="skip-link">
+				Skip to content
+			</a>
 			<header className="border-b border-line bg-surface">
-				<div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-2">
+				<div className="mx-auto flex min-h-20 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
 					<Link
 						to="/park"
-						className="flex min-h-11 items-center gap-2 font-semibold text-brand"
+						className="flex min-h-11 items-center gap-3 text-section font-semibold text-brand"
 					>
 						<BaylineMark />
 						Bayline
@@ -71,9 +76,24 @@ export function CustomerShell() {
 					</nav>
 				</div>
 			</header>
-			<main className="mx-auto max-w-5xl p-4 md:p-6">
+			<main
+				id="main-content"
+				tabIndex={-1}
+				className="mx-auto min-h-[calc(100dvh-180px)] max-w-6xl px-4 py-8 md:p-8"
+			>
+				{signOut.isError && (
+					<div className="mb-6">
+						<FormAlert>{errorMessage(signOut.error)}</FormAlert>
+					</div>
+				)}
 				<Outlet />
 			</main>
+			<footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-6 text-meta text-ink-muted md:px-8">
+				<p>Bayline · Parking made clear</p>
+				<Link className="min-h-11 py-3 font-medium text-brand" to="/operations">
+					Staff workspace
+				</Link>
+			</footer>
 		</div>
 	);
 }

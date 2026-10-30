@@ -64,7 +64,7 @@ export function PwaBoundary({ children }: { children: ReactNode }) {
 			{online && (needRefresh || offlineReady || registrationFailed) && (
 				<aside
 					data-print="hide"
-					className="border-b border-line bg-surface px-4 py-3"
+					className="border-b border-line bg-inset px-4 py-3 text-dense md:px-8"
 				>
 					{registrationFailed ? (
 						<p role="alert">
@@ -107,7 +107,7 @@ export function PwaBoundary({ children }: { children: ReactNode }) {
 				{children}
 			</div>
 			{!online && (
-				<main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 p-6">
+				<main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-5 p-6 sm:p-10">
 					<p className="font-semibold text-brand">Bayline Parking</p>
 					<h1
 						ref={offlineHeading}

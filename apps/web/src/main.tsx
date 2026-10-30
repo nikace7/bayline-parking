@@ -6,7 +6,7 @@ import "@fontsource/ibm-plex-sans-devanagari/500.css";
 import "@fontsource/ibm-plex-sans-devanagari/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/600.css";
-// Outside src/ because Biome's CSS parser rejects Tailwind's @theme without a config change.
+// Canonical Biome checks exclude this Tailwind file; format it with --css-parse-tailwind-directives=true.
 import "../styles.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
