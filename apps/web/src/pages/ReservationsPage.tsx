@@ -11,7 +11,7 @@ import { type Location, useBays, useLocations } from "../app/sites";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
 import { LocationSelect } from "../components/LocationSelect";
-import { FormAlert } from "../components/Page";
+import { FormAlert, PageHeader } from "../components/Page";
 import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { RESERVATION_STATUS } from "../lib/labels";
@@ -33,18 +33,20 @@ export function ReservationsPage() {
 			aria-labelledby="reservations-heading"
 			className="flex flex-col gap-6"
 		>
-			<div className="flex flex-wrap items-end justify-between gap-3">
-				<h1 id="reservations-heading" className="text-page font-semibold">
-					Reservations
-				</h1>
-				{location && (
-					<LocationSelect
-						locations={locations.data ?? []}
-						value={location.id}
-						onChange={setSelectedId}
-					/>
-				)}
-			</div>
+			<PageHeader
+				id="reservations-heading"
+				title="Reservations"
+				description="Plan arrivals and resolve bay conflicts before vehicles reach the gate."
+				actions={
+					location && (
+						<LocationSelect
+							locations={locations.data ?? []}
+							value={location.id}
+							onChange={setSelectedId}
+						/>
+					)
+				}
+			/>
 			{locations.isPending && (
 				<p className="text-ink-muted">Loading locations…</p>
 			)}

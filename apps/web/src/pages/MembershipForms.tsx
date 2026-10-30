@@ -39,7 +39,7 @@ export function SaleForm({ location }: { location: Location }) {
 	return (
 		<form
 			onSubmit={submit}
-			className="flex flex-col gap-3 rounded-panel border border-line bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-5 sm:p-6"
 		>
 			<h2 className="text-section font-semibold">Sell a single-vehicle pass</h2>
 			<p className="text-ink-muted">
@@ -56,7 +56,7 @@ export function SaleForm({ location }: { location: Location }) {
 			)}
 			<fieldset
 				disabled={sale.isPending || sale.isSuccess}
-				className="grid gap-3 sm:grid-cols-2"
+				className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
 			>
 				<TextField
 					label="Customer email"
@@ -156,7 +156,7 @@ export function RenewForm({
 	const [error, setError] = useState("");
 	return (
 		<form
-			className="flex flex-col gap-3 rounded-panel border border-line bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-brand bg-surface p-5 sm:p-6"
 			onSubmit={(event) => {
 				event.preventDefault();
 				const pricePaisa = parseRupees(price);

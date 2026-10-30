@@ -28,14 +28,16 @@ import { TextField } from "../components/TextField";
 import { formatPaisa } from "../lib/money";
 
 const COLOURS = [
-	["Canvas", "bg-canvas", "#F2F4F3"],
+	["Canvas", "bg-canvas", "#F4F6F9"],
 	["Surface", "bg-surface", "#FFFFFF"],
-	["Inset", "bg-inset", "#E8EDEB"],
-	["Line", "bg-line", "#D3DCD8"],
-	["Control border", "bg-control", "#6B7D78"],
-	["Primary text", "bg-ink", "#172B2B"],
-	["Secondary text", "bg-ink-muted", "#4B6262"],
-	["Brand / available", "bg-brand", "#00645C"],
+	["Inset", "bg-inset", "#EAF0F6"],
+	["Line", "bg-line", "#D2DAE5"],
+	["Control border", "bg-control", "#748296"],
+	["Primary text", "bg-ink", "#1E293B"],
+	["Secondary text", "bg-ink-muted", "#526176"],
+	["Brand", "bg-brand", "#36547D"],
+	["Sidebar", "bg-rail", "#18273E"],
+	["Available", "bg-available", "#00645C"],
 	["Occupied", "bg-occupied", "#385B94"],
 	["Warning", "bg-warning", "#805600"],
 	["Error", "bg-error", "#A62B34"],
@@ -185,7 +187,7 @@ export function GalleryPage() {
 					<StatusBadge tone="error">Sync conflict</StatusBadge>
 					<StatusBadge tone="neutral">Fixture mode</StatusBadge>
 				</div>
-				<div className="flex flex-wrap gap-3">
+				<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 					<BayTile label="A-01" state="available" vehicleClass="CAR" />
 					<BayTile
 						label="A-02"

@@ -10,7 +10,8 @@ import {
 import { type Location, useLocations } from "../app/sites";
 import { Button } from "../components/Button";
 import { LocationSelect } from "../components/LocationSelect";
-import { FormAlert } from "../components/Page";
+import { FormAlert, PageHeader } from "../components/Page";
+import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { formatPaisa } from "../lib/money";
 import { formatDateTime } from "../lib/time";
@@ -24,9 +25,20 @@ export function MembersPage() {
 		locations.data?.[0];
 	return (
 		<section className="flex flex-col gap-6" aria-labelledby="members-heading">
-			<h1 id="members-heading" className="text-page font-semibold">
-				Members
-			</h1>
+			<PageHeader
+				id="members-heading"
+				title="Members"
+				description="Find a pass, manage renewals and keep membership payments together."
+				actions={
+					selected && (
+						<LocationSelect
+							locations={locations.data ?? []}
+							value={selected.id}
+							onChange={setLocationId}
+						/>
+					)
+				}
+			/>
 			{locations.isPending && <p>Loading locations…</p>}
 			{locations.isError && (
 				<FormAlert>{errorMessage(locations.error)}</FormAlert>
@@ -35,14 +47,7 @@ export function MembersPage() {
 				<p>Create a location before selling passes.</p>
 			)}
 			{selected && (
-				<>
-					<LocationSelect
-						locations={locations.data ?? []}
-						value={selected.id}
-						onChange={setLocationId}
-					/>
-					<MembershipWorkspace key={selected.id} location={selected} />
-				</>
+				<MembershipWorkspace key={selected.id} location={selected} />
 			)}
 		</section>
 	);
@@ -60,13 +65,20 @@ function MembershipWorkspace({ location }: { location: Location }) {
 	const payment = usePassPayment();
 	return (
 		<>
-			<p className="text-ink-muted">
+			<p className="text-dense text-ink-muted">
 				{location.name} · Times use {location.timezone}. Passes activate after
 				payment.
 			</p>
-			{canSell && <SaleForm location={location} />}
+			{canSell && (
+				<details open>
+					<summary className="mb-3 min-h-11 py-2 text-dense font-semibold text-brand">
+						Sell a member pass
+					</summary>
+					<SaleForm location={location} />
+				</details>
+			)}
 			<form
-				className="flex flex-wrap items-end gap-3"
+				className="filter-bar"
 				onSubmit={(event) => {
 					event.preventDefault();
 					setPlate(search.trim());
@@ -74,6 +86,8 @@ function MembershipWorkspace({ location }: { location: Location }) {
 			>
 				<TextField
 					label="Search by plate"
+					placeholder="Enter a vehicle plate"
+					className="flex-1 basis-56"
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
 				/>
@@ -109,25 +123,40 @@ function MembershipWorkspace({ location }: { location: Location }) {
 				.map((pass) => (
 					<article
 						key={pass.id}
-						className="flex flex-col gap-2 rounded-panel border border-line bg-surface p-4"
+						className="flex min-w-0 flex-col gap-4 rounded-panel border border-line bg-surface p-5 [overflow-wrap:anywhere]"
 						aria-label={`Pass ${pass.reference}`}
 					>
-						<h2 className="text-section font-semibold">{pass.reference}</h2>
-						<p>
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<h2 className="font-mono text-section font-semibold">
+								{pass.reference}
+							</h2>
+							<StatusBadge
+								tone={
+									pass.status === "ACTIVE"
+										? "available"
+										: pass.status === "PENDING"
+											? "warning"
+											: "neutral"
+								}
+							>
+								{pass.status}
+							</StatusBadge>
+						</div>
+						<p className="font-medium">
 							{pass.customerName} · {pass.customerEmail}
 						</p>
-						<p>
+						<p className="text-dense text-ink-muted">
 							{pass.plates.join(", ")} · {pass.locationNames.join(", ")}
 						</p>
-						<p>
-							{pass.status} · {formatDateTime(pass.startsAt, location.timezone)}{" "}
-							– {formatDateTime(pass.endsAt, location.timezone)}
+						<p className="text-dense text-ink-muted">
+							{formatDateTime(pass.startsAt, location.timezone)} –{" "}
+							{formatDateTime(pass.endsAt, location.timezone)}
 						</p>
-						<p>
+						<p className="text-dense text-ink-muted">
 							Up to {pass.maxVehicles} vehicle(s) parked at once. Coverage per
 							visit: {pass.coveredSeconds / 3600} hours.
 						</p>
-						<p>
+						<p className="border-t border-line pt-4 text-dense tabular-nums">
 							Price {formatPaisa(pass.pricePaisa)} · Paid{" "}
 							{formatPaisa(pass.paidPaisa)} · Due{" "}
 							{formatPaisa(pass.duePaisa ?? 0)}
@@ -165,7 +194,12 @@ function MembershipWorkspace({ location }: { location: Location }) {
 				))}
 			{passes.isSuccess &&
 				!passes.data.pages.some((page) => page.data.length) && (
-					<p>No passes match this location and plate.</p>
+					<div className="empty-state rounded-panel border border-line bg-surface">
+						<h2 className="font-semibold text-ink">No matching passes</h2>
+						<p className="mt-2 text-dense">
+							No passes match this location and plate.
+						</p>
+					</div>
 				)}
 			{passes.hasNextPage && (
 				<Button

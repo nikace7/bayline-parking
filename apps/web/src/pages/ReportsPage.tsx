@@ -14,7 +14,7 @@ import { useActiveRoles } from "../app/gate";
 import { type Location, useLocations } from "../app/sites";
 import { DataTable } from "../components/DataTable";
 import { Download } from "../components/icons";
-import { FormAlert } from "../components/Page";
+import { FormAlert, Metric, PageHeader } from "../components/Page";
 import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { VEHICLE_LABEL } from "../lib/labels";
@@ -34,9 +34,11 @@ export function ReportsPage() {
 
 	return (
 		<section aria-labelledby="reports-heading" className="flex flex-col gap-6">
-			<h1 id="reports-heading" className="text-page font-semibold">
-				Reports
-			</h1>
+			<PageHeader
+				id="reports-heading"
+				title="Reports"
+				description="Review collections and vehicle activity, then export the records you need."
+			/>
 			{!canRead && (
 				<p className="text-ink-muted">
 					Reports are available to owners, managers and auditors.
@@ -76,7 +78,7 @@ function ReportBrowser({ locations }: { locations: Location[] }) {
 
 	return (
 		<>
-			<div className="flex flex-wrap items-end gap-3">
+			<div className="filter-bar">
 				<fieldset className="flex rounded-control border border-control bg-surface p-0.5">
 					<legend className="sr-only">Report</legend>
 					{KINDS.map((option) => (
@@ -172,6 +174,23 @@ function Collections({ report }: { report: CollectionsReport }) {
 	return (
 		<section aria-label="Collections" className="flex flex-col gap-3">
 			<ScopeLine scope={report.scope} />
+			<dl className="mb-3 grid gap-4 sm:grid-cols-3">
+				<Metric
+					label="Captured"
+					value={formatPaisa(report.capturedPaisa)}
+					note="Payments recorded in this period"
+				/>
+				<Metric
+					label="Refunded"
+					value={formatPaisa(report.refundedPaisa)}
+					note="Returned to customers"
+				/>
+				<Metric
+					label="Net collected"
+					value={formatPaisa(report.netPaisa)}
+					note="Captured less refunds"
+				/>
+			</dl>
 			<DataTable
 				caption="Payments posted in the period"
 				headings={[
@@ -224,9 +243,23 @@ function VehicleLog({ report }: { report: VehicleLogReport }) {
 	return (
 		<section aria-label="Vehicle log" className="flex flex-col gap-3">
 			<ScopeLine scope={report.scope} />
-			<p className="text-dense tabular-nums">
-				{`${report.entries} entries · ${report.exits} exits · ${report.stillParked} still parked`}
-			</p>
+			<dl className="mb-3 grid gap-4 sm:grid-cols-3">
+				<Metric
+					label="Entries"
+					value={report.entries}
+					note="Arrivals in this period"
+				/>
+				<Metric
+					label="Exits"
+					value={report.exits}
+					note="Departures in this period"
+				/>
+				<Metric
+					label="Still parked"
+					value={report.stillParked}
+					note="From the visits in this report"
+				/>
+			</dl>
 			<DataTable
 				caption="Visits that entered or exited in the period"
 				headings={[

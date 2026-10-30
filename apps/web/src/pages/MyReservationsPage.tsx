@@ -10,7 +10,7 @@ import {
 import { useSession } from "../app/session";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
-import { FormAlert } from "../components/Page";
+import { FormAlert, PageHeader } from "../components/Page";
 import { ReservationFacts } from "../components/ReservationFacts";
 import { StatusBadge } from "../components/StatusBadge";
 import { RESERVATION_STATUS } from "../lib/labels";
@@ -38,14 +38,19 @@ export function MyReservationsPage() {
 			aria-labelledby="my-reservations-heading"
 			className="flex flex-col gap-4"
 		>
-			<div className="flex flex-wrap items-end justify-between gap-3">
-				<h1 id="my-reservations-heading" className="text-page font-semibold">
-					My reservations
-				</h1>
-				<Link to="/park" className="font-medium text-brand underline">
-					Reserve another bay
-				</Link>
-			</div>
+			<PageHeader
+				id="my-reservations-heading"
+				title="My reservations"
+				description="Your upcoming arrivals and previous bookings, together in one place."
+				actions={
+					<Link
+						to="/park"
+						className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-dense font-medium text-on-brand hover:bg-brand-strong"
+					>
+						Reserve another bay
+					</Link>
+				}
+			/>
 			{(account.pending || reservations.isPending) && (
 				<p className="text-ink-muted">Loading reservations…</p>
 			)}
@@ -116,15 +121,21 @@ export function ReservationDetailPage() {
 			>
 				All reservations
 			</Link>
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<h1 id="reservation-heading" className="text-page font-semibold">
-					Reservation{" "}
-					<span className="font-mono">{reservation.data.reference}</span>
-				</h1>
-				<StatusBadge tone={RESERVATION_STATUS[status].tone}>
-					{RESERVATION_STATUS[status].label}
-				</StatusBadge>
-			</div>
+			<PageHeader
+				id="reservation-heading"
+				title={
+					<>
+						Reservation{" "}
+						<span className="font-mono">{reservation.data.reference}</span>
+					</>
+				}
+				description="Keep this reference ready when you arrive at the gate."
+				actions={
+					<StatusBadge tone={RESERVATION_STATUS[status].tone}>
+						{RESERVATION_STATUS[status].label}
+					</StatusBadge>
+				}
+			/>
 			{failure && <FormAlert>{errorMessage(failure)}</FormAlert>}
 			<div className="rounded-panel border border-line bg-surface p-4">
 				<ReservationFacts reservation={reservation.data} />

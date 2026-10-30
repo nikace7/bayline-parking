@@ -100,11 +100,22 @@ export function ReceiptPage() {
 					<FormAlert>{errorMessage(printRequest.error)}</FormAlert>
 				</div>
 			)}
-			<ReceiptSlip
-				receipt={receipt.data}
-				width={width}
-				copy={copyLabel(printingCopy ?? printedCopies + 1)}
-			/>
+			<div
+				data-print="bare"
+				className="rounded-panel border border-dashed border-control bg-inset p-5 sm:p-8 print:border-0 print:bg-transparent"
+			>
+				<p
+					data-print="hide"
+					className="mb-5 text-center text-meta font-medium text-ink-muted"
+				>
+					RECEIPT PREVIEW · {width} MM
+				</p>
+				<ReceiptSlip
+					receipt={receipt.data}
+					width={width}
+					copy={copyLabel(printingCopy ?? printedCopies + 1)}
+				/>
+			</div>
 		</section>
 	);
 }

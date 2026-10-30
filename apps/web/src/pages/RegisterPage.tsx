@@ -37,7 +37,10 @@ export function RegisterPage() {
 	}
 
 	return (
-		<AuthLayout title="Register your organisation">
+		<AuthLayout
+			title="Register your organisation"
+			description="Set up your parking workspace and owner account."
+		>
 			<form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
 				{register.isError && (
 					<FormAlert>

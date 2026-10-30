@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, allPages, api } from "../api/client";
+import { TableScroll } from "../components/DataTable";
+import { PageHeader } from "../components/Page";
 import { StatusBadge } from "../components/StatusBadge";
 
 const roleLabel = (role: string) =>
@@ -21,9 +23,11 @@ export function StaffPage() {
 
 	return (
 		<section aria-labelledby="staff-heading" className="flex flex-col gap-6">
-			<h1 id="staff-heading" className="text-page font-semibold">
-				Staff
-			</h1>
+			<PageHeader
+				id="staff-heading"
+				title="Staff"
+				description="People, roles and access across your organisation."
+			/>
 
 			{members.isPending && <p className="text-ink-muted">Loading staff…</p>}
 
@@ -36,7 +40,7 @@ export function StaffPage() {
 			)}
 
 			{members.isSuccess && (
-				<div className="overflow-x-auto rounded-panel border border-line bg-surface">
+				<TableScroll label="Staff in this organisation">
 					<table className="w-full min-w-[36rem] text-left text-dense">
 						<caption className="sr-only">Staff in this organisation</caption>
 						<thead className="bg-inset text-ink-muted">
@@ -74,7 +78,7 @@ export function StaffPage() {
 							))}
 						</tbody>
 					</table>
-				</div>
+				</TableScroll>
 			)}
 		</section>
 	);

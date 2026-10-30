@@ -37,7 +37,10 @@ export function CustomerRegisterPage() {
 	}
 
 	return (
-		<AuthLayout title="Create your parking account">
+		<AuthLayout
+			title="Create your parking account"
+			description="Keep your reservations together and arrive with a bay reserved."
+		>
 			<form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
 				{register.isError && (
 					<FormAlert>

@@ -12,7 +12,8 @@ import {
 } from "../app/reservations";
 import { useSession } from "../app/session";
 import { Button } from "../components/Button";
-import { FormAlert } from "../components/Page";
+import { Location } from "../components/icons";
+import { FormAlert, PageHeader } from "../components/Page";
 import { ReservationFacts } from "../components/ReservationFacts";
 import { TextField } from "../components/TextField";
 import { VEHICLE_LABEL } from "../lib/labels";
@@ -37,15 +38,26 @@ export function ParkPage() {
 
 	return (
 		<section aria-labelledby="park-heading" className="flex flex-col gap-6">
-			<div>
-				<h1 id="park-heading" className="text-page font-semibold">
-					Find parking
-				</h1>
-				<p className="text-ink-muted">
-					Reserve a bay ahead of time. A bay stays on hold for five minutes
-					while you confirm.
-				</p>
-			</div>
+			<PageHeader
+				id="park-heading"
+				title="Find parking"
+				description="Choose your location and arrival time. We’ll hold a bay for five minutes while you confirm."
+			/>
+			<ol
+				className="grid gap-3 rounded-panel border border-line bg-surface p-4 text-dense sm:grid-cols-3"
+				aria-label="Reservation steps"
+			>
+				{["Choose a location", "Set your arrival", "Hold and confirm"].map(
+					(step, index) => (
+						<li key={step} className="flex items-center gap-3">
+							<span className="grid size-7 shrink-0 place-items-center rounded-full bg-inset text-meta font-semibold text-brand">
+								{index + 1}
+							</span>
+							{step}
+						</li>
+					),
+				)}
+			</ol>
 			{locations.isPending && (
 				<p className="text-ink-muted">Loading locations…</p>
 			)}
@@ -63,12 +75,18 @@ export function ParkPage() {
 						{locations.data.map((location) => (
 							<li
 								key={location.id}
-								className={`flex flex-wrap items-center justify-between gap-3 rounded-panel border bg-surface p-4 ${location.id === locationId ? "border-brand" : "border-line"}`}
+								className={`flex flex-wrap items-center justify-between gap-4 rounded-panel border bg-surface p-5 ${location.id === locationId ? "border-brand ring-1 ring-brand" : "border-line"}`}
 							>
-								<div>
-									<h2 className="font-semibold">{location.name}</h2>
+								<div className="min-w-0 flex-1 basis-48 [overflow-wrap:anywhere]">
+									<p className="mb-2 flex items-center gap-1.5 text-meta text-ink-muted">
+										<Location className="size-4" />
+										{location.organisationName}
+									</p>
+									<h2 className="text-section font-semibold">
+										{location.name}
+									</h2>
 									<p className="text-dense text-ink-muted">
-										{location.organisationName} · {location.address}
+										{location.address}
 									</p>
 									<p className="text-dense tabular-nums">
 										{location.reservableBays} reservable{" "}
@@ -89,9 +107,15 @@ export function ParkPage() {
 					{selected ? (
 						<ReserveForm key={selected.id} location={selected} />
 					) : (
-						<p className="rounded-panel border border-line bg-surface p-4 text-ink-muted">
-							Choose a location to see its free bays.
-						</p>
+						<div className="empty-state rounded-panel border border-dashed border-control">
+							<Location />
+							<h2 className="mb-2 font-semibold text-ink">
+								Where are you heading?
+							</h2>
+							<p className="text-dense">
+								Choose a location to see its free bays.
+							</p>
+						</div>
 					)}
 				</div>
 			)}
@@ -149,7 +173,7 @@ function ReserveForm({ location }: { location: PublicLocation }) {
 			onSubmit={onSubmit}
 			noValidate
 			aria-labelledby="reserve-heading"
-			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4"
+			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-5 sm:p-6"
 		>
 			<div>
 				<h2 id="reserve-heading" className="text-section font-semibold">

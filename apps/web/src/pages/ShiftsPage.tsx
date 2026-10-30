@@ -11,7 +11,7 @@ import { useActiveRoles, useCurrentShift } from "../app/gate";
 import { type Location, useLocations } from "../app/sites";
 import { Button } from "../components/Button";
 import { DataTable } from "../components/DataTable";
-import { FormAlert } from "../components/Page";
+import { FormAlert, PageHeader } from "../components/Page";
 import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { describeVariance, formatPaisa, parseRupees } from "../lib/money";
@@ -29,9 +29,11 @@ export function ShiftsPage() {
 
 	return (
 		<section aria-labelledby="shifts-heading" className="flex flex-col gap-6">
-			<h1 id="shifts-heading" className="text-page font-semibold">
-				Shifts
-			</h1>
+			<PageHeader
+				id="shifts-heading"
+				title="Shifts"
+				description="Count the drawer, close your shift and review cash differences."
+			/>
 			{locations.isPending && (
 				<p className="text-ink-muted">Loading locations…</p>
 			)}
@@ -131,7 +133,7 @@ function CloseShiftForm({
 	}
 
 	return (
-		<div className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-4">
+		<div className="flex flex-col gap-5 rounded-panel border border-line bg-surface p-6">
 			<p className="text-dense text-ink-muted">
 				{`${shift.locationName} · opened ${formatDateTime(shift.openedAt, timeZone)}`}
 			</p>

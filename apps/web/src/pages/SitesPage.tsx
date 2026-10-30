@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { components } from "../../generated/schema";
 import { type Location, useBays, useLocations, useTariffs } from "../app/sites";
+import { TableScroll } from "../components/DataTable";
 import { LocationSelect } from "../components/LocationSelect";
+import { PageHeader } from "../components/Page";
 import { StatusBadge, type Tone } from "../components/StatusBadge";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa } from "../lib/money";
@@ -45,18 +47,20 @@ export function SitesPage() {
 
 	return (
 		<section aria-labelledby="sites-heading" className="flex flex-col gap-6">
-			<div className="flex flex-wrap items-end justify-between gap-3">
-				<h1 id="sites-heading" className="text-page font-semibold">
-					Sites
-				</h1>
-				{location && (
-					<LocationSelect
-						locations={locations.data ?? []}
-						value={location.id}
-						onChange={setSelectedId}
-					/>
-				)}
-			</div>
+			<PageHeader
+				id="sites-heading"
+				title="Sites"
+				description="Location details, parking spaces and the tariffs in force."
+				actions={
+					location && (
+						<LocationSelect
+							locations={locations.data ?? []}
+							value={location.id}
+							onChange={setSelectedId}
+						/>
+					)
+				}
+			/>
 
 			{locations.isPending && (
 				<p className="text-ink-muted">Loading locations…</p>
@@ -90,7 +94,7 @@ function LocationDetail({ location }: { location: Location }) {
 
 	return (
 		<>
-			<div className="rounded-panel border border-line bg-surface p-4">
+			<div className="rounded-panel border border-line bg-surface p-6">
 				<h2 className="text-section font-semibold">{location.name}</h2>
 				<p className="text-ink-muted">{location.address}</p>
 				<dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-dense">
@@ -123,7 +127,7 @@ function LocationDetail({ location }: { location: Location }) {
 				)}
 				{tariffs.isError && <LoadError what="Tariffs" />}
 				{tariffs.isSuccess && (
-					<div className="overflow-x-auto rounded-panel border border-line bg-surface">
+					<TableScroll label="Tariff versions">
 						<table className="w-full min-w-[48rem] text-left text-dense tabular-nums">
 							<caption className="sr-only">Tariff versions</caption>
 							<thead className="bg-inset text-ink-muted">
@@ -191,7 +195,7 @@ function LocationDetail({ location }: { location: Location }) {
 									))}
 							</tbody>
 						</table>
-					</div>
+					</TableScroll>
 				)}
 			</section>
 

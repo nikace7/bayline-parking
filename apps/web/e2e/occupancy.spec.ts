@@ -11,13 +11,11 @@ test("a site beyond one page shows every bay and counts every parked visit", asy
 		state: "ACTIVE",
 		vehicleClass: "CAR",
 	}));
-	const visits = bays
-		.slice(0, 101)
-		.map((bay, index) => ({
-			id: `visit-${index}`,
-			bayId: bay.id,
-			enteredAt: "2026-10-29T00:00:00Z",
-		}));
+	const visits = bays.slice(0, 101).map((bay, index) => ({
+		id: `visit-${index}`,
+		bayId: bay.id,
+		enteredAt: "2026-10-29T00:00:00Z",
+	}));
 	const seen = new Set<string>();
 	await page.route("**/api/v1/**", async (route) => {
 		const url = new URL(route.request().url());
