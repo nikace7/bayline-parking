@@ -96,6 +96,8 @@ function Gate({ location }: { location: Location }) {
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState("all");
 	const canTakeCash = roles.includes("OWNER") || roles.includes("CASHIER");
+	const canManageGate = roles.includes("OWNER") || roles.includes("OPERATOR");
+	const canCheckout = canManageGate || roles.includes("CASHIER");
 
 	if (bays.isPending || visits.isPending) {
 		return <p className="text-ink-muted">Loading bays…</p>;
@@ -289,6 +291,8 @@ function Gate({ location }: { location: Location }) {
 							visitId={selectedVisit.id}
 							location={location}
 							canTakeCash={canTakeCash}
+							canCheckout={canCheckout}
+							canExit={canManageGate}
 							onExited={(visit) => {
 								setNotice(`${visit.plate} left bay ${visit.bayLabel}.`);
 								setSelectedBayId(undefined);
@@ -297,6 +301,7 @@ function Gate({ location }: { location: Location }) {
 					)}
 					{selectedBay &&
 						!selectedVisit &&
+						canManageGate &&
 						(selectedBay.mode === "RESERVABLE" ? (
 							<ArrivalPanel
 								key={selectedBay.id}
@@ -310,6 +315,11 @@ function Gate({ location }: { location: Location }) {
 								location={location}
 							/>
 						))}
+					{selectedBay && !selectedVisit && !canManageGate && (
+						<p className="text-dense text-ink-muted">
+							Only owners and operators can admit vehicles at the gate.
+						</p>
+					)}
 				</aside>
 			</div>
 		</>

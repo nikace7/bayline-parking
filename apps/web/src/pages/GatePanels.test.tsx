@@ -71,8 +71,14 @@ const ok = (data: unknown) =>
 		response: new Response(),
 	});
 
-function serve({ shiftLocationId }: { shiftLocationId: string | null }) {
-	let visit: typeof parked | typeof pending = parked;
+function serve({
+	shiftLocationId,
+	stage = "PARKED",
+}: {
+	shiftLocationId: string | null;
+	stage?: string;
+}) {
+	let visit: Record<string, unknown> = { ...parked, stage };
 	vi.mocked(api.GET).mockImplementation(((path: string) =>
 		path === "/api/v1/shifts/current"
 			? ok({
@@ -100,13 +106,14 @@ function serve({ shiftLocationId }: { shiftLocationId: string | null }) {
 	}) as never);
 }
 
-function renderPanel() {
+function renderPanel(permissions = { canCheckout: true, canExit: true }) {
 	render(
 		<QueryClientProvider client={new QueryClient()}>
 			<VisitPanel
 				visitId="visit-1"
 				location={location}
 				canTakeCash
+				{...permissions}
 				onExited={vi.fn()}
 			/>
 		</QueryClientProvider>,
@@ -115,6 +122,27 @@ function renderPanel() {
 
 describe("VisitPanel", () => {
 	beforeEach(() => vi.clearAllMocks());
+	it("keeps checkout read-only when the role cannot check out vehicles", async () => {
+		serve({ shiftLocationId: null });
+		renderPanel({ canCheckout: false, canExit: false });
+		await screen.findByText(parked.plate);
+		expect(
+			screen.queryByRole("button", { name: "Get checkout quote" }),
+		).not.toBeInTheDocument();
+		expect(api.POST).not.toHaveBeenCalled();
+	});
+
+	it("lets a cashier see readiness without offering the forbidden exit action", async () => {
+		serve({ shiftLocationId: location.id, stage: "EXIT_READY" });
+		renderPanel({ canCheckout: true, canExit: false });
+		await screen.findByText("Ready to exit");
+		expect(
+			screen.queryByRole("button", { name: "Record exit" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByText("An owner or operator records the exit at the gate."),
+		).toBeVisible();
+	});
 
 	it("quotes, confirms checkout with an idempotency key, then offers cash for the amount due", async () => {
 		serve({ shiftLocationId: location.id });

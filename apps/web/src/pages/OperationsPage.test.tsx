@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { OperationsPage } from "./OperationsPage";
+
+const state = vi.hoisted(() => ({ roles: ["AUDITOR"] }));
+beforeEach(() => {
+	state.roles = ["AUDITOR"];
+});
 
 vi.mock("../app/sites", () => ({
 	useLocations: () => ({
@@ -28,7 +33,7 @@ vi.mock("../app/sites", () => ({
 	}),
 }));
 vi.mock("../app/gate", () => ({
-	useActiveRoles: () => ["AUDITOR"],
+	useActiveRoles: () => state.roles,
 	useParkedVisits: () => ({
 		data: [
 			{
@@ -47,10 +52,31 @@ vi.mock("../app/reservations", () => ({
 }));
 vi.mock("./GatePanels", () => ({
 	ArrivalPanel: () => null,
-	EntryPanel: () => null,
+	EntryPanel: () => <button type="button">Confirm entry</button>,
 	ShiftBar: () => null,
 	VisitPanel: () => null,
 }));
+
+it.each(["CASHIER", "MANAGER", "AUDITOR"])(
+	"does not offer admission to a %s",
+	(role) => {
+		state.roles = [role];
+		render(
+			<MemoryRouter>
+				<OperationsPage />
+			</MemoryRouter>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: /^Bay A02,/ }));
+		expect(
+			screen.queryByRole("button", { name: "Confirm entry" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByText(
+				"Only owners and operators can admit vehicles at the gate.",
+			),
+		).toBeVisible();
+	},
+);
 
 it("filters bays by plate/status without changing the site's occupancy totals", () => {
 	render(

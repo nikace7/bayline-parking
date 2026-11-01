@@ -313,11 +313,15 @@ export function VisitPanel({
 	visitId,
 	location,
 	canTakeCash,
+	canCheckout,
+	canExit,
 	onExited,
 }: {
 	visitId: string;
 	location: Location;
 	canTakeCash: boolean;
+	canCheckout: boolean;
+	canExit: boolean;
 	onExited: (visit: Visit) => void;
 }) {
 	const visit = useVisit(visitId);
@@ -356,7 +360,7 @@ export function VisitPanel({
 
 			{failure && <FormAlert>{errorMessage(failure)}</FormAlert>}
 
-			{stage === "PARKED" && !quoted && (
+			{stage === "PARKED" && canCheckout && !quoted && (
 				<Button
 					pending={quote.isPending}
 					onClick={() =>
@@ -366,7 +370,7 @@ export function VisitPanel({
 					Get checkout quote
 				</Button>
 			)}
-			{stage === "PARKED" && quoted && (
+			{stage === "PARKED" && canCheckout && quoted && (
 				<>
 					<FeeBreakdown
 						fee={quoted}
@@ -423,7 +427,17 @@ export function VisitPanel({
 					)}
 				</>
 			)}
-			{stage === "EXIT_READY" && (
+			{stage === "PARKED" && !canCheckout && (
+				<p className="text-dense text-ink-muted">
+					Only owners, operators and cashiers can prepare checkout.
+				</p>
+			)}
+			{stage === "EXIT_READY" && !canExit && (
+				<p className="text-dense text-ink-muted">
+					An owner or operator records the exit at the gate.
+				</p>
+			)}
+			{stage === "EXIT_READY" && canExit && (
 				<Button
 					pending={exit.isPending}
 					onClick={() => exit.mutate(undefined, { onSuccess: onExited })}
