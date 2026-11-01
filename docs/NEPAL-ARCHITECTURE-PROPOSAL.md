@@ -1,6 +1,6 @@
 # Proposed architecture for a Nepal parking system
 
-Date: 28 October 2026; client direction accepted 29 October 2026. Status: proposed domain design; the PWA shell is now implemented (see `PWA.md`). Builds on `ARCHITECTURE-COMPARISON.md`. The client target is PWA only, with no Flutter or native Android shell.
+Date: 28 October 2026; client direction accepted 29 October 2026. Status updated 1 November 2026: PWA shell, core membership UI and independent customer profiles are implemented; open-lot capacity, fiscal workflows and transaction sync remain proposed. See `PWA.md`, `CUSTOMER_PROFILES.md` and `PROGRESS.md`. Builds on `ARCHITECTURE-COMPARISON.md`. The client target is PWA only, with no Flutter or native Android shell.
 
 ## Recommended direction
 
@@ -57,9 +57,9 @@ Migration: create an assigned-bay zone for each existing location, attach its ba
 
 ## 3. Let attendants create customers without forcing online registration
 
-Current `billing/memberships.py::sell_pass()` refuses a member whose email does not match an existing user. That makes a walk-up membership sale depend on the customer first registering online.
+Implemented on 1 November 2026: customer profiles may exist without a User; owners/managers can create and search them, and `billing/memberships.py::sell_pass()` accepts a scoped customer ID. The original account-email sale path remains available. Name-only sale/payment/renewal and migration preservation are tested; see `CUSTOMER_PROFILES.md`. The prior requirement to register online before buying a pass is removed.
 
-Separate an organisation-owned customer profile from an optional online login. Staff can create the member with a name and appropriate contact details; vehicle/pass records attach to that customer. An online identity may be linked later through a verified claim process.
+The delivered model separates an organisation-owned customer profile from an optional online login. Staff can create the member with a name and appropriate contact details; vehicle/pass records attach to that customer. An online identity may be linked later through a verified claim process.
 
 Do not create fake email addresses or default passwords. Do not automatically merge profiles by matching a phone number: families and businesses may share contacts, and phone ownership can change. Verify identity before exposing existing bookings or membership history to a newly linked account.
 
@@ -157,6 +157,6 @@ Do not estimate completion dates until the target site's invoice policy, capacit
 
 ## Recommended next implementation
 
-Start with stage 1. It completes existing work without committing prematurely to hardware or invoice policy. Then implement zones/capacity and customer-profile independence before offline support, so device sync uses the correct Nepal operating model rather than preserving current assumptions.
+Core membership UI, complete pagination, real browser/database workflow verification and independent customer profiles are delivered. Next implement zones/capacity with assigned-bay compatibility and last-space race tests. Calendar/fiscal policy and hardware inputs still need target-site validation. Complete the domain fit before transactional offline sync.
 
-The original proposal made no application changes. The subsequent PWA shell implementation and checks are recorded in `PWA.md`. Domain changes, offline transaction sync, hardware and current legal/provider requirements remain unimplemented or unverified as described above.
+The original proposal made no application changes. Subsequent delivered work is recorded in `PROGRESS.md`, `PWA.md`, `LIVE_WORKFLOW_CHECKS.md` and `CUSTOMER_PROFILES.md`. Open-lot capacity, calendar/fiscal billing and transaction sync remain unimplemented; hardware and current legal/provider requirements remain unverified.

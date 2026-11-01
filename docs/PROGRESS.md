@@ -1,5 +1,48 @@
 # Progress
 
+## Walk-up customer profiles — 1 November 2026
+
+### Delivered
+
+- Customer profiles now belong to an organisation independently of an optional online User. Name is required; phone/email are optional. Owners/managers can create/search profiles and sell a pass to a selected profile without registration. Legacy account-email sales still work.
+- Creation is atomic with its audit/replay record. Contact matches never merge profiles or link accounts. Directory pagination/search and customer-ID sales enforce tenant scope. Renewals, entitlement, cash settlement and receipts retain their existing financial rules.
+- Added typed domain hooks and a customer picker with independent search/create forms, automatic selection, further-page loading and retry protection. Pending creation locks sale/source changes. Pass cards display available profile contacts.
+- Generated API contracts and added two migrations: optional User/contact columns, then batched linked-email backfill. Existing identities and profile names are preserved; reversing the schema migration refuses unlinked profiles before removing contacts.
+- Extended the real browser harness with a name-only customer sale/payment on a 390px viewport and database assertions for the unlinked profile, active pass and single capture.
+
+### Verification
+
+| Check | Actual result |
+|---|---|
+| Initial backend regressions | 10 failures reproduced before implementation |
+| Frontend unit suite | 116 passed, including 10 membership tests |
+| Backend unit suite | 40 passed |
+| PostgreSQL integration suite | 102 passed; includes profile permissions/isolation, idempotency, sale/renewal/entitlement and two migration tests |
+| Existing Chromium suite | 11 passed |
+| Live Django/PostgreSQL browser harness | Five journeys passed; outer pytest persisted-record assertions passed |
+| Final targeted customer API check | 12 passed after the read-contract annotation correction |
+| Lint, app/browser types, schema consistency, contracts and production build | Passed |
+
+### Acceptance and review
+
+| Acceptance case | Evidence |
+|---|---|
+| Pass without an online account | Name-only mobile browser creation/sale/payment plus PostgreSQL assertions |
+| No accidental identity claim | Same-contact creation and later registration remain separate in integration tests |
+| Tenant and role boundaries | Directory role tests, scoped search/pagination and foreign customer-ID sale rejection |
+| Stable retry and selection | Replay/API tests; delayed/lost-response UI test; further-page selection test |
+| Existing history survives migration | Historical migration tests; local before/after ID digests, counts and captured totals match |
+
+Django/paired Python, database, React/paired TypeScript, security and general reviews reported no remaining findings. Review and verification resolved pending-create coordination and a read-contract mismatch: empty contact strings are valid output, while nonblank email input remains validated.
+
+The local synthetic database was backed up before migration. Accounts 0005/0006 are applied; linked email backfill has zero mismatches. Rebuilt the local gateway and verified authenticated directory access, valid name-only forms and desktop/mobile screenshots without submitting demo transactions. Full workflow writes run only in the isolated test database.
+
+### Limits and next
+
+See `CUSTOMER_PROFILES.md` for usage, migration/recovery details and code owners. Profile editing/merging and verified account claiming are deferred. Current PWA caching remains static-shell access; writes require a connection. Backup restore rehearsal, physical printers, production deployment and the user's existing browser profile remain unverified.
+
+Next: open-lot zones/capacity with assigned-bay compatibility, migration preservation and last-space concurrency tests, then device/outbox/sync work.
+
 ## Real browser workflows and gate roles — 1 November 2026
 
 ### Delivered

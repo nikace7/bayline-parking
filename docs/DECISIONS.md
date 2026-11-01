@@ -2,6 +2,12 @@
 
 Product-level revisions live in `docs/BLUEPRINT.md` section 0. This log records implementation choices, why they were made, and what would reopen them.
 
+## Walk-up customers — 1 November 2026
+
+| # | Date | Decision | Why | Revisit when |
+|---|---|---|---|---|
+| D58 | 2026-11-01 | An organisation-owned Customer has an optional protected User link and its own optional email/phone. Owners/managers create and search profiles; pass sale takes exactly one scoped customerId or legacy account email. Contacts never merge profiles or claim accounts. Supersedes D41's mandatory User assumption for staff-created profiles; online booking identity is unchanged | Walk-up customers can buy passes with only a name, without fake addresses/passwords or accidental disclosure through contact matching. Backfill preserves historical identities; rollback refuses unlinked profiles | A separately verified account-claim or explicit profile-management workflow is implemented |
+
 ## UI refresh — 30 October 2026
 
 | # | Date | Decision | Why | Revisit when |

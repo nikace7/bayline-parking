@@ -8,6 +8,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - Code ownership, review findings and maintenance conventions: [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md)
 - UI design direction, screen coverage and verification: [docs/UI_DESIGN.md](docs/UI_DESIGN.md)
 - Real browser/API/database workflow checks: [docs/LIVE_WORKFLOW_CHECKS.md](docs/LIVE_WORKFLOW_CHECKS.md)
+- Walk-up customer profiles and migration notes: [docs/CUSTOMER_PROFILES.md](docs/CUSTOMER_PROFILES.md)
 - Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
 
 ## Stack
@@ -51,7 +52,7 @@ Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). R
 - **Shifts and reports:** `/shifts` closes the cashier's shift against the counted cash. `/reports` shows collections and the vehicle log with PDF and XLSX downloads.
 - **Reservations:** `/reservations` shows each day's bookings with overstay conflicts, and owners and managers can move or cancel them.
 - **Customers:** `/park` lists locations and free bays for a time, holds a bay and confirms it, and `/account/reservations` shows a customer's bookings. Create a customer account at `/account/register`.
-- **Members:** `/members` searches passes by plate and loads further pages. Owners/managers sell single-vehicle passes at the selected location and renew existing passes. Customers currently need an existing account email. Owners/cashiers collect the outstanding amount against an open shift at that location; payment activates the pass and links its receipt. Passes with multiple vehicles or locations created through the API remain visible, but the sale form currently creates one vehicle at one location.
+- **Members:** `/members` searches passes by plate and loads further pages. Owners/managers sell single-vehicle passes at the selected location and renew existing passes. Choose an existing customer profile or create one with just a name; phone/email are optional. The online-account email path remains available. See [customer profiles](docs/CUSTOMER_PROFILES.md). Owners/cashiers collect the outstanding amount against an open shift at that location; payment activates the pass and links its receipt. Passes with multiple vehicles or locations created through the API remain visible, but the sale form currently creates one vehicle at one location.
 
 `pnpm dev` does not start the background worker. Run `uv run --env-file ../.env python manage.py worker` from `backend/` to sweep lapsed holds and no-shows; screens show them correctly either way.
 

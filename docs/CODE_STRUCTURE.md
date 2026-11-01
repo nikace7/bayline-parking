@@ -1,6 +1,6 @@
 # Code structure and maintenance review
 
-Reviewed 30 October 2026. This is a source-level maintenance review of the current Django/React application, not a full security or production-readiness audit.
+Reviewed 30 October 2026; customer-profile ownership updated 1 November 2026. This is a source-level maintenance review of the current Django/React application, not a full security or production-readiness audit.
 
 ## Assessment
 
@@ -14,7 +14,7 @@ The frontend had responsibility drift: unrelated features imported a shared retr
 |---|---|
 | `apps/web/src/api/` | Typed transport, CSRF, error/page validation, cursor traversal and shared request retry identity. No imports from domain hooks or pages. |
 | `apps/web/src/app/` | Domain queries/mutations, session and application shells/PWA lifecycle. Hooks own cache keys and invalidation. |
-| `apps/web/src/pages/` | Screen composition and domain-specific UI. `MembershipForms.tsx` owns sale/renewal form state; `MembersPage.tsx` coordinates selection, lookup and payment. |
+| `apps/web/src/pages/` | Screen composition and domain-specific UI. `CustomerPicker.tsx` owns customer search/selection and its independent creation form; `MembershipForms.tsx` owns sale/renewal form state; `MembersPage.tsx` coordinates selection, lookup and payment. |
 | `apps/web/src/components/` | Reusable controls and presentation primitives, independent of a particular screen. |
 | `apps/web/src/lib/` | Pure money, time, labels and tariff calculations. |
 | `apps/web/generated/`, `contracts/` | Generated API types/schema; regenerate through `pnpm contracts:generate`. |
@@ -23,7 +23,9 @@ The frontend had responsibility drift: unrelated features imported a shared retr
 | `fixtures/` | Test vectors shared between Python and TypeScript. |
 | `infra/`, `scripts/` | Runtime packaging and local tooling. |
 
-Frontend query owners currently include `app/sites.ts` (locations, bays, tariffs), `app/gate.ts` (gate/visit operations), `app/members.ts` (passes), `app/reservations.ts` (bookings), `app/cash.ts` (shift/report/receipt operations) and `app/session.ts` (authentication). The gate module still contains shared role and current-shift hooks; move these only when a concrete change benefits from it. Some older screens, including Staff, still define their own queries; avoid creating a second implementation for the same cache key.
+Frontend query owners currently include `app/sites.ts` (locations, bays, tariffs), `app/gate.ts` (gate/visit operations), `app/members.ts` (passes), `app/customers.ts` (tenant-scoped profile directory/creation), `app/reservations.ts` (bookings), `app/cash.ts` (shift/report/receipt operations) and `app/session.ts` (authentication). The gate module still contains shared role and current-shift hooks; move these only when a concrete change benefits from it. Some older screens, including Staff, still define their own queries; avoid creating a second implementation for the same cache key.
+
+Customer profile creation/search belongs to `backend/modules/accounts/customers.py`, with HTTP validation in accounts serializers/views. Billing receives a scoped customer ID or legacy account email. Profile contacts are not login identity; no other module should infer an account link from a matching contact. Migration/backfill and workflow details are in `CUSTOMER_PROFILES.md`.
 
 ## Rules for subsequent changes
 
@@ -39,7 +41,7 @@ Frontend query owners currently include `app/sites.ts` (locations, bays, tariffs
 ## Remaining improvements, in priority order
 
 1. The real membership/parking/booking browser journeys were completed on 1 November; see `LIVE_WORKFLOW_CHECKS.md` and `pnpm test:live`. Fresh sign-in through the actual local gateway also passed. The user's existing browser profile and physical devices still need confirmation.
-2. Implement email-independent customer profiles and open-lot capacity from the Nepal architecture proposal before extending transaction sync.
+2. Independent customer profiles are implemented and verified; next implement open-lot zones/capacity from the Nepal proposal before extending transaction sync. Profile editing/merging and verified account claiming remain separate future work.
 3. Deliver registered devices, a durable IndexedDB outbox, server replay/conflict handling and reconciliation together before enabling offline entries/payments. Current PWA caching covers static assets only; private API responses are excluded.
 4. Measure complete-list polling at busy sites. It removes truncation but uses multiple requests and provides no atomic occupancy snapshot; introduce a server summary/windowed board when measured load requires it.
 5. Continue consolidating legacy query/role/shift ownership when those areas change, and enforce cross-domain write services incrementally with concurrency coverage.

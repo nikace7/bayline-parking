@@ -6,7 +6,16 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (1 November 2026)
 
-### Latest real workflow verification
+### Latest walk-up customer milestone
+
+- Branch `codex/walk-up-customers` continues the published live-workflow branch. Owners/managers can search/create tenant-owned customer profiles with a name only, then sell/renew passes without online registration. Contact matches never merge profiles or link accounts. See `CUSTOMER_PROFILES.md` and D58.
+- `accounts/customers.py` owns creation/search; `app/customers.ts` owns typed queries/mutations; `CustomerPicker.tsx` owns the independent search/create forms. Sale accepts exactly one of `customerId` or legacy `email`. Preserve the pending/retry locks and tenant scoping.
+- Verified 116 frontend tests, 40 backend unit tests, 102 PostgreSQL integration tests, 11 existing Chromium checks and five live browser journeys. Lint, both TypeScript configurations, contracts and build passed. Django/Python, database, React/TypeScript, security and general reviews reported no remaining findings.
+- Applied accounts migrations 0005/0006 locally after a full database dump. Business ID digests, counts and captured totals matched before/after; linked contacts backfilled correctly. Rollback refuses unlinked customers before removing contacts. Backup/evidence are ignored under `artifacts/tmp/`; restore rehearsal is still pending.
+- Local gateway has the new UI and schema. Fresh authenticated directory access, name-only form validity and desktop/390px layout checks passed. The live test database covers actual create/sale/capture. Do not reset credentials or reseed the demo for testing.
+- Next domain work is open-lot zones/capacity. Profile editing/merging and verified account claiming remain deferred. Offline transactions and hardware verification remain pending.
+
+### Previous real workflow verification
 
 - Branch `codex/live-workflow-verification` continues the published UI refresh. `pnpm test:live` now exercises four real Django/PostgreSQL browser journeys, then asserts persisted ledger/pass/shift/session/reservation records in the separate test database. See `LIVE_WORKFLOW_CHECKS.md`.
 - Fixed the gate role-control mismatch without changing server permissions: only owner/operator admission and exit; owner/operator/cashier checkout; cash only for owner/cashier with the appropriate shift. Read-only roles retain information views.
@@ -38,7 +47,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 ### Membership continuation
 
 - Staff membership UI now exists at `/members`: sale/renewal, plate lookup/pagination and cash collection with receipt links. It is reachable in mobile navigation.
-- Sale UI creates one vehicle at one location using an existing customer's email. Broader customer-profile changes from the Nepal proposal remain pending.
+- The original sale UI required an existing customer email; the latest walk-up milestone above replaces this default with independent profiles while retaining the email path. One vehicle at one location remains the sale UI scope.
 - Verified: 85 frontend tests, 40 backend unit tests, 4 Chromium tests (membership API mocked), lint, typecheck and build. No current live database/browser verification is claimed.
 - Detailed results and limitations are in the M5 staff section of `docs/PROGRESS.md`; the latest verification above supersedes its older test counts.
 
@@ -63,7 +72,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Next session
 
-1. Continue customer-profile and open-lot changes in the Nepal architecture proposal; real browser/database verification is now available through `pnpm test:live`.
+1. Implement open-lot zones/capacity from the Nepal proposal, preserving assigned-bay journeys and adding last-space concurrency/migration tests. Independent customer profiles are complete; see `CUSTOMER_PROFILES.md`. Reuse `pnpm test:live` for browser/database verification.
 2. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
 3. Test target devices/printers and operator usability, then prepare the production deployment/release. Local browser automation does not certify hardware or the user's existing profile.
 
@@ -91,15 +100,12 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Working agreements
 
-- **Branches:** one feature branch per milestone (`feat/mN-short-name`), merged into `main` by rebase.
+- **Branches:** one feature branch per milestone; use `codex/` for current work. Pushing does not merge or deploy it.
 - **Commits:**
   - Use conventional commits grouped by concern, typically accounts, sites, parking, worker/infra, tests, contracts, web, seed, docs.
   - Keep each commit green where the dependencies allow.
-  - End every commit message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-  - End PR bodies with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
-- **Ask the user first before:**
-  - pushing, opening a PR or merging;
-  - enabling Auto-fix.
+  - Use accurate authorship; do not carry another tool's attribution into new commits.
+- **Authorization:** the user has already requested pushes of completed commits. Continue focused commits and branch pushes; opening/merging PRs or public deployment needs separate authorization.
 - **Never:**
   - enable auto-merge unless asked;
   - skip hooks (`--no-verify`).
@@ -107,7 +113,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
   - Never print or commit `.env`. `DEMO_PASSWORD` lives there.
   - The folder above this repository holds unrelated private files; do not open them.
 - **Config files:** don't edit lint or format configs such as `biome.json`. A config-protection hook blocks it; narrow lint paths or move files instead.
-- **Browser checks:** the agent's browser policy forbids typing passwords or creating accounts. Signed-in screens are covered by component tests with a mocked API, and PROGRESS lists accounts for a manual pass.
+- **Browser checks:** use the isolated live harness for write workflows. Local gateway authentication may use synthetic demo credentials without printing them. Never point the write harness at the demo or production database. Physical devices and the user's existing browser profile need separate checks.
 - **Finishing a milestone:**
   1. Run every check in "Run and verify" below.
   2. Run an independent code-review agent and fix what it confirms.
