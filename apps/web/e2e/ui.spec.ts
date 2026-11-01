@@ -95,7 +95,7 @@ test("auth screens fit phones and desktops and password visibility preserves the
 			["/login", "Sign in"],
 			["/register", "Register your organisation"],
 			["/account/register", "Create your parking account"],
-		]) {
+		] as const) {
 			await page.goto(path);
 			await expect(
 				page.getByRole("heading", { level: 1, name: title }),

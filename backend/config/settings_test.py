@@ -16,3 +16,5 @@ if [_test_db[k] for k in ("HOST", "PORT", "NAME")] == [
 # TEST.NAME pins the exact database pytest creates and destroys, instead of a derived test_ name.
 DATABASES = {"default": {**_test_db, "TEST": {"NAME": _test_db["NAME"]}}}
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+# The live-server static handler requires a URL; the test URLconf serves Vite assets itself.
+STATIC_URL = "/__test_static__/"

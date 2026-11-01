@@ -8,6 +8,7 @@
     "schema":"uv run --env-file ../.env python manage.py spectacular --validate --file ../contracts/openapi.yaml",
     "lint": "uv run ruff check . && uv run ruff format --check .",
     "test:unit": "uv run --env-file ../.env pytest -m \"not django_db\"",
-    "test:integration": "uv run --env-file ../.env pytest -m django_db"
+    "test:integration": "uv run --env-file ../.env pytest -m django_db",
+    "test:browser": "uv run --env-file ../.env pytest config/tests/live_browser_check.py -v -rP"
   }
 }

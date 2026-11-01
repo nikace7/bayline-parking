@@ -14,11 +14,12 @@
     "demo:up": "docker compose --env-file .env -f infra/compose.yaml up -d --build --wait",
     "contracts:generate": "pnpm --filter backend schema && pnpm --filter web contracts",
     "contracts:check": "pnpm contracts:generate && git diff --exit-code -- contracts apps/web/generated",
-    "lint": "biome check apps/web/src apps/web/vite.config.ts scripts && pnpm --filter backend lint",
+    "lint": "biome check apps/web/src apps/web/vite.config.ts apps/web/playwright.config.ts apps/web/playwright.live.config.ts apps/web/e2e apps/web/live-e2e scripts && pnpm --filter backend lint",
     "typecheck": "pnpm --filter web typecheck",
     "build": "pnpm --filter web build",
     "test:unit": "pnpm --filter web test && pnpm --filter backend test:unit",
-    "test:integration": "pnpm --filter backend test:integration"
+    "test:integration": "pnpm --filter backend test:integration",
+    "test:live": "pnpm build && pnpm --filter backend test:browser"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13"
