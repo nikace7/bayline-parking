@@ -1,5 +1,28 @@
 # Progress
 
+## Real browser workflows and gate roles — 1 November 2026
+
+### Delivered
+
+- Added `pnpm test:live`: compiled SPA, real Django API/session/CSRF, separate PostgreSQL test database, generated synthetic credentials and teardown. No API mocks; only the physical print dialog is stubbed. Wired into CI after browser installation.
+- Four journeys cover invalid/valid login and reload/logout, operator → cashier → operator paid parking with receipt copies/exit, member sale/payment/renewal and balanced cash close, and customer hold/confirm/cancel.
+- Verified stored ledger counts, exited session, two active paid passes, exactly balanced NPR 3,200.50 shift and persisted booking cancellation after the browser completes.
+- Corrected the gate UI's role mismatch: cashiers/managers/auditors no longer see forbidden admission/exit controls; manager/auditor checkout is read-only. The server's permissions and financial operations are unchanged.
+- Added browser configuration/spec TypeScript coverage, Node development types and canonical lint coverage for browser sources. No model, migration or API contract changes.
+
+### Verification
+
+- **113 frontend tests**, **40 backend unit tests**, **88 PostgreSQL integration tests**, **11 existing Chromium checks**, and **4 real-backend Chromium journeys** passed. The live pytest wrapper also passed its database assertions.
+- Canonical lint, app/browser TypeScript, contracts check and production build passed. Five new gate-control tests failed before implementation and passed after it.
+- Django/paired Python, React, TypeScript and general reviews completed. Fixed the confirmed browser logout race by waiting for sign-out navigation; receipt assertions now wait for the receipt's named article rather than matching a departing screen.
+- Restarted the stopped local containers and rebuilt the gateway. Separately tested the actual gateway in fresh Chromium: `.env` owner login, session reload and sign-out passed. No demo password reset or transaction changes were needed.
+- Commands, isolation design, evidence and limits are in `LIVE_WORKFLOW_CHECKS.md`.
+
+### Limits and next
+
+- Physical printers, the user's existing browser profile and production deployment remain unverified. Offline transactions remain pending.
+- Next product work: email-independent customer profiles and capacity-based open lots from the Nepal architecture proposal, followed by the registered-device/outbox/sync milestone. These are separate domain changes.
+
 ## Quiet UI/UX refresh — 30 October 2026
 
 ### Delivered

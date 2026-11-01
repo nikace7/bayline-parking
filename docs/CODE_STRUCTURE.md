@@ -38,7 +38,7 @@ Frontend query owners currently include `app/sites.ts` (locations, bays, tariffs
 
 ## Remaining improvements, in priority order
 
-1. Complete a real seeded-account membership sale/payment/receipt/renewal walkthrough. The user's manual sign-in remains unconfirmed despite successful fresh automated login and passing API integration tests.
+1. The real membership/parking/booking browser journeys were completed on 1 November; see `LIVE_WORKFLOW_CHECKS.md` and `pnpm test:live`. Fresh sign-in through the actual local gateway also passed. The user's existing browser profile and physical devices still need confirmation.
 2. Implement email-independent customer profiles and open-lot capacity from the Nepal architecture proposal before extending transaction sync.
 3. Deliver registered devices, a durable IndexedDB outbox, server replay/conflict handling and reconciliation together before enabling offline entries/payments. Current PWA caching covers static assets only; private API responses are excluded.
 4. Measure complete-list polling at busy sites. It removes truncation but uses multiple requests and provides no atomic occupancy snapshot; introduce a server summary/windowed board when measured load requires it.

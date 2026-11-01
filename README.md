@@ -7,6 +7,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
 - Code ownership, review findings and maintenance conventions: [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md)
 - UI design direction, screen coverage and verification: [docs/UI_DESIGN.md](docs/UI_DESIGN.md)
+- Real browser/API/database workflow checks: [docs/LIVE_WORKFLOW_CHECKS.md](docs/LIVE_WORKFLOW_CHECKS.md)
 - Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
 
 ## Stack
@@ -74,12 +75,13 @@ This milestone caches the static app and fonts, displays an offline screen, and 
 | `pnpm typecheck` | TypeScript against the generated API types |
 | `pnpm test:unit` | Vitest, plus backend tests that need no database |
 | `pnpm test:integration` | pytest against a dedicated PostgreSQL test database (`TEST_DATABASE_URL`) |
+| `pnpm test:live` | Builds the SPA and runs real login, paid parking, membership/shift and customer booking journeys against an isolated Django/PostgreSQL test server; requires Chromium and PostgreSQL |
 | `pnpm build` | Production SPA build |
 | `pnpm --filter web test:pwa` | Chromium checks against a production build: offline reload/reconnect, API cache isolation and install assets; first install Chromium with `pnpm --filter web exec playwright install chromium` |
 | `pnpm contracts:generate` | OpenAPI from Django → `contracts/openapi.yaml` → `apps/web/generated/schema.d.ts` |
 | `pnpm contracts:check` | Regenerates contracts and fails if committed ones differ |
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build, PWA browser checks and `contracts:check` on every pull request and every push to `main`.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build, PWA browser checks, isolated live browser workflows and `contracts:check` on every pull request and every push to `main`.
 
 ## Layout
 

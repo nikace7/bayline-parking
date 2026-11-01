@@ -4,7 +4,14 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (30 October 2026)
+## Current state (1 November 2026)
+
+### Latest real workflow verification
+
+- Branch `codex/live-workflow-verification` continues the published UI refresh. `pnpm test:live` now exercises four real Django/PostgreSQL browser journeys, then asserts persisted ledger/pass/shift/session/reservation records in the separate test database. See `LIVE_WORKFLOW_CHECKS.md`.
+- Fixed the gate role-control mismatch without changing server permissions: only owner/operator admission and exit; owner/operator/cashier checkout; cash only for owner/cashier with the appropriate shift. Read-only roles retain information views.
+- Verified 113 frontend tests, 40 backend unit tests, 88 PostgreSQL integration tests, 11 existing browser checks and four live browser journeys, plus lint, both TypeScript configurations, contracts and build. Browser sources are now covered by canonical lint/typecheck. CI includes the live check.
+- Local containers had stopped; restarted and rebuilt the gateway. Fresh Chromium sign-in with `.env` owner credentials, reload and sign-out passed through the actual local gateway. Credentials/demo transactions were unchanged. The user's existing browser profile still needs their confirmation.
 
 ### Latest UI/UX refresh
 
@@ -52,13 +59,13 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
   - Tokens, fonts and the public pages were checked in the browser.
   - Signed-in screens have not been checked visually; PROGRESS lists them.
 - **M4 has had no manual signed-in pass** through booking, relocation and check-in.
-- **Local database:** at the user's request, the demo accounts in the development database use a password the user chose, not `DEMO_PASSWORD`. A fresh seed brings back `DEMO_PASSWORD`. Ask the user for it; never write it down.
+- **Local credentials:** the November check verified the seeded owner's `DEMO_PASSWORD` from `.env`. An older September note about a separately chosen password is historical. Never print credentials, commit them or reset accounts to make tests pass.
 
 ## Next session
 
-1. Complete a real seeded-account membership sale/payment/receipt/renewal walkthrough; PostgreSQL integration is now verified.
-2. Continue customer-profile and open-lot changes in the Nepal architecture proposal; operational pagination is now fixed.
-3. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
+1. Continue customer-profile and open-lot changes in the Nepal architecture proposal; real browser/database verification is now available through `pnpm test:live`.
+2. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
+3. Test target devices/printers and operator usability, then prepare the production deployment/release. Local browser automation does not certify hardware or the user's existing profile.
 
 ## Earlier next-session notes (17 September 2026)
 
@@ -77,7 +84,7 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 | M2 Gate journey (cash) | Merged | Entry, quote, invoice, cash shift, capture, exit, idempotency, lock order |
 | M3 Shift, receipts, reports | Merged | Shift close, receipt counters, print CSS, PDF/XLSX reports |
 | M4 Reservations | Merged | Customers, holds, exclusion constraint, check-in, relocation, worker |
-| M5 Member passes | In progress | Pass-first lock order, entitlement, renewal invoices; P09 |
+| M5 Member passes | Built and locally verified, not merged | Pass-first lock order, entitlement, sale/payment/renewal and receipts; P09 |
 | M6 Payment integrity | — | Fixture QR, Khalti sandbox adapter, lookup worker, refunds/voids; P10–P14 |
 | M7 Offline and devices | Shell implemented | PWA only; transaction outbox, device sync and conflict queue pending; P23, P24, P26, P27 |
 | M8 Polish and evidence | — | Responsive/keyboard passes, screenshots, `docs/API.md`, `OPERATIONS.md`, `EVALUATION.md`, `DEMO.md`, `CASE_STUDY.md` |
