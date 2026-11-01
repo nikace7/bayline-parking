@@ -121,6 +121,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["customers_list"];
+        put?: never;
+        post: operations["customers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -724,6 +740,22 @@ export interface components {
         CurrentShift: {
             shift: components["schemas"]["Shift"] | null;
         };
+        Customer: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly name: string;
+            readonly email: string;
+            readonly phone: string;
+            readonly hasOnlineAccount: boolean;
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        CustomerCreateRequest: {
+            name: string;
+            email?: string;
+            /** @default  */
+            phone: string;
+        };
         CustomerRegisterRequest: {
             name: string;
             /** Format: email */
@@ -824,8 +856,10 @@ export interface components {
             readonly id: string;
             readonly reference: string;
             readonly customerName: string;
-            /** Format: email */
             readonly customerEmail: string;
+            readonly customerPhone: string;
+            /** Format: uuid */
+            readonly customerId: string;
             readonly plates: string[];
             readonly locationNames: string[];
             /** Format: date-time */
@@ -864,7 +898,9 @@ export interface components {
         };
         MembershipSaleRequest: {
             /** Format: email */
-            email: string;
+            email?: string;
+            /** Format: uuid */
+            customerId?: string;
             /** Format: uuid */
             locationId: string;
             permittedLocationIds?: string[];
@@ -890,6 +926,13 @@ export interface components {
         };
         PaginatedBayList: {
             data: components["schemas"]["Bay"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
+        PaginatedCustomerList: {
+            data: components["schemas"]["Customer"][];
             page: {
                 next: string | null;
                 previous: string | null;
@@ -1546,6 +1589,60 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["Reservation"];
+                    };
+                };
+            };
+        };
+    };
+    customers_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+                /** @description Name, email or phone. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCustomerList"];
+                };
+            };
+        };
+    };
+    customers_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerCreateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Customer"];
                     };
                 };
             };

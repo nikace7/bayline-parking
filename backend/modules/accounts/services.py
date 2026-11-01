@@ -90,7 +90,7 @@ def register_customer(*, name, email, password) -> User:
 def customer_profile(*, organisation, user) -> Customer:
     """The user's profile in this organisation, created on their first booking there."""
     customer, _ = Customer.objects.get_or_create(
-        organisation=organisation, user=user, defaults={"name": user.name}
+        organisation=organisation, user=user, defaults={"name": user.name, "email": user.email}
     )
     return customer
 

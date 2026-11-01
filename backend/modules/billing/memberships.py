@@ -14,7 +14,7 @@ from rest_framework.exceptions import NotFound
 
 from config import clock
 from config.api import ApiError
-from modules.accounts.models import User, normalize_email
+from modules.accounts.models import Customer, User, normalize_email
 from modules.accounts.services import customer_profile, record_audit
 from modules.billing.models import (
     CheckoutInvoice,
@@ -52,7 +52,8 @@ def sell_pass(
     *,
     member,
     actor,
-    email,
+    email=None,
+    customer_id=None,
     location_id,
     permitted_location_ids,
     vehicles,
@@ -62,24 +63,33 @@ def sell_pass(
     max_vehicles,
     correlation_id,
 ) -> MemberPass:
-    """Sells a pass to an existing customer account. The pass stays PENDING until its invoice is
-    settled, and staff never create accounts, so an unknown email is refused."""
+    """Sell to a scoped profile or an existing online account; settlement activates entitlement."""
+    if (email is None) == (customer_id is None):
+        raise ApiError(
+            400, "CUSTOMER_SELECTOR_REQUIRED", "Choose a profile or an online account email."
+        )
     organisation = member.organisation
     location = Location.objects.for_org(organisation).filter(pk=location_id, enabled=True).first()
     if location is None:
         raise NotFound()
     ensure_can_operate(member, location)
-    user = User.objects.filter(email=normalize_email(email), is_active=True).first()
-    if user is None:
-        raise ApiError(
-            409,
-            "CUSTOMER_UNKNOWN",
-            "No account uses this email. Ask the member to register before buying a pass.",
-        )
+    if customer_id is not None:
+        profile = Customer.objects.for_org(organisation).filter(pk=customer_id).first()
+        if profile is None:
+            raise NotFound()
+    else:
+        user = User.objects.filter(email=normalize_email(email), is_active=True).first()
+        if user is None:
+            raise ApiError(
+                409,
+                "CUSTOMER_UNKNOWN",
+                "No online account uses this email. Choose or create a customer profile instead.",
+            )
+        profile = customer_profile(organisation=organisation, user=user)
     permitted = _locations(organisation, permitted_location_ids or [location_id])
     member_pass = MemberPass.objects.create(
         organisation=organisation,
-        customer=customer_profile(organisation=organisation, user=user),
+        customer=profile,
         reference=_reference(),
         starts_at=starts_at,
         ends_at=ends_at,
@@ -233,7 +243,7 @@ def passes_visible_to(member, *, plate=None, location_id=None) -> QuerySet[Membe
     )
     passes = (
         MemberPass.objects.for_org(member.organisation)
-        .select_related("customer__user")
+        .select_related("customer")
         .prefetch_related("permitted_vehicles__vehicle", "permitted_locations__location")
         .annotate(
             invoice_id=Subquery(invoice.values("pk")[:1]),

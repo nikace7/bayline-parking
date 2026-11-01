@@ -96,13 +96,16 @@ class OrgMember(models.Model):
 
 
 class Customer(models.Model):
-    """An organisation's profile for a global User who books parking, created on first booking.
-    Customers hold no staff access; their routes show only their own reservations."""
+    """An organisation-owned profile with an optional online identity; contacts never claim it."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="customer_profiles")
+    user = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="customer_profiles", null=True, blank=True
+    )
     name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True, default="")
+    phone = models.CharField(max_length=32, blank=True, default="")
     created_at = models.DateTimeField(default=clock.now, editable=False)
 
     objects = OrgScopedQuerySet.as_manager()

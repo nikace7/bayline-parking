@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import NotAuthenticated, NotFound, PermissionDenied
 from rest_framework.generics import ListAPIView
@@ -11,11 +11,15 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from config.api import ApiError
-from modules.accounts import services
+from modules.accounts import customers, services
+from modules.accounts.idempotency import IDEMPOTENCY_KEY, idempotent
 from modules.accounts.models import OrgMember, Role, normalize_email
 from modules.accounts.permissions import SESSION_ORG_KEY, current_member, require_roles
 from modules.accounts.serializers import (
+    CustomerCreateSerializer,
+    CustomerFilterSerializer,
     CustomerRegisterSerializer,
+    CustomerSerializer,
     LoginSerializer,
     MemberSerializer,
     MemberUpdateSerializer,
@@ -25,6 +29,48 @@ from modules.accounts.serializers import (
 )
 
 StaffReader = require_roles(Role.OWNER, Role.MANAGER, Role.AUDITOR)
+
+
+class CustomerListView(ListAPIView):
+    serializer_class = CustomerSerializer
+    permission_classes = [require_roles(Role.OWNER, Role.MANAGER)]
+
+    def get_queryset(self):
+        filters = CustomerFilterSerializer(data=self.request.query_params)
+        filters.is_valid(raise_exception=True)
+        return customers.visible_customers(current_member(self.request), **filters.validated_data)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("search", str, description="Name, email or phone.")]
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        request=CustomerCreateSerializer,
+        responses={201: CustomerSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
+    def post(self, request):
+        serializer = CustomerCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        member = current_member(request)
+
+        def perform():
+            profile = customers.create_customer(
+                member=member,
+                actor=request.user,
+                correlation_id=request.request_id,
+                **serializer.validated_data,
+            )
+            return 201, CustomerSerializer(profile).data
+
+        return idempotent(
+            request,
+            operation="accounts.customer_create",
+            payload=serializer.validated_data,
+            perform=perform,
+        )
 
 
 def _active_memberships(user):

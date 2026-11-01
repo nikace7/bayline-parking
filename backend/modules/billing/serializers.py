@@ -245,7 +245,8 @@ class PassVehicleSerializer(serializers.Serializer):
 
 
 class MembershipSaleSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(required=False)
+    customer_id = serializers.UUIDField(required=False)
     # Where the sale is made: its receipt series and the cash shift that must be open.
     location_id = serializers.UUIDField()
     permitted_location_ids = serializers.ListField(
@@ -258,6 +259,10 @@ class MembershipSaleSerializer(serializers.Serializer):
     max_vehicles = serializers.IntegerField(min_value=1, max_value=10, default=1)
 
     def validate(self, attrs):
+        if ("email" in attrs) == ("customer_id" in attrs):
+            raise serializers.ValidationError(
+                {"customer_id": ["Choose a profile or an online account email, not both."]}
+            )
         if attrs["ends_at"] <= attrs["starts_at"]:
             raise serializers.ValidationError({"ends_at": ["A pass ends after it starts."]})
         return attrs
@@ -278,8 +283,10 @@ class MembershipFilterSerializer(serializers.Serializer):
 
 
 class MemberPassSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source="customer.user.name", read_only=True)
-    customer_email = serializers.EmailField(source="customer.user.email", read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_email = serializers.CharField(source="customer.email", read_only=True)
+    customer_phone = serializers.CharField(source="customer.phone", read_only=True)
+    customer_id = serializers.UUIDField(read_only=True)
     plates = serializers.SerializerMethodField()
     location_names = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
@@ -300,6 +307,8 @@ class MemberPassSerializer(serializers.ModelSerializer):
             "reference",
             "customer_name",
             "customer_email",
+            "customer_phone",
+            "customer_id",
             "plates",
             "location_names",
             "starts_at",

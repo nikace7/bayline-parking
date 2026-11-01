@@ -2,7 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from modules.accounts.models import OrgMember, Role, User
+from modules.accounts.models import Customer, OrgMember, Role, User
 
 
 def role_list(**kwargs) -> serializers.ListField:
@@ -12,6 +12,30 @@ def role_list(**kwargs) -> serializers.ListField:
         max_length=len(Role),
         **kwargs,
     )
+
+
+class CustomerCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=120)
+    email = serializers.EmailField(max_length=254, required=False, allow_blank=True, default="")
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
+
+
+class CustomerFilterSerializer(serializers.Serializer):
+    search = serializers.CharField(max_length=254, required=False, allow_blank=True, default="")
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    # Read contacts may be blank; creation still validates nonblank addresses as email.
+    email = serializers.CharField(read_only=True)
+    has_online_account = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Customer
+        fields = ["id", "name", "email", "phone", "has_online_account", "created_at"]
+        read_only_fields = fields
+
+    def get_has_online_account(self, customer) -> bool:
+        return customer.user_id is not None
 
 
 class CustomerRegisterSerializer(serializers.Serializer):

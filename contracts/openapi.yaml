@@ -230,6 +230,70 @@ paths:
                   data:
                     $ref: '#/components/schemas/Reservation'
           description: ''
+  /api/v1/customers:
+    get:
+      operationId: customers_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Name, email or phone.
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCustomerList'
+          description: ''
+    post:
+      operationId: customers_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Customer'
+          description: ''
   /api/v1/health/live:
     get:
       operationId: health_live_retrieve
@@ -1648,6 +1712,57 @@ components:
           nullable: true
       required:
       - shift
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+        hasOnlineAccount:
+          type: boolean
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - email
+      - hasOnlineAccount
+      - id
+      - name
+      - phone
+    CustomerCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          oneOf:
+          - type: string
+            format: email
+            default: ''
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          default: ''
+          maxLength: 32
+      required:
+      - name
     CustomerRegisterRequest:
       type: object
       properties:
@@ -1928,7 +2043,13 @@ components:
           readOnly: true
         customerEmail:
           type: string
-          format: email
+          readOnly: true
+        customerPhone:
+          type: string
+          readOnly: true
+        customerId:
+          type: string
+          format: uuid
           readOnly: true
         plates:
           type: array
@@ -1989,7 +2110,9 @@ components:
       - activatedAt
       - coveredSeconds
       - customerEmail
+      - customerId
       - customerName
+      - customerPhone
       - duePaisa
       - endsAt
       - id
@@ -2044,6 +2167,9 @@ components:
           type: string
           format: email
           minLength: 1
+        customerId:
+          type: string
+          format: uuid
         locationId:
           type: string
           format: uuid
@@ -2075,7 +2201,6 @@ components:
           minimum: 1
           default: 1
       required:
-      - email
       - endsAt
       - locationId
       - pricePaisa
@@ -2121,6 +2246,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Bay'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
+    PaginatedCustomerList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
         page:
           type: object
           required:
