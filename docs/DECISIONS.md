@@ -2,6 +2,12 @@
 
 Product-level revisions live in `docs/BLUEPRINT.md` section 0. This log records implementation choices, why they were made, and what would reopen them.
 
+## Open-lot capacity — 1 November 2026
+
+| # | Date | Decision | Why | Revisit when |
+|---|---|---|---|---|
+| D59 | 2026-11-01 | Preserve assigned bays under a default zone and add separate open-area vehicle-class capacity pools. A visit references a zone and exactly one bay or pool. Admission, edits and exit share the pool lock before session/invoice; payment does not release occupancy. Reservations remain on bays. See `OPEN_LOT_CAPACITY.md` | Nepal sites can admit vehicles to shared areas without fictitious bays; one pass limit and financial history must work across both modes. Explicit draft revisions and cached forms survive polling failures | Pooled reservations, bay reassignment, additional classes or multi-device offline authority are separately designed |
+
 ## Walk-up customers — 1 November 2026
 
 | # | Date | Decision | Why | Revisit when |

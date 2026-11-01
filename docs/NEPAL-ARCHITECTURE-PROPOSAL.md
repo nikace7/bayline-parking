@@ -1,6 +1,6 @@
 # Proposed architecture for a Nepal parking system
 
-Date: 28 October 2026; client direction accepted 29 October 2026. Status updated 1 November 2026: PWA shell, core membership UI and independent customer profiles are implemented; open-lot capacity, fiscal workflows and transaction sync remain proposed. See `PWA.md`, `CUSTOMER_PROFILES.md` and `PROGRESS.md`. Builds on `ARCHITECTURE-COMPARISON.md`. The client target is PWA only, with no Flutter or native Android shell.
+Date: 28 October 2026; client direction accepted 29 October 2026. Status updated 1 November 2026: PWA shell, core membership UI, independent customer profiles and open-lot capacity are implemented; fiscal workflows and transaction sync remain proposed. See `PWA.md`, `CUSTOMER_PROFILES.md` and `PROGRESS.md`. Builds on `ARCHITECTURE-COMPARISON.md`. The client target is PWA only, with no Flutter or native Android shell.
 
 ## Recommended direction
 
@@ -38,7 +38,9 @@ A printer adapter belongs on the client/device side. Provider verification belon
 
 ## 2. Change the parking model to fit both open lots and assigned spaces
 
-The current admission path expects a bay. That is suitable for individually managed spaces, but it creates unnecessary work where attendants park many motorcycles in a shared area.
+Implemented 1 November 2026 with separate zone/class pools, assigned-bay backfill, physical-exit capacity release and real last-space races. Setup/admission/checkout UI, receipt/report reads and migration evidence are documented in `OPEN_LOT_CAPACITY.md`. Reservations remain on assigned bays. The following design describes the delivered boundary and future extension points.
+
+The original admission path expected a bay. That is suitable for individually managed spaces, but it creates unnecessary work where attendants park many motorcycles in a shared area.
 
 Add a `ParkingZone` under a location. Each zone has one mode: `ASSIGNED_BAY` or `OPEN_CAPACITY`. Start with separate capacity pools per supported vehicle class, rather than a flexible formula for mixed vehicle sizes.
 
@@ -157,6 +159,6 @@ Do not estimate completion dates until the target site's invoice policy, capacit
 
 ## Recommended next implementation
 
-Core membership UI, complete pagination, real browser/database workflow verification and independent customer profiles are delivered. Next implement zones/capacity with assigned-bay compatibility and last-space race tests. Calendar/fiscal policy and hardware inputs still need target-site validation. Complete the domain fit before transactional offline sync.
+Core membership UI, complete pagination, real browser/database workflows, independent customer profiles and zones/capacity with assigned-bay compatibility are delivered. Next implement registered-device/durable-outbox/server acknowledgement and conflict recovery as one offline milestone. Resolve single-device capacity authority and provisional receipt policy before enabling writes; calendar/fiscal policy and hardware inputs still need target-site validation.
 
-The original proposal made no application changes. Subsequent delivered work is recorded in `PROGRESS.md`, `PWA.md`, `LIVE_WORKFLOW_CHECKS.md` and `CUSTOMER_PROFILES.md`. Open-lot capacity, calendar/fiscal billing and transaction sync remain unimplemented; hardware and current legal/provider requirements remain unverified.
+The original proposal made no application changes. Subsequent delivered work is recorded in `PROGRESS.md`, `PWA.md`, `LIVE_WORKFLOW_CHECKS.md`, `CUSTOMER_PROFILES.md` and `OPEN_LOT_CAPACITY.md`. Calendar/fiscal billing and transaction sync remain unimplemented; hardware and current legal/provider requirements remain unverified.

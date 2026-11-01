@@ -9,6 +9,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - UI design direction, screen coverage and verification: [docs/UI_DESIGN.md](docs/UI_DESIGN.md)
 - Real browser/API/database workflow checks: [docs/LIVE_WORKFLOW_CHECKS.md](docs/LIVE_WORKFLOW_CHECKS.md)
 - Walk-up customer profiles and migration notes: [docs/CUSTOMER_PROFILES.md](docs/CUSTOMER_PROFILES.md)
+- Open-lot setup, capacity rules and migration notes: [docs/OPEN_LOT_CAPACITY.md](docs/OPEN_LOT_CAPACITY.md)
 - Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
 
 ## Stack
@@ -48,6 +49,7 @@ pnpm dev
 Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). Register an organisation at `/register`; the design tokens and components are at `/gallery`.
 
 - **Gate:** signed in as a seeded operator or cashier, `/operations` runs the gate. Admit a vehicle to a bay, quote and confirm checkout, open a cash shift and take cash, then record the exit. Selecting a reservable bay checks in the reservation whose arrival window is open.
+- **Open lots:** owners/managers create a shared area and vehicle capacity in **Sites**. **Operations** admits by area and plate, then uses the existing checkout/payment/exit flow. Capacity releases only on physical exit; see [open-lot capacity](docs/OPEN_LOT_CAPACITY.md).
 - **Receipts:** each payment links to its receipt, which prints on 80 or 58 mm paper.
 - **Shifts and reports:** `/shifts` closes the cashier's shift against the counted cash. `/reports` shows collections and the vehicle log with PDF and XLSX downloads.
 - **Reservations:** `/reservations` shows each day's bookings with overstay conflicts, and owners and managers can move or cancel them.

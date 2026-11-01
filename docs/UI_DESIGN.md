@@ -39,3 +39,7 @@ Format the Tailwind stylesheet with `pnpm exec biome format --write --css-parse-
 - Staff/customer data in the new browser fixtures is synthetic and mocked. These checks do not certify real device installation, screen-reader usability, physical printers or a live end-to-end payment journey.
 
 Run `pnpm build`, then `pnpm --filter web test:pwa` to reproduce the browser checks. Screenshots are written under the ignored `apps/web/test-results/` directory; selected local previews are saved in ignored `artifacts/tmp/ui/`. For the actual local system, rebuild the gateway with `docker compose --env-file .env -f infra/compose.yaml up -d --build --no-deps gateway` and open `http://localhost:4330/login`. An existing installed PWA may show an update prompt; finish active work before choosing Update app.
+
+## Open-lot continuation — 1 November 2026
+
+`OpenLotBoard` adds area occupancy cards and plate admission to Operations; `ZoneSetup` adds capacity/state forms in Sites using the existing panels, semantic colours and controls. Checkout reuses VisitPanel. Polling preserves drafts/focus and requires explicit reload after remote capacity edits. Real mobile/desktop screenshots and six live journeys supplement the earlier mocked-layout evidence; see `OPEN_LOT_CAPACITY.md`.

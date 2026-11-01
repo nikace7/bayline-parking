@@ -9,6 +9,10 @@
 
 The client is PWA only: no Flutter or Capacitor/native Android shell. The installable static app and offline screen are implemented; IndexedDB transaction outbox, registered-device sync and offline cash capture remain planned. See `docs/PWA.md` for the current delivery boundary and verification. Earlier milestone descriptions below are specifications, not claims that all features are built. Browser printing requires OS/browser-compatible hardware; vendor SDK-only POS printers are outside this delivery.
 
+## Domain update — 1 November 2026
+
+Staff-created customer profiles can exist without an online User (D58); matching contacts never claim accounts. Locations now support assigned bays and open-lot zones with vehicle-class pools (D59). Sessions always reference a zone and exactly one bay or pool. The API keeps `bayLabel` as a space label while allowing nullable `bayId`. Reservations remain assigned-bay only. See `CUSTOMER_PROFILES.md` and `OPEN_LOT_CAPACITY.md` for the delivered model, lock order, migration and UI boundaries; these supersede mandatory account/bay assumptions in the original specification below. Offline writes remain planned.
+
 ## 0. Revision 1.1 summary
 
 | Area | v1.0 | v1.1 | Reason |

@@ -1,5 +1,48 @@
 # Progress
 
+## Open-lot zones and capacity — 1 November 2026
+
+### Delivered
+
+- Added location zones and distinct vehicle-class pools alongside existing numbered bays. Sites creates open areas and changes capacity/state with a revision; Operations admits by area/plate and lists vehicles for the existing quote/payment/exit journey.
+- Admission, capacity changes and exit share a pool lock. Capacity counts PARKED sessions and is released only by physical exit. Pass entitlement still locks first and is shared across bay/pool admission. Reservations retain assigned bays.
+- Session bay references are nullable with exactly one bay/pool. Composite foreign keys enforce new scope relationships. Receipts/session reads and PDF/XLSX vehicle logs use the bay or area label and pinned tariff class.
+- Added separate schema/backfill/constraint migrations for sites and parking. Historical IDs and bay links remain intact; rollback refuses pool-linked history before restoring mandatory bays.
+- Frontend preserves drafts/focus across polled revisions and background failures. Stale capacity edits require explicit reload; pending admission locks area selection. Creation/admission retain stable replay handling.
+
+### Verification
+
+| Check | Actual result |
+|---|---|
+| Initial backend acceptance cases | Four missing-zone endpoint failures reproduced before implementation |
+| Frontend suite | 125 tests passed |
+| Backend unit suite | 40 tests passed |
+| PostgreSQL integration suite | 113 tests passed |
+| Existing Chromium PWA/layout suite | 11 passed |
+| Real Django/PostgreSQL browser workflows | Six journeys and outer pytest persisted-record assertions passed |
+| Lint, app/browser TypeScript, model/migration consistency, generated contracts and production build | Passed |
+
+### Acceptance and review
+
+| Acceptance case | Evidence |
+|---|---|
+| No over-admission to the final space | Four real separate-connection arrivals produce one occupant; capacity reduction versus admission stays within capacity |
+| Bay and pool share membership limit | Concurrent mixed-mode arrivals pin only one pass entitlement |
+| Settlement does not free space | API and live browser checks retain occupancy after checkout/payment; physical exit releases it |
+| Compatible history and tenant boundaries | Migration preservation/rollback tests, scoped API guards and composite foreign keys |
+| No-bay financial/read journey | Paid API test covers receipt, vehicle log and PDF/XLSX; live browser verifies area-labelled receipt and single capture |
+| Resilient quiet UI | Draft/focus, parent cached-data, refresh recovery, pending-selection, role and integer-capacity regressions |
+
+Django, Python, database, React, TypeScript and general reviews completed with no remaining actionable findings. Fixed confirmed polling/remount draft loss, parent cached-data loss, pending pool-selection intent loss and ambiguous select labels. The latest real browser suite passed after these changes.
+
+Backed up the synthetic demo before applying sites 0006–0008 and parking 0004–0006. Before/after business ID and visit/bay-link digests, counts and captured totals matched. The rebuilt gateway returned readiness 200. A fresh owner login verified scoped zones GET and valid create-area form at desktop/390px without submitting demo areas or payments. Usage, code ownership and recovery details are in `OPEN_LOT_CAPACITY.md`.
+
+### Limits and next
+
+No pooled reservations, zone reassignment/renaming/deletion, additional vehicle classes or disconnected writes. API setup supports two class pools in an area; the form creates one. Polled counts and visit lists are not one atomic snapshot. Restore rehearsal, physical hardware, production release and the user's existing browser profile remain unverified.
+
+Next: registered devices, durable IndexedDB outbox, acknowledged server sync and conflict recovery with an explicit offline capacity/receipt policy. Calendar/fiscal billing, payment exceptions and verified account claiming remain separate roadmap work.
+
 ## Walk-up customer profiles — 1 November 2026
 
 ### Delivered

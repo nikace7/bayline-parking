@@ -6,14 +6,24 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (1 November 2026)
 
-### Latest walk-up customer milestone
+### Latest open-lot capacity milestone
+
+- Branch `codex/open-lot-capacity` continues the published walk-up branch. Sites can create/configure open areas; Operations admits by area/plate alongside numbered bays, then quotes, collects and records exit through the existing VisitPanel. See `OPEN_LOT_CAPACITY.md` and D59.
+- `sites/zones.py` owns setup/read queries; `parking/services.py` owns capacity guards. Admission, configuration and exit lock the same pool. Exit takes pool before session/invoice; pass entitlement locks before pool/bay. Keep these orders and the pinned-tariff class for nullable-bay reads.
+- Applied sites 0006–0008 and parking 0004–0006 after a full local dump. Customer/user/payment counts, captured totals, business ID digests and historical visit/bay links matched before/after. Scope FKs and bay/pool XOR protect new relationships. Rollback refuses pool-linked history; restore rehearsal is pending.
+- Verified 125 frontend tests, 40 backend unit tests, 113 PostgreSQL integration tests, 11 existing Chromium checks and six live journeys. Lint, app/browser TypeScript, contracts and build passed. Django, Python, database, React, TypeScript and general reviews completed; polling draft/focus loss and parent cached-data loss were fixed with regressions.
+- Local gateway is rebuilt and ready. Fresh owner login, scoped zones GET, valid create-area form and desktop/390px checks passed without creating demo areas or transactions. Browser write workflows use the isolated database.
+- `app/zones.ts`, `ZoneSetup.tsx` and `OpenLotBoard.tsx` own the new UI. Preserve stable form identities, explicit revision reload, cached forms on background errors, pending pool-selection locks and replay keys. Current sale UI still creates one vehicle at one location; pool setup UI creates one vehicle-class pool per area (API supports both).
+- Next is registered devices plus durable outbox/server acknowledgements/conflict recovery. Offline writes, fiscal billing, payment exceptions, verified customer claiming, hardware and production cutover remain separate work.
+
+### Previous walk-up customer milestone
 
 - Branch `codex/walk-up-customers` continues the published live-workflow branch. Owners/managers can search/create tenant-owned customer profiles with a name only, then sell/renew passes without online registration. Contact matches never merge profiles or link accounts. See `CUSTOMER_PROFILES.md` and D58.
 - `accounts/customers.py` owns creation/search; `app/customers.ts` owns typed queries/mutations; `CustomerPicker.tsx` owns the independent search/create forms. Sale accepts exactly one of `customerId` or legacy `email`. Preserve the pending/retry locks and tenant scoping.
 - Verified 116 frontend tests, 40 backend unit tests, 102 PostgreSQL integration tests, 11 existing Chromium checks and five live browser journeys. Lint, both TypeScript configurations, contracts and build passed. Django/Python, database, React/TypeScript, security and general reviews reported no remaining findings.
 - Applied accounts migrations 0005/0006 locally after a full database dump. Business ID digests, counts and captured totals matched before/after; linked contacts backfilled correctly. Rollback refuses unlinked customers before removing contacts. Backup/evidence are ignored under `artifacts/tmp/`; restore rehearsal is still pending.
 - Local gateway has the new UI and schema. Fresh authenticated directory access, name-only form validity and desktop/390px layout checks passed. The live test database covers actual create/sale/capture. Do not reset credentials or reseed the demo for testing.
-- Next domain work is open-lot zones/capacity. Profile editing/merging and verified account claiming remain deferred. Offline transactions and hardware verification remain pending.
+- Open-lot zones/capacity are now delivered in the latest milestone above. Profile editing/merging and verified account claiming remain deferred. Offline transactions and hardware verification remain pending.
 
 ### Previous real workflow verification
 
@@ -72,8 +82,8 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Next session
 
-1. Implement open-lot zones/capacity from the Nepal proposal, preserving assigned-bay journeys and adding last-space concurrency/migration tests. Independent customer profiles are complete; see `CUSTOMER_PROFILES.md`. Reuse `pnpm test:live` for browser/database verification.
-2. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`.
+1. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`. Open lots and independent profiles are implemented and verified; reuse `pnpm test:live`. Define single-device capacity authority and provisional receipt policy before disconnected admissions.
+2. Scope remaining Nepal calendar/fiscal billing and financial exceptions with validated site requirements; account claiming/profile management remain separate identity work.
 3. Test target devices/printers and operator usability, then prepare the production deployment/release. Local browser automation does not certify hardware or the user's existing profile.
 
 ## Earlier next-session notes (17 September 2026)
