@@ -7,7 +7,9 @@ from modules.sites.models import (
     Bay,
     BayMode,
     BayState,
+    CapacityPool,
     Location,
+    ParkingZone,
     TariffStatus,
     TariffVersion,
     VehicleClass,
@@ -78,6 +80,45 @@ class BayUpdateSerializer(serializers.Serializer):
     # Optional here so a missing value can answer 428 Precondition Required instead of 400.
     expected_revision = serializers.IntegerField(min_value=1, required=False)
     mode = serializers.ChoiceField(choices=BayMode.choices, required=False)
+    state = serializers.ChoiceField(choices=BayState.choices, required=False)
+
+
+class PoolCreateSerializer(serializers.Serializer):
+    vehicle_class = serializers.ChoiceField(choices=VehicleClass.choices)
+    capacity = serializers.IntegerField(min_value=0, max_value=100_000)
+
+
+class ZoneCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=120)
+    pools = PoolCreateSerializer(many=True, allow_empty=False, max_length=len(VehicleClass))
+
+    def validate_pools(self, value):
+        if len({pool["vehicle_class"] for pool in value}) != len(value):
+            raise serializers.ValidationError("Use one capacity pool per vehicle class.")
+        return value
+
+
+class CapacityPoolSerializer(serializers.ModelSerializer):
+    occupied = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = CapacityPool
+        fields = ["id", "vehicle_class", "capacity", "state", "revision", "occupied"]
+        read_only_fields = fields
+
+
+class ParkingZoneSerializer(serializers.ModelSerializer):
+    pools = CapacityPoolSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ParkingZone
+        fields = ["id", "name", "mode", "pools", "created_at"]
+        read_only_fields = fields
+
+
+class PoolUpdateSerializer(serializers.Serializer):
+    expected_revision = serializers.IntegerField(min_value=1, required=False)
+    capacity = serializers.IntegerField(min_value=0, max_value=100_000, required=False)
     state = serializers.ChoiceField(choices=BayState.choices, required=False)
 
 

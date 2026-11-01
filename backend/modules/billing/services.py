@@ -1,7 +1,7 @@
 """Shifts, checkout, cash settlement, receipts and exit (blueprint sections 4 and 5).
 
-Global lock order: bays -> parking session -> invoice -> shift -> receipt counter. Each write takes
-the subset it needs in that order, so no two gate transactions can wait on each other in a cycle.
+Global lock order: member pass -> capacity pool -> bays -> parking session -> invoice
+-> shift -> receipt counter. Writers take their subset in that order to avoid lock cycles.
 """
 
 from dataclasses import dataclass
@@ -392,6 +392,8 @@ def receipt_detail(*, member, receipt_id) -> Receipt:
             "location",
             "invoice__session__vehicle",
             "invoice__session__bay",
+            "invoice__session__zone",
+            "invoice__session__tariff",
             "payment",
             "issued_by",
         )
@@ -444,6 +446,15 @@ def record_print(*, member, actor, receipt_id, printer_path, correlation_id) -> 
 def exit_vehicle(*, member, actor, session_id, correlation_id) -> ParkingSession:
     """Physical exit needs a fully paid invoice, checked under the session and invoice locks.
     Settling an invoice never records an exit by itself."""
+    # Pool identity is immutable. Acquire it before the session, matching admission/configuration.
+    pool_id = (
+        ParkingSession.objects.for_org(member.organisation)
+        .filter(pk=session_id)
+        .values_list("pool_id", flat=True)
+        .first()
+    )
+    if pool_id is not None:
+        parking.lock_pool(member.organisation, pool_id)
     session = parking.lock_session(member.organisation, session_id)
     ensure_can_operate(member, session.location)
     if session.status != SessionStatus.PARKED:
@@ -489,7 +500,7 @@ def sessions_with_settlement(organisation) -> QuerySet[ParkingSession]:
     )
     return (
         ParkingSession.objects.for_org(organisation)
-        .select_related("bay", "vehicle")
+        .select_related("bay", "zone", "tariff", "vehicle")
         .annotate(
             invoice_id=Subquery(invoice.values("pk")[:1]),
             invoice_total_paisa=Subquery(

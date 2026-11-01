@@ -85,7 +85,7 @@ def _vehicle_log(report: VehicleLogReport) -> Layout:
             Column("Status", lambda row: row.status.title(), 20),
             Column("Plate", lambda row: row.plate, 36),
             Column("Class", lambda row: row.vehicle_class.title(), 22),
-            Column("Bay", lambda row: row.bay_label, 14),
+            Column("Bay / area", lambda row: row.bay_label, 14),
             Column("Location", lambda row: row.location_name, 40),
             Column("Entered by", lambda row: row.entered_by_name, 36),
             Column("Exited by", lambda row: row.exited_by_name or "", 36),

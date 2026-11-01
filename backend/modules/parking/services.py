@@ -1,7 +1,7 @@
 """Gate entry and exit, and bay changes guarded by occupancy and reservations (blueprint section 4).
 
-Lock order: member pass -> customer account (holds only) -> bays (UUID ascending) -> reservation
--> vehicle -> parking session -> invoice -> shift -> receipt counter.
+Lock order: member pass -> customer account (holds only) -> capacity pool -> bays (UUID ascending)
+-> reservation -> vehicle -> parking session -> invoice -> shift -> receipt counter.
 """
 
 from django.db import transaction
@@ -23,7 +23,8 @@ from modules.parking.models import (
     normalize_plate,
 )
 from modules.sites import services as sites
-from modules.sites.models import Bay, BayMode, BayState, Location
+from modules.sites import zones
+from modules.sites.models import Bay, BayMode, BayState, CapacityPool, Location, ZoneMode
 from modules.sites.services import ensure_can_operate, tariff_at
 
 OCCUPIED = ("BAY_UNAVAILABLE", "The selected bay is occupied.")
@@ -35,7 +36,8 @@ def admit_vehicle(
     member,
     actor,
     location_id,
-    bay_id,
+    bay_id=None,
+    pool_id=None,
     plate,
     vehicle_class,
     correlation_id,
@@ -56,6 +58,78 @@ def admit_vehicle(
     entitlement = passes.lock_entitlement(
         organisation=organisation, location=location, plate=plate, now=now
     )
+    if (bay_id is None) == (pool_id is None):
+        raise ApiError(400, "SPACE_REQUIRED", "Choose a bay or an open-lot capacity pool.")
+    pool = None
+    if pool_id is not None:
+        if reservation_id is not None:
+            raise ApiError(
+                400, "RESERVATION_REQUIRES_BAY", "Reservations check in at assigned bays."
+            )
+        pool = lock_pool(organisation, pool_id, location=location)
+        if pool.state != BayState.ACTIVE:
+            raise ApiError(409, "POOL_UNAVAILABLE", "This parking area is out of service.")
+        if pool.vehicle_class != vehicle_class:
+            raise ApiError(409, "VEHICLE_CLASS_MISMATCH", "Choose an area for this vehicle class.")
+        if (
+            ParkingSession.objects.filter(pool=pool, status=SessionStatus.PARKED).count()
+            >= pool.capacity
+        ):
+            raise ApiError(409, "CAPACITY_FULL", "This parking area is full.")
+        bay = None
+        zone = pool.zone
+    else:
+        bay = _lock_bay(organisation, location, bay_id, vehicle_class, reservation_id)
+        zone = bay.zone
+
+    tariff = tariff_at(location, vehicle_class, now)
+    if tariff is None:
+        raise ApiError(409, "TARIFF_MISSING", "No tariff is in force for this vehicle class here.")
+    reservation = _arriving(bay, reservation_id, plate, now) if reservation_id else None
+    vehicle = observe_vehicle(organisation, plate, vehicle_class)
+    with conflict_on(
+        {
+            "session_one_parked_per_bay": OCCUPIED,
+            "session_one_parked_per_vehicle": (
+                "VEHICLE_ALREADY_PARKED",
+                "This vehicle is already parked.",
+            ),
+        }
+    ):
+        session = ParkingSession.objects.create(
+            organisation=organisation,
+            location=location,
+            bay=bay,
+            zone=zone,
+            pool=pool,
+            vehicle=vehicle,
+            tariff=tariff,
+            reservation=reservation,
+            member_pass=entitlement,
+            covered_seconds=entitlement.covered_seconds if entitlement else None,
+            entered_at=now,
+            entered_by=actor,
+        )
+    summary = {"space": session.space_label, "tariff_id": str(tariff.pk)}
+    if entitlement:
+        summary["member_pass"] = entitlement.reference
+    if reservation:
+        reservation.status = ReservationStatus.CHECKED_IN
+        reservation.revision += 1
+        reservation.save(update_fields=["status", "revision"])
+        summary["reservation"] = reservation.reference
+    record_audit(
+        organisation=organisation,
+        actor=actor,
+        action="parking.entered",
+        entity=session,
+        summary=summary,
+        correlation_id=correlation_id,
+    )
+    return session
+
+
+def _lock_bay(organisation, location, bay_id, vehicle_class, reservation_id):
     bay = (
         Bay.objects.for_org(organisation)
         .select_for_update()
@@ -82,49 +156,7 @@ def admit_vehicle(
     if ParkingSession.objects.filter(bay=bay, status=SessionStatus.PARKED).exists():
         raise ApiError(409, *OCCUPIED)
 
-    tariff = tariff_at(location, bay.vehicle_class, now)
-    if tariff is None:
-        raise ApiError(409, "TARIFF_MISSING", "No tariff is in force for this vehicle class here.")
-    reservation = _arriving(bay, reservation_id, plate, now) if reservation_id else None
-    vehicle = observe_vehicle(organisation, plate, vehicle_class)
-    with conflict_on(
-        {
-            "session_one_parked_per_bay": OCCUPIED,
-            "session_one_parked_per_vehicle": (
-                "VEHICLE_ALREADY_PARKED",
-                "This vehicle is already parked.",
-            ),
-        }
-    ):
-        session = ParkingSession.objects.create(
-            organisation=organisation,
-            location=location,
-            bay=bay,
-            vehicle=vehicle,
-            tariff=tariff,
-            reservation=reservation,
-            member_pass=entitlement,
-            covered_seconds=entitlement.covered_seconds if entitlement else None,
-            entered_at=now,
-            entered_by=actor,
-        )
-    summary = {"bay": bay.label, "tariff_id": str(tariff.pk)}
-    if entitlement:
-        summary["member_pass"] = entitlement.reference
-    if reservation:
-        reservation.status = ReservationStatus.CHECKED_IN
-        reservation.revision += 1
-        reservation.save(update_fields=["status", "revision"])
-        summary["reservation"] = reservation.reference
-    record_audit(
-        organisation=organisation,
-        actor=actor,
-        action="parking.entered",
-        entity=session,
-        summary=summary,
-        correlation_id=correlation_id,
-    )
-    return session
+    return bay
 
 
 def _arriving(bay: Bay, reservation_id, plate, now) -> Reservation:
@@ -183,7 +215,7 @@ def observe_vehicle(organisation, plate, vehicle_class) -> Vehicle:
 def lock_session(organisation, session_id) -> ParkingSession:
     session = (
         ParkingSession.objects.for_org(organisation)
-        .select_related("location", "bay", "vehicle", "tariff")
+        .select_related("location", "bay", "zone", "vehicle", "tariff")
         .select_for_update(of=("self",))
         .filter(pk=session_id)
         .first()
@@ -242,3 +274,50 @@ def change_bay(*, location, actor, bay_id, expected_revision, mode, state, corre
     return sites.update_bay(
         bay, location=location, actor=actor, changes=changes, correlation_id=correlation_id
     )
+
+
+def lock_pool(organisation, pool_id, *, location=None, zone_id=None):
+    rows = (
+        CapacityPool.objects.for_org(organisation)
+        .select_related("zone")
+        .select_for_update(of=("self",))
+    )
+    if location is not None:
+        rows = rows.filter(zone__location=location, zone__mode=ZoneMode.OPEN_CAPACITY)
+    if zone_id is not None:
+        rows = rows.filter(zone_id=zone_id)
+    pool = rows.filter(pk=pool_id).first()
+    if pool is None:
+        raise NotFound()
+    return pool
+
+
+@transaction.atomic
+def change_pool(
+    *,
+    location,
+    zone_id,
+    pool_id,
+    actor,
+    expected_revision,
+    capacity=None,
+    state=None,
+    correlation_id,
+):
+    pool = lock_pool(location.organisation, pool_id, location=location, zone_id=zone_id)
+    if pool.revision != expected_revision:
+        raise ApiError(409, "REVISION_CONFLICT", "This capacity changed. Reload and retry.")
+    occupied = ParkingSession.objects.filter(pool=pool, status=SessionStatus.PARKED).count()
+    if capacity is not None and capacity < occupied:
+        raise ApiError(
+            409, "CAPACITY_IN_USE", "Capacity cannot be lower than the vehicles still parked here."
+        )
+    changes = {
+        field: value
+        for field, value in (("capacity", capacity), ("state", state))
+        if value is not None and value != getattr(pool, field)
+    }
+    if changes:
+        zones.update_pool(pool, actor=actor, changes=changes, correlation_id=correlation_id)
+    pool.occupied = occupied
+    return pool

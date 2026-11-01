@@ -14,20 +14,30 @@ MAX_RESERVATION = timedelta(hours=12)
 
 class EntrySerializer(serializers.Serializer):
     location_id = serializers.UUIDField()
-    bay_id = serializers.UUIDField()
+    bay_id = serializers.UUIDField(required=False)
+    pool_id = serializers.UUIDField(required=False)
     # Normalisation can decompose characters, so the column allows twice this length.
     plate = serializers.CharField(max_length=16)
     vehicle_class = serializers.ChoiceField(choices=VehicleClass.choices)
     reservation_id = serializers.UUIDField(required=False, allow_null=True)
 
+    def validate(self, attrs):
+        if ("bay_id" in attrs) == ("pool_id" in attrs):
+            raise serializers.ValidationError("Choose exactly one bay or open-lot pool.")
+        if attrs.get("reservation_id") is not None and "pool_id" in attrs:
+            raise serializers.ValidationError({"reservation_id": ["Reservations require a bay."]})
+        return attrs
+
 
 class ParkingSessionSerializer(serializers.ModelSerializer):
     location_id = serializers.UUIDField(read_only=True)
-    bay_id = serializers.UUIDField(read_only=True)
-    bay_label = serializers.CharField(source="bay.label", read_only=True)
+    bay_id = serializers.UUIDField(read_only=True, allow_null=True)
+    zone_id = serializers.UUIDField(read_only=True)
+    pool_id = serializers.UUIDField(read_only=True, allow_null=True)
+    bay_label = serializers.CharField(source="space_label", read_only=True)
     plate = serializers.CharField(source="vehicle.plate", read_only=True)
     vehicle_class = serializers.ChoiceField(
-        source="bay.vehicle_class", choices=VehicleClass.choices, read_only=True
+        source="tariff.vehicle_class", choices=VehicleClass.choices, read_only=True
     )
     tariff_id = serializers.UUIDField(read_only=True)
     # The pass covering this visit, so a zero fee at the counter has a visible reason.
@@ -41,6 +51,8 @@ class ParkingSessionSerializer(serializers.ModelSerializer):
             "id",
             "location_id",
             "bay_id",
+            "zone_id",
+            "pool_id",
             "bay_label",
             "plate",
             "vehicle_class",

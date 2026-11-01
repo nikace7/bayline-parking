@@ -583,6 +583,120 @@ paths:
                   data:
                     $ref: '#/components/schemas/TariffVersion'
           description: ''
+  /api/v1/locations/{location_id}/zones:
+    get:
+      operationId: locations_zones_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedParkingZoneList'
+          description: ''
+    post:
+      operationId: locations_zones_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: One per intended change. Retrying with the same key replays the
+          first result.
+        required: true
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZoneCreateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ParkingZone'
+          description: ''
+  /api/v1/locations/{location_id}/zones/{zone_id}/pools/{pool_id}:
+    patch:
+      operationId: locations_zones_pools_partial_update
+      parameters:
+      - in: path
+        name: location_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: pool_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: zone_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPoolUpdateRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CapacityPool'
+          description: ''
   /api/v1/members:
     get:
       operationId: members_list
@@ -1626,6 +1740,37 @@ components:
           type: string
           default: ''
           maxLength: 240
+    CapacityPool:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        vehicleClass:
+          allOf:
+          - $ref: '#/components/schemas/VehicleClassEnum'
+          readOnly: true
+        capacity:
+          type: integer
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/BayStateEnum'
+          readOnly: true
+        revision:
+          type: integer
+          readOnly: true
+        occupied:
+          type: integer
+          readOnly: true
+      required:
+      - capacity
+      - id
+      - occupied
+      - revision
+      - state
+      - vehicleClass
     CashPaymentRequest:
       type: object
       properties:
@@ -1798,6 +1943,9 @@ components:
         bayId:
           type: string
           format: uuid
+        poolId:
+          type: string
+          format: uuid
         plate:
           type: string
           minLength: 1
@@ -1809,7 +1957,6 @@ components:
           format: uuid
           nullable: true
       required:
-      - bayId
       - locationId
       - plate
       - vehicleClass
@@ -2346,6 +2493,28 @@ components:
             previous:
               type: string
               nullable: true
+    PaginatedParkingZoneList:
+      type: object
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParkingZone'
+        page:
+          type: object
+          required:
+          - next
+          - previous
+          properties:
+            next:
+              type: string
+              nullable: true
+            previous:
+              type: string
+              nullable: true
     PaginatedPublicLocationList:
       type: object
       required:
@@ -2471,6 +2640,16 @@ components:
           type: string
           format: uuid
           readOnly: true
+          nullable: true
+        zoneId:
+          type: string
+          format: uuid
+          readOnly: true
+        poolId:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
         bayLabel:
           type: string
           readOnly: true
@@ -2515,9 +2694,48 @@ components:
       - locationId
       - memberPassReference
       - plate
+      - poolId
       - status
       - tariffId
       - vehicleClass
+      - zoneId
+    ParkingZone:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ParkingZoneModeEnum'
+          readOnly: true
+        pools:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapacityPool'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - createdAt
+      - id
+      - mode
+      - name
+      - pools
+    ParkingZoneModeEnum:
+      enum:
+      - ASSIGNED_BAY
+      - OPEN_CAPACITY
+      type: string
+      description: |-
+        * `ASSIGNED_BAY` - Assigned Bay
+        * `OPEN_CAPACITY` - Open Capacity
     PassVehicleRequest:
       type: object
       properties:
@@ -2553,6 +2771,18 @@ components:
           maxItems: 5
         enabled:
           type: boolean
+    PatchedPoolUpdateRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 1
+        capacity:
+          type: integer
+          maximum: 100000
+          minimum: 0
+        state:
+          $ref: '#/components/schemas/BayStateEnum'
     PatchedSwitchOrganisationRequest:
       type: object
       properties:
@@ -2611,6 +2841,18 @@ components:
       - CASH
       type: string
       description: '* `CASH` - Cash'
+    PoolCreateRequest:
+      type: object
+      properties:
+        vehicleClass:
+          $ref: '#/components/schemas/VehicleClassEnum'
+        capacity:
+          type: integer
+          maximum: 100000
+          minimum: 0
+      required:
+      - capacity
+      - vehicleClass
     PrintEvent:
       type: object
       properties:
@@ -3051,6 +3293,16 @@ components:
           type: string
           format: uuid
           readOnly: true
+          nullable: true
+        zoneId:
+          type: string
+          format: uuid
+          readOnly: true
+        poolId:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
         bayLabel:
           type: string
           readOnly: true
@@ -3123,12 +3375,14 @@ components:
       - memberPassReference
       - paidPaisa
       - plate
+      - poolId
       - receipt
       - stage
       - status
       - tariffId
       - totalPaisa
       - vehicleClass
+      - zoneId
     SessionStageEnum:
       enum:
       - PARKED
@@ -3166,6 +3420,16 @@ components:
           type: string
           format: uuid
           readOnly: true
+          nullable: true
+        zoneId:
+          type: string
+          format: uuid
+          readOnly: true
+        poolId:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
         bayLabel:
           type: string
           readOnly: true
@@ -3227,11 +3491,13 @@ components:
       - memberPassReference
       - paidPaisa
       - plate
+      - poolId
       - stage
       - status
       - tariffId
       - totalPaisa
       - vehicleClass
+      - zoneId
     SessionUser:
       type: object
       properties:
@@ -3501,6 +3767,20 @@ components:
       - plate
       - status
       - vehicleClass
+    ZoneCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        pools:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoolCreateRequest'
+      required:
+      - name
+      - pools
   securitySchemes:
     cookieAuth:
       type: apiKey

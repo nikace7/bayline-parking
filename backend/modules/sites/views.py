@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import ListAPIView
@@ -6,17 +7,22 @@ from rest_framework.views import APIView
 
 from config import clock
 from config.api import ApiError, CursorPage
+from modules.accounts.idempotency import IDEMPOTENCY_KEY, idempotent
 from modules.accounts.models import Role
 from modules.accounts.permissions import current_member, ensure_roles, require_roles
 from modules.parking import services as parking
-from modules.sites import services
-from modules.sites.models import Bay, Location
+from modules.sites import services, zones
+from modules.sites.models import Bay, Location, ParkingZone
 from modules.sites.serializers import (
     BaySerializer,
     BayUpdateSerializer,
+    CapacityPoolSerializer,
     LocationSerializer,
+    ParkingZoneSerializer,
+    PoolUpdateSerializer,
     TariffPublishSerializer,
     TariffVersionSerializer,
+    ZoneCreateSerializer,
 )
 
 # Every role reads setup. Writes check roles after scoping, so a foreign ID is 404 before 403.
@@ -103,6 +109,74 @@ class BayDetailView(APIView):
             correlation_id=request.request_id,
         )
         return Response(BaySerializer(bay).data)
+
+
+class ZoneListView(ListAPIView):
+    serializer_class = ParkingZoneSerializer
+    permission_classes = [AnyMember]
+
+    def get_queryset(self):
+        location = _scoped_location(self.request, self.kwargs["location_id"])
+        return (
+            ParkingZone.objects.for_org(location.organisation)
+            .filter(location=location)
+            .prefetch_related(
+                Prefetch(
+                    "pools",
+                    queryset=zones.visible_pools(location.organisation).order_by("vehicle_class"),
+                )
+            )
+        )
+
+    @extend_schema(
+        request=ZoneCreateSerializer,
+        responses={201: ParkingZoneSerializer},
+        parameters=[IDEMPOTENCY_KEY],
+    )
+    def post(self, request, location_id):
+        location = _scoped_location(request, location_id)
+        ensure_roles(current_member(request), *SETUP_ROLES)
+        serializer = ZoneCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        def perform():
+            zone = zones.create_zone(
+                location=location,
+                actor=request.user,
+                correlation_id=request.request_id,
+                **serializer.validated_data,
+            )
+            saved = self.get_queryset().get(pk=zone.pk)
+            return 201, ParkingZoneSerializer(saved).data
+
+        return idempotent(
+            request,
+            operation="sites.zone_create",
+            payload={"location_id": str(location.pk), **serializer.validated_data},
+            perform=perform,
+        )
+
+
+class PoolDetailView(APIView):
+    permission_classes = [AnyMember]
+
+    @extend_schema(request=PoolUpdateSerializer, responses=CapacityPoolSerializer)
+    def patch(self, request, location_id, zone_id, pool_id):
+        location = _scoped_location(request, location_id)
+        ensure_roles(current_member(request), *SETUP_ROLES)
+        serializer = PoolUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if "expected_revision" not in serializer.validated_data:
+            raise ApiError(428, "PRECONDITION_REQUIRED", "Send expectedRevision with this change.")
+        pool = parking.change_pool(
+            location=location,
+            zone_id=zone_id,
+            pool_id=pool_id,
+            actor=request.user,
+            correlation_id=request.request_id,
+            **serializer.validated_data,
+        )
+        return Response(CapacityPoolSerializer(pool).data)
 
 
 class TariffListView(ListAPIView):

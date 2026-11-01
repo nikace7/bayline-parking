@@ -145,9 +145,9 @@ class ReceiptSerializer(serializers.ModelSerializer):
     timezone = serializers.CharField(source="location.timezone", read_only=True)
     plate = serializers.CharField(source="invoice.session.vehicle.plate", read_only=True)
     vehicle_class = serializers.ChoiceField(
-        source="invoice.session.bay.vehicle_class", choices=VehicleClass.choices, read_only=True
+        source="invoice.session.tariff.vehicle_class", choices=VehicleClass.choices, read_only=True
     )
-    bay_label = serializers.CharField(source="invoice.session.bay.label", read_only=True)
+    bay_label = serializers.CharField(source="invoice.session.space_label", read_only=True)
     entered_at = serializers.DateTimeField(source="invoice.session.entered_at", read_only=True)
     invoice = InvoiceSerializer(read_only=True)
     amount_paisa = serializers.IntegerField(source="payment.amount_paisa", read_only=True)

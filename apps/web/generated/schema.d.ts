@@ -249,6 +249,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/locations/{location_id}/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["locations_zones_list"];
+        put?: never;
+        post: operations["locations_zones_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{location_id}/zones/{zone_id}/pools/{pool_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["locations_zones_pools_partial_update"];
+        trace?: never;
+    };
     "/api/v1/members": {
         parameters: {
             query?: never;
@@ -711,6 +743,15 @@ export interface components {
             /** @default  */
             reason: string;
         };
+        CapacityPool: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
+            readonly capacity: number;
+            readonly state: components["schemas"]["BayStateEnum"];
+            readonly revision: number;
+            readonly occupied: number;
+        };
         CashPaymentRequest: {
             method: components["schemas"]["PaymentMethodEnum"];
             amountPaisa: number;
@@ -771,7 +812,9 @@ export interface components {
             /** Format: uuid */
             locationId: string;
             /** Format: uuid */
-            bayId: string;
+            bayId?: string;
+            /** Format: uuid */
+            poolId?: string;
             plate: string;
             vehicleClass: components["schemas"]["VehicleClassEnum"];
             /** Format: uuid */
@@ -959,6 +1002,13 @@ export interface components {
                 previous: string | null;
             };
         };
+        PaginatedParkingZoneList: {
+            data: components["schemas"]["ParkingZone"][];
+            page: {
+                next: string | null;
+                previous: string | null;
+            };
+        };
         PaginatedPublicLocationList: {
             data: components["schemas"]["PublicLocation"][];
             page: {
@@ -1000,7 +1050,11 @@ export interface components {
             /** Format: uuid */
             readonly locationId: string;
             /** Format: uuid */
-            readonly bayId: string;
+            readonly bayId: string | null;
+            /** Format: uuid */
+            readonly zoneId: string;
+            /** Format: uuid */
+            readonly poolId: string | null;
             readonly bayLabel: string;
             readonly plate: string;
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -1014,6 +1068,21 @@ export interface components {
             /** Format: date-time */
             readonly exitedAt: string | null;
         };
+        ParkingZone: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly name: string;
+            readonly mode: components["schemas"]["ParkingZoneModeEnum"];
+            readonly pools: components["schemas"]["CapacityPool"][];
+            /** Format: date-time */
+            readonly createdAt: string;
+        };
+        /**
+         * @description * `ASSIGNED_BAY` - Assigned Bay
+         *     * `OPEN_CAPACITY` - Open Capacity
+         * @enum {string}
+         */
+        ParkingZoneModeEnum: "ASSIGNED_BAY" | "OPEN_CAPACITY";
         PassVehicleRequest: {
             plate: string;
             vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -1027,6 +1096,11 @@ export interface components {
             expectedRevision?: number;
             roles?: components["schemas"]["RoleEnum"][];
             enabled?: boolean;
+        };
+        PatchedPoolUpdateRequest: {
+            expectedRevision?: number;
+            capacity?: number;
+            state?: components["schemas"]["BayStateEnum"];
         };
         PatchedSwitchOrganisationRequest: {
             /** Format: uuid */
@@ -1053,6 +1127,10 @@ export interface components {
          * @enum {string}
          */
         PaymentMethodEnum: "CASH";
+        PoolCreateRequest: {
+            vehicleClass: components["schemas"]["VehicleClassEnum"];
+            capacity: number;
+        };
         PrintEvent: {
             /** Format: uuid */
             readonly id: string;
@@ -1214,7 +1292,11 @@ export interface components {
             /** Format: uuid */
             readonly locationId: string;
             /** Format: uuid */
-            readonly bayId: string;
+            readonly bayId: string | null;
+            /** Format: uuid */
+            readonly zoneId: string;
+            /** Format: uuid */
+            readonly poolId: string | null;
             readonly bayLabel: string;
             readonly plate: string;
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -1255,7 +1337,11 @@ export interface components {
             /** Format: uuid */
             readonly locationId: string;
             /** Format: uuid */
-            readonly bayId: string;
+            readonly bayId: string | null;
+            /** Format: uuid */
+            readonly zoneId: string;
+            /** Format: uuid */
+            readonly poolId: string | null;
             readonly bayLabel: string;
             readonly plate: string;
             readonly vehicleClass: components["schemas"]["VehicleClassEnum"];
@@ -1370,6 +1456,10 @@ export interface components {
             locationName: string;
             enteredByName: string;
             exitedByName: string | null;
+        };
+        ZoneCreateRequest: {
+            name: string;
+            pools: components["schemas"]["PoolCreateRequest"][];
         };
     };
     responses: never;
@@ -1898,6 +1988,91 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["TariffVersion"];
+                    };
+                };
+            };
+        };
+    };
+    locations_zones_list: {
+        parameters: {
+            query?: {
+                /** @description The pagination cursor value. */
+                cursor?: string;
+                /** @description Number of results to return per page. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedParkingZoneList"];
+                };
+            };
+        };
+    };
+    locations_zones_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description One per intended change. Retrying with the same key replays the first result. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneCreateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ParkingZone"];
+                    };
+                };
+            };
+        };
+    };
+    locations_zones_pools_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+                pool_id: string;
+                zone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPoolUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CapacityPool"];
                     };
                 };
             };

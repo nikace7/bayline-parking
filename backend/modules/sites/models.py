@@ -48,6 +48,7 @@ class Location(models.Model):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(fields=["id", "organisation"], name="location_org_unique"),
             models.UniqueConstraint(
                 fields=["organisation", "receipt_prefix"], name="location_receipt_prefix_unique"
             ),
@@ -62,10 +63,67 @@ class Location(models.Model):
         ]
 
 
+class ZoneMode(models.TextChoices):
+    ASSIGNED_BAY = "ASSIGNED_BAY"
+    OPEN_CAPACITY = "OPEN_CAPACITY"
+
+
+class ParkingZone(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="zones")
+    name = models.CharField(max_length=120)
+    mode = models.CharField(max_length=16, choices=ZoneMode.choices)
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["location", "name"], name="zone_name_unique"),
+            models.UniqueConstraint(
+                fields=["location"],
+                condition=Q(mode="ASSIGNED_BAY"),
+                name="one_assigned_zone_per_location",
+            ),
+            models.UniqueConstraint(
+                fields=["id", "location", "organisation"], name="zone_scope_unique"
+            ),
+            models.UniqueConstraint(fields=["id", "organisation"], name="zone_org_unique"),
+            models.CheckConstraint(condition=Q(mode__in=ZoneMode.values), name="zone_mode_valid"),
+        ]
+
+
+class CapacityPool(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
+    zone = models.ForeignKey(ParkingZone, on_delete=models.PROTECT, related_name="pools")
+    vehicle_class = models.CharField(max_length=16, choices=VehicleClass.choices)
+    capacity = models.PositiveIntegerField()
+    state = models.CharField(max_length=16, choices=BayState.choices, default=BayState.ACTIVE)
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(default=clock.now, editable=False)
+
+    objects = OrgScopedQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["zone", "vehicle_class"], name="pool_class_unique"),
+            models.UniqueConstraint(
+                fields=["id", "zone", "organisation"], name="pool_scope_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(vehicle_class__in=VehicleClass.values) & Q(state__in=BayState.values),
+                name="pool_choices_valid",
+            ),
+        ]
+
+
 class Bay(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="bays")
+    zone = models.ForeignKey(ParkingZone, on_delete=models.PROTECT, related_name="bays")
     label = models.CharField(max_length=16)
     vehicle_class = models.CharField(max_length=16, choices=VehicleClass.choices)
     mode = models.CharField(max_length=16, choices=BayMode.choices)
@@ -77,6 +135,7 @@ class Bay(models.Model):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(fields=["id", "zone", "organisation"], name="bay_scope_unique"),
             models.UniqueConstraint(fields=["location", "label"], name="bay_label_unique"),
             models.CheckConstraint(
                 condition=Q(vehicle_class__in=VehicleClass.values)

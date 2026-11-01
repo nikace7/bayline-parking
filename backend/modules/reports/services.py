@@ -164,7 +164,7 @@ def vehicle_log(member, scope: ReportScope) -> VehicleLogReport:
     sessions = (
         ParkingSession.objects.for_org(member.organisation)
         .filter(in_period, entered_at__lte=scope.as_of)
-        .select_related("vehicle", "bay", "location", "entered_by", "exited_by")
+        .select_related("vehicle", "bay", "zone", "tariff", "location", "entered_by", "exited_by")
         .order_by("entered_at", "id")
     )
     if scope.location_id is not None:
@@ -178,8 +178,8 @@ def vehicle_log(member, scope: ReportScope) -> VehicleLogReport:
                 exited_at=session.exited_at if exited else None,
                 status=SessionStatus.EXITED if exited else SessionStatus.PARKED,
                 plate=session.vehicle.plate,
-                vehicle_class=session.bay.vehicle_class,
-                bay_label=session.bay.label,
+                vehicle_class=session.tariff.vehicle_class,
+                bay_label=session.space_label,
                 location_name=session.location.name,
                 entered_by_name=session.entered_by.name,
                 exited_by_name=session.exited_by.name if exited else None,

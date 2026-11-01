@@ -13,9 +13,11 @@ from modules.sites.models import (
     Bay,
     Location,
     LocationAssignment,
+    ParkingZone,
     ReceiptCounter,
     TariffStatus,
     TariffVersion,
+    ZoneMode,
 )
 
 
@@ -48,6 +50,12 @@ def create_location(
             receipt_prefix=receipt_prefix,
             timezone=organisation.timezone,
         )
+    ParkingZone.objects.create(
+        organisation=organisation,
+        location=location,
+        name="Assigned bays",
+        mode=ZoneMode.ASSIGNED_BAY,
+    )
     record_audit(
         organisation=organisation,
         actor=actor,
@@ -72,6 +80,7 @@ def create_bay(*, location, actor, label, vehicle_class, mode, correlation_id) -
         bay = Bay.objects.create(
             organisation_id=location.organisation_id,
             location=location,
+            zone=ParkingZone.objects.get(location=location, mode=ZoneMode.ASSIGNED_BAY),
             label=label,
             vehicle_class=vehicle_class,
             mode=mode,

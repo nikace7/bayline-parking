@@ -9,7 +9,14 @@ from django.db.models import F, Func, Q
 
 from config import clock
 from modules.accounts.models import Customer, Organisation, OrgScopedQuerySet, User
-from modules.sites.models import Bay, Location, TariffVersion, VehicleClass
+from modules.sites.models import (
+    Bay,
+    CapacityPool,
+    Location,
+    ParkingZone,
+    TariffVersion,
+    VehicleClass,
+)
 
 # Check-in opens this long before a reservation starts and closes this long after (section 4).
 ARRIVAL_OPENS = timedelta(minutes=10)
@@ -175,7 +182,11 @@ class ParkingSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.PROTECT, related_name="+")
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="+")
-    bay = models.ForeignKey(Bay, on_delete=models.PROTECT, related_name="+")
+    zone = models.ForeignKey(ParkingZone, on_delete=models.PROTECT, related_name="+")
+    pool = models.ForeignKey(
+        CapacityPool, null=True, on_delete=models.PROTECT, related_name="sessions"
+    )
+    bay = models.ForeignKey(Bay, null=True, on_delete=models.PROTECT, related_name="+")
     vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, related_name="sessions")
     # Pinned at server entry time; publishing a later version never reprices this visit.
     tariff = models.ForeignKey(TariffVersion, on_delete=models.PROTECT, related_name="+")
@@ -202,6 +213,11 @@ class ParkingSession(models.Model):
 
     class Meta:
         constraints = [
+            models.CheckConstraint(
+                condition=Q(bay__isnull=False, pool__isnull=True)
+                | Q(bay__isnull=True, pool__isnull=False),
+                name="session_one_space_kind",
+            ),
             models.UniqueConstraint(
                 fields=["bay"],
                 condition=Q(status=SessionStatus.PARKED),
@@ -234,6 +250,10 @@ class ParkingSession(models.Model):
             ),
         ]
         indexes = [models.Index(fields=["location", "status"])]
+
+    @property
+    def space_label(self):
+        return self.bay.label if self.bay_id else self.zone.name
 
 
 # A pass covers this much of each visit; the excess is charged at the visit's pinned tariff.
