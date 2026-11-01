@@ -268,7 +268,7 @@ function VehicleLog({ report }: { report: VehicleLogReport }) {
 					"Status",
 					"Plate",
 					"Class",
-					"Bay",
+					"Bay / area",
 					"Location",
 					"Entered by",
 					"Exited by",

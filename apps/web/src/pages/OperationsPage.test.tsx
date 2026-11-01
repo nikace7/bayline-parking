@@ -3,9 +3,14 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, expect, it, vi } from "vitest";
 import { OperationsPage } from "./OperationsPage";
 
-const state = vi.hoisted(() => ({ roles: ["AUDITOR"] }));
+vi.mock("./OpenLotBoard", () => ({
+	OpenLotBoard: () => <input aria-label="Open-lot draft" />,
+}));
+
+const state = vi.hoisted(() => ({ roles: ["AUDITOR"], queryError: false }));
 beforeEach(() => {
 	state.roles = ["AUDITOR"];
+	state.queryError = false;
 });
 
 vi.mock("../app/sites", () => ({
@@ -14,6 +19,7 @@ vi.mock("../app/sites", () => ({
 		isSuccess: true,
 	}),
 	useBays: () => ({
+		isError: state.queryError,
 		data: [
 			{
 				id: "a",
@@ -99,4 +105,26 @@ it("filters bays by plate/status without changing the site's occupancy totals", 
 	).toHaveTextContent("1");
 	fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 	expect(screen.getByRole("button", { name: /^Bay A02/ })).toBeVisible();
+});
+
+it("keeps the open-lot subtree mounted when cached occupancy has a background error", () => {
+	const view = (
+		<MemoryRouter>
+			<OperationsPage />
+		</MemoryRouter>
+	);
+	const { rerender } = render(view);
+	fireEvent.change(screen.getByLabelText("Open-lot draft"), {
+		target: { value: "BA 5 PA 5555" },
+	});
+	state.queryError = true;
+	rerender(
+		<MemoryRouter>
+			<OperationsPage />
+		</MemoryRouter>,
+	);
+	expect(screen.getByRole("alert")).toHaveTextContent(
+		"Showing the last loaded view",
+	);
+	expect(screen.getByLabelText("Open-lot draft")).toHaveValue("BA 5 PA 5555");
 });

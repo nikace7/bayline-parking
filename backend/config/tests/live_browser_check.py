@@ -72,6 +72,16 @@ def test_real_browser_journeys(settings, live_server, monkeypatch):
         PaymentEntry.objects.filter(invoice__session=visit).values_list("amount_paisa", flat=True)
     ) == [5000]
     assert PrintEvent.objects.filter(receipt__invoice__session=visit).count() == 2
+    open_visit = ParkingSession.objects.get(vehicle__normalized_plate="BA50PA5005")
+    assert open_visit.bay_id is None
+    assert open_visit.pool_id is not None
+    assert open_visit.status == "EXITED"
+    assert open_visit.zone.name == "Browser open yard"
+    assert list(
+        PaymentEntry.objects.filter(invoice__session=open_visit).values_list(
+            "amount_paisa", flat=True
+        )
+    ) == [5000]
     passes = MemberPass.objects.filter(permitted_vehicles__vehicle__normalized_plate="BA20PA2002")
     assert list(passes.order_by("price_paisa").values_list("price_paisa", "status")) == [
         (100050, "ACTIVE"),

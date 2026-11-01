@@ -309,3 +309,106 @@ test("staff create and settle a walk-up member without email or an online accoun
 		fullPage: true,
 	});
 });
+
+test("open-lot setup, paid visit and exit release the last capacity space", async ({
+	page,
+}, info) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await signIn(page, "owner@northgate.test");
+	await page.goto("/settings/sites");
+	await page
+		.getByRole("combobox", { name: "Location", exact: true })
+		.selectOption({ label: "North Gate Central" });
+	await page.getByText("Add an open parking area", { exact: true }).click();
+	await page.getByLabel("Area name", { exact: true }).fill("Browser open yard");
+	await page
+		.getByLabel("Area vehicle class", { exact: true })
+		.selectOption("CAR");
+	await page.getByLabel("Vehicle capacity", { exact: true }).fill("1");
+	await page
+		.getByRole("button", { name: "Create parking area", exact: true })
+		.click();
+	await expect(page.getByRole("status")).toContainText("Parking area created");
+	await page.goto("/operations");
+	await page
+		.getByRole("combobox", { name: "Location", exact: true })
+		.selectOption({ label: "North Gate Central" });
+	const area = page.getByRole("button", {
+		name: "Browser open yard · Car",
+		exact: true,
+	});
+	await area.click();
+	await page
+		.getByLabel("Open-lot plate", { exact: true })
+		.fill("BA 50 PA 5005");
+	const entry = page.waitForResponse(
+		(response) =>
+			response.url().endsWith("/parking/entries") &&
+			response.request().method() === "POST",
+	);
+	await page
+		.getByRole("button", { name: "Confirm open-lot entry", exact: true })
+		.click();
+	const entered = await entry;
+	expect(entered.status()).toBe(201);
+	const { data: visit } = await entered.json();
+	expect(visit.bayId).toBeNull();
+	expect(visit.poolId).toBeTruthy();
+	await expect(area).toContainText("1 / 1 parked");
+	await expect
+		.poll(() => Date.now() - Date.parse(visit.enteredAt))
+		.toBeGreaterThan(1000);
+	await page
+		.getByRole("button", { name: "BA 50 PA 5005", exact: true })
+		.click();
+	const selected = page.getByRole("complementary", {
+		name: "Selected open-lot vehicle",
+	});
+	await selected
+		.getByRole("button", { name: "Get checkout quote", exact: true })
+		.click();
+	await selected
+		.getByRole("button", { name: "Confirm checkout", exact: true })
+		.click();
+	await selected
+		.getByRole("button", { name: "Take cash NPR 50.00", exact: true })
+		.click();
+	await expect(selected).toContainText("Ready to exit");
+	await expect(area).toContainText("1 / 1 parked");
+	const receipt = await selected
+		.getByRole("link", { name: /^Receipt NGC-/ })
+		.getAttribute("href");
+	await selected
+		.getByRole("button", { name: "Record exit", exact: true })
+		.click();
+	await expect(area).toContainText("0 / 1 parked");
+	await page
+		.getByRole("button", { name: "Admit another vehicle", exact: true })
+		.click();
+	await expect(
+		page.getByLabel("Open-lot plate", { exact: true }),
+	).toBeVisible();
+	expect(
+		await page.evaluate(
+			() => document.documentElement.scrollWidth <= window.innerWidth,
+		),
+	).toBe(true);
+	await page.evaluate(() => {
+		window.scrollTo(0, 0);
+		(document.activeElement as HTMLElement | null)?.blur();
+	});
+	await page.screenshot({
+		path: info.outputPath("open-lot-mobile.png"),
+		fullPage: true,
+	});
+	await page.setViewportSize({ width: 1440, height: 960 });
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await page.screenshot({
+		path: info.outputPath("open-lot-desktop.png"),
+		fullPage: true,
+	});
+	await page.goto(receipt as string);
+	await expect(
+		page.getByRole("article", { name: /^Receipt NGC-/ }),
+	).toContainText("Browser open yard");
+});

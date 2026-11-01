@@ -9,6 +9,8 @@ vi.mock("../api/client", async (importOriginal) => ({
 	api: { GET: vi.fn() },
 }));
 
+vi.mock("./ZoneSetup", () => ({ ZoneSetup: () => null }));
+
 const location = {
 	id: "5f0c7c1e-4a64-4d41-9d0e-2a1b3c4d5e6f",
 	name: "North Gate Central",

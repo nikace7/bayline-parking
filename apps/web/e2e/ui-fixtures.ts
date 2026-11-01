@@ -117,6 +117,7 @@ export async function mockUi(page: Page, signedOut = false) {
 	const unexpected: string[] = [];
 	const records: Record<string, unknown> = {
 		"/customers": [],
+		[`/locations/${location.id}/zones`]: [],
 		"/auth/session": signedOut
 			? { user: null, memberships: [], activeOrganisationId: null }
 			: {

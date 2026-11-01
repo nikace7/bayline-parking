@@ -155,7 +155,7 @@ function ReceiptSlip({
 				["Plate", receipt.plate],
 				[
 					"Vehicle",
-					`${VEHICLE_LABEL[receipt.vehicleClass]} · Bay ${receipt.bayLabel}`,
+					`${VEHICLE_LABEL[receipt.vehicleClass]} · Space ${receipt.bayLabel}`,
 				],
 				["Entered", formatDateTime(receipt.enteredAt, timezone)],
 				["Charged to", formatDateTime(invoice.cutoffAt, timezone)],

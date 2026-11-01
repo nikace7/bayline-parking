@@ -16,6 +16,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
 import { formatClock, formatElapsed, todayIn } from "../lib/time";
 import { ArrivalPanel, EntryPanel, ShiftBar, VisitPanel } from "./GatePanels";
+import { OpenLotBoard } from "./OpenLotBoard";
 
 function tileState(
 	bay: Bay,
@@ -102,7 +103,7 @@ function Gate({ location }: { location: Location }) {
 	if (bays.isPending || visits.isPending) {
 		return <p className="text-ink-muted">Loading bays…</p>;
 	}
-	if (bays.isError || visits.isError) {
+	if (!bays.data || !visits.data) {
 		return (
 			<p role="alert" className="rounded-control bg-error-bg p-3 text-error">
 				Occupancy could not be loaded. Retry in a moment.
@@ -111,7 +112,11 @@ function Gate({ location }: { location: Location }) {
 	}
 
 	const now = Date.now();
-	const visitByBay = new Map(visits.data.map((visit) => [visit.bayId, visit]));
+	const visitByBay = new Map(
+		visits.data
+			.filter((visit) => visit.bayId !== null)
+			.map((visit) => [visit.bayId, visit]),
+	);
 	const selectedBay = bays.data.find((bay) => bay.id === selectedBayId);
 	const selectedVisit = selectedBay && visitByBay.get(selectedBay.id);
 	const walkInFree = bays.data.filter(
@@ -143,10 +148,27 @@ function Gate({ location }: { location: Location }) {
 
 	return (
 		<>
+			{(bays.isError || visits.isError) && (
+				<p
+					role="alert"
+					className="rounded-control bg-warning-bg p-3 text-warning"
+				>
+					Occupancy could not be refreshed. Showing the last loaded view; your
+					draft is preserved.
+				</p>
+			)}
+			<OpenLotBoard
+				occupancyUnavailable={bays.isError || visits.isError}
+				location={location}
+				visits={visits.data}
+				canManageGate={canManageGate}
+				canCheckout={canCheckout}
+				canTakeCash={canTakeCash}
+			/>
 			<dl className="grid grid-cols-2 gap-3 xl:grid-cols-4">
 				<Metric
 					label="Parked"
-					value={visitByBay.size}
+					value={visits.data.length}
 					note="Vehicles currently on site"
 				/>
 				<Metric

@@ -349,7 +349,9 @@ export function VisitPanel({
 		<div className="flex flex-col gap-4">
 			<div className="flex items-start justify-between gap-3">
 				<div>
-					<p className="text-meta text-ink-muted">Bay {visit.data.bayLabel}</p>
+					<p className="text-meta text-ink-muted">
+						{visit.data.bayId ? "Bay" : "Area"} {visit.data.bayLabel}
+					</p>
 					<h2 className="text-section font-semibold">{visit.data.plate}</h2>
 					<p className="text-dense text-ink-muted">
 						Entered {formatClock(visit.data.enteredAt, location.timezone)}

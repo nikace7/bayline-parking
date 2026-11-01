@@ -74,6 +74,7 @@ function useRefreshVisits(visitId?: string) {
 	return () =>
 		Promise.all([
 			queryClient.invalidateQueries({ queryKey: ["visits"] }),
+			queryClient.invalidateQueries({ queryKey: ["zones"] }),
 			// Check-in and exit move reservations to CHECKED_IN and COMPLETED.
 			queryClient.invalidateQueries({ queryKey: ["reservations"] }),
 			visitId &&

@@ -8,6 +8,8 @@ import { StatusBadge, type Tone } from "../components/StatusBadge";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa } from "../lib/money";
 
+import { ZoneSetup } from "./ZoneSetup";
+
 type Schemas = components["schemas"];
 
 const MODE: Record<Schemas["BayModeEnum"], string> = {
@@ -114,6 +116,8 @@ function LocationDetail({ location }: { location: Location }) {
 					)}
 				</dl>
 			</div>
+
+			<ZoneSetup location={location} />
 
 			<section
 				aria-labelledby="tariffs-heading"
