@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from django.core.management import call_command
 
-from modules.accounts.models import OrgMember
+from modules.accounts.models import Customer, OrgMember, User
 from modules.billing.models import PaymentEntry, PrintEvent, Shift
 from modules.parking.models import MemberPass, ParkingSession, Reservation
 from modules.sites import services as sites
@@ -78,7 +78,7 @@ def test_real_browser_journeys(settings, live_server, monkeypatch):
         (120000, "ACTIVE"),
     ]
     assert PaymentEntry.objects.filter(invoice__member_pass__in=passes).count() == 2
-    closed = Shift.objects.get(operator=owner.user)
+    closed = Shift.objects.get(operator=owner.user, closed_at__isnull=False)
     assert (closed.expected_cash_paisa, closed.counted_cash_paisa, closed.variance_paisa) == (
         320050,
         320050,
@@ -86,3 +86,13 @@ def test_real_browser_journeys(settings, live_server, monkeypatch):
     )
     assert closed.closed_at is not None
     assert Reservation.objects.get(vehicle__normalized_plate="BA30PA3003").status == "CANCELLED"
+    walk_up = Customer.objects.get(name="Walk-up browser member")
+    assert (walk_up.user_id, walk_up.email, walk_up.phone) == (None, "", "")
+    assert not User.objects.filter(name=walk_up.name).exists()
+    member_pass = MemberPass.objects.get(customer=walk_up)
+    assert (member_pass.price_paisa, member_pass.status) == (50000, "ACTIVE")
+    assert list(
+        PaymentEntry.objects.filter(invoice__member_pass=member_pass).values_list(
+            "amount_paisa", flat=True
+        )
+    ) == [50000]

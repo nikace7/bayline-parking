@@ -20,7 +20,12 @@ test("staff can sell and collect a member pass from a mobile browser", async ({
 					},
 				],
 			};
-		else if (path.endsWith("/locations")) {
+		else if (path.endsWith("/customers")) {
+			await route.fulfill({
+				json: { data: [], page: { next: null, previous: null } },
+			});
+			return;
+		} else if (path.endsWith("/locations")) {
 			await route.fulfill({
 				json: {
 					data: [{ id: "loc", name: "Central", timezone: "Asia/Kathmandu" }],
@@ -78,6 +83,7 @@ test("staff can sell and collect a member pass from a mobile browser", async ({
 			.getByRole("link", { name: "Members", exact: true })
 			.last(),
 	).toBeVisible();
+	await page.getByRole("radio", { name: "Online account email" }).check();
 	await page.getByLabel("Customer email").fill("asha@example.test");
 	await page.getByLabel("Plate", { exact: true }).fill("बा २ प ३४५६");
 	await page.getByLabel("Starts at").fill("2026-10-29T10:00");

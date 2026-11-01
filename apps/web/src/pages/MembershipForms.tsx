@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { errorMessage } from "../api/client";
+import { type Customer, useCreateCustomer } from "../app/customers";
 import { type MemberPass, useRenewPass, useSellPass } from "../app/members";
 import type { Location } from "../app/sites";
 import { Button } from "../components/Button";
@@ -8,9 +9,13 @@ import { TextField } from "../components/TextField";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { parseRupees } from "../lib/money";
 import { zonedTimeToIso } from "../lib/time";
+import { CustomerPicker } from "./CustomerPicker";
 
 export function SaleForm({ location }: { location: Location }) {
 	const sale = useSellPass();
+	const createCustomer = useCreateCustomer();
+	const [source, setSource] = useState("profile");
+	const [customer, setCustomer] = useState<Customer>();
 	const [email, setEmail] = useState("");
 	const [plate, setPlate] = useState("");
 	const [vehicleClass, setVehicleClass] = useState<"CAR" | "MOTORBIKE">("CAR");
@@ -25,9 +30,15 @@ export function SaleForm({ location }: { location: Location }) {
 			setError("Enter a positive price and an end time after the start.");
 			return;
 		}
+		if (source === "profile" && !customer) {
+			setError("Choose or create a customer profile.");
+			return;
+		}
 		setError("");
 		sale.mutate({
-			email: email.trim(),
+			...(source === "email"
+				? { email: email.trim() }
+				: { customerId: customer?.id }),
 			locationId: location.id,
 			vehicles: [{ plate: plate.trim(), vehicleClass }],
 			startsAt: zonedTimeToIso(starts, location.timezone),
@@ -37,15 +48,48 @@ export function SaleForm({ location }: { location: Location }) {
 		});
 	}
 	return (
-		<form
-			onSubmit={submit}
+		<section
+			aria-label="Sell a pass"
 			className="flex flex-col gap-4 rounded-panel border border-line bg-surface p-5 sm:p-6"
 		>
 			<h2 className="text-section font-semibold">Sell a single-vehicle pass</h2>
 			<p className="text-ink-muted">
-				The customer must already have an account. This pass covers{" "}
-				{location.name}.
+				Choose a customer profile or an existing online account. This pass
+				covers {location.name}.
 			</p>
+			<fieldset
+				disabled={sale.isPending || sale.isSuccess || createCustomer.isPending}
+				className="flex flex-wrap gap-4 text-dense"
+			>
+				<legend className="mb-2 font-medium">Customer</legend>
+				{[
+					{ value: "profile", label: "Customer profile" },
+					{ value: "email", label: "Online account email" },
+				].map((option) => (
+					<label
+						key={option.value}
+						className="flex min-h-11 items-center gap-2"
+					>
+						<input
+							type="radio"
+							name="customer-source"
+							value={option.value}
+							checked={source === option.value}
+							onChange={() => setSource(option.value)}
+						/>
+						{option.label}
+					</label>
+				))}
+			</fieldset>
+			<div hidden={source !== "profile"}>
+				<CustomerPicker
+					create={createCustomer}
+					selected={customer}
+					onSelect={setCustomer}
+					enabled={source === "profile"}
+					disabled={sale.isPending || sale.isSuccess}
+				/>
+			</div>
 			{(error || sale.isError) && (
 				<FormAlert>{error || errorMessage(sale.error)}</FormAlert>
 			)}
@@ -54,81 +98,90 @@ export function SaleForm({ location }: { location: Location }) {
 					Pass {sale.data.reference} created. Take payment to activate it.
 				</p>
 			)}
-			<fieldset
-				disabled={sale.isPending || sale.isSuccess}
-				className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-			>
-				<TextField
-					label="Customer email"
-					type="email"
-					required
-					value={email}
-					onChange={(event) => setEmail(event.target.value)}
-				/>
-				<TextField
-					label="Plate"
-					required
-					maxLength={32}
-					value={plate}
-					onChange={(event) => setPlate(event.target.value)}
-				/>
-				<label className="flex flex-col gap-1">
-					Vehicle class
-					<select
-						className="min-h-11 border border-control bg-surface px-3"
-						value={vehicleClass}
-						onChange={(event) =>
-							setVehicleClass(event.target.value as typeof vehicleClass)
-						}
-					>
-						{Object.entries(VEHICLE_LABEL).map(([value, label]) => (
-							<option key={value} value={value}>
-								{label}
-							</option>
-						))}
-					</select>
-				</label>
-				<TextField
-					label="Price (NPR)"
-					inputMode="decimal"
-					required
-					value={price}
-					onChange={(event) => setPrice(event.target.value)}
-				/>
-				<TextField
-					label="Starts at"
-					type="datetime-local"
-					required
-					value={starts}
-					onChange={(event) => setStarts(event.target.value)}
-				/>
-				<TextField
-					label="Ends at"
-					type="datetime-local"
-					required
-					value={ends}
-					onChange={(event) => setEnds(event.target.value)}
-				/>
-			</fieldset>
-			<Button type="submit" pending={sale.isPending} disabled={sale.isSuccess}>
-				Sell pass
-			</Button>
-			{sale.isSuccess && (
-				<Button
-					variant="secondary"
-					onClick={() => {
-						sale.reset();
-						setEmail("");
-						setPlate("");
-						setStarts("");
-						setEnds("");
-						setPrice("");
-					}}
+			<form onSubmit={submit} className="flex flex-col gap-4">
+				<fieldset
+					disabled={sale.isPending || sale.isSuccess}
+					className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
 				>
-					New sale
+					{source === "email" && (
+						<TextField
+							label="Customer email"
+							type="email"
+							required
+							value={email}
+							onChange={(event) => setEmail(event.target.value)}
+						/>
+					)}
+					<TextField
+						label="Plate"
+						required
+						maxLength={32}
+						value={plate}
+						onChange={(event) => setPlate(event.target.value)}
+					/>
+					<label className="flex flex-col gap-1">
+						Vehicle class
+						<select
+							className="min-h-11 border border-control bg-surface px-3"
+							value={vehicleClass}
+							onChange={(event) =>
+								setVehicleClass(event.target.value as typeof vehicleClass)
+							}
+						>
+							{Object.entries(VEHICLE_LABEL).map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
+					</label>
+					<TextField
+						label="Price (NPR)"
+						inputMode="decimal"
+						required
+						value={price}
+						onChange={(event) => setPrice(event.target.value)}
+					/>
+					<TextField
+						label="Starts at"
+						type="datetime-local"
+						required
+						value={starts}
+						onChange={(event) => setStarts(event.target.value)}
+					/>
+					<TextField
+						label="Ends at"
+						type="datetime-local"
+						required
+						value={ends}
+						onChange={(event) => setEnds(event.target.value)}
+					/>
+				</fieldset>
+				<Button
+					type="submit"
+					pending={sale.isPending}
+					disabled={sale.isSuccess || createCustomer.isPending}
+				>
+					Sell pass
 				</Button>
-			)}
-		</form>
+				{sale.isSuccess && (
+					<Button
+						variant="secondary"
+						onClick={() => {
+							sale.reset();
+							setEmail("");
+							setCustomer(undefined);
+							setPlate("");
+							setStarts("");
+							setEnds("");
+							setPrice("");
+						}}
+					>
+						New sale
+					</Button>
+				)}
+			</form>
+		</section>
 	);
 }
 

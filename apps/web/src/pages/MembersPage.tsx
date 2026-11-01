@@ -143,7 +143,9 @@ function MembershipWorkspace({ location }: { location: Location }) {
 							</StatusBadge>
 						</div>
 						<p className="font-medium">
-							{pass.customerName} · {pass.customerEmail}
+							{[pass.customerName, pass.customerEmail, pass.customerPhone]
+								.filter(Boolean)
+								.join(" · ")}
 						</p>
 						<p className="text-dense text-ink-muted">
 							{pass.plates.join(", ")} · {pass.locationNames.join(", ")}

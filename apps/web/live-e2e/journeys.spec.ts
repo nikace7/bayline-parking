@@ -138,6 +138,7 @@ test("membership sale, payment, renewal and balanced cash close persist on Postg
 	await page
 		.getByRole("combobox", { name: "Location", exact: true })
 		.selectOption({ label: "North Gate Central" });
+	await page.getByRole("radio", { name: "Online account email" }).check();
 	await page.getByLabel("Customer email").fill("asha@customer.test");
 	await page.getByLabel("Plate", { exact: true }).fill("BA 20 PA 2002");
 	await page.getByLabel("Starts at").fill(localDate(0));
@@ -237,4 +238,74 @@ test("customer holds, confirms and cancels a real reservation", async ({
 	await expect(
 		page.getByRole("region", { name: /^Reservation / }),
 	).toContainText("Cancelled");
+});
+
+test("staff create and settle a walk-up member without email or an online account", async ({
+	page,
+}, info) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await signIn(page, "owner@northgate.test");
+	await page
+		.getByRole("combobox", { name: "Location", exact: true })
+		.selectOption({ label: "North Gate Central" });
+	await page.getByLabel("Opening cash float (NPR)").fill("0");
+	await page
+		.getByRole("button", { name: "Open cash shift", exact: true })
+		.click();
+	await expect(page.getByText(/Cash shift open since/)).toBeVisible();
+	await page.goto("/members");
+	await page
+		.getByRole("combobox", { name: "Location", exact: true })
+		.selectOption({ label: "North Gate Central" });
+	await page.getByText("Create a customer", { exact: true }).click();
+	await page
+		.getByLabel("Customer name", { exact: true })
+		.fill("Walk-up browser member");
+	const creation = page.waitForResponse(
+		(response) =>
+			response.url().endsWith("/customers") &&
+			response.request().method() === "POST",
+	);
+	await page
+		.getByRole("button", { name: "Create customer", exact: true })
+		.click();
+	const created = await creation;
+	expect(created.status()).toBe(201);
+	const { data: customer } = await created.json();
+	expect(customer.hasOnlineAccount).toBe(false);
+	expect(customer.email).toBe("");
+	await expect(
+		page.getByRole("combobox", { name: "Customer profile", exact: true }),
+	).toHaveValue(customer.id);
+	await page.getByLabel("Plate", { exact: true }).fill("BA 40 PA 4004");
+	await page.getByLabel("Starts at", { exact: true }).fill(localDate(0));
+	await page.getByLabel("Ends at", { exact: true }).fill(localDate(30));
+	await page.getByLabel("Price (NPR)", { exact: true }).fill("500");
+	const sale = page.waitForResponse(
+		(response) =>
+			response.url().endsWith("/memberships") &&
+			response.request().method() === "POST",
+	);
+	await page.getByRole("button", { name: "Sell pass", exact: true }).click();
+	const sold = await sale;
+	expect(sold.status()).toBe(201);
+	expect(sold.request().postDataJSON()).not.toHaveProperty("email");
+	const { data: memberPass } = await sold.json();
+	const card = page.getByRole("article", {
+		name: `Pass ${memberPass.reference}`,
+		exact: true,
+	});
+	await card
+		.getByRole("button", { name: "Take cash NPR 500.00", exact: true })
+		.click();
+	await expect(card).toContainText("ACTIVE");
+	expect(
+		await page.evaluate(
+			() => document.documentElement.scrollWidth <= window.innerWidth,
+		),
+	).toBe(true);
+	await page.screenshot({
+		path: info.outputPath("walk-up-member-mobile.png"),
+		fullPage: true,
+	});
 });
