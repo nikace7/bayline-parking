@@ -43,3 +43,7 @@ Run `pnpm build`, then `pnpm --filter web test:pwa` to reproduce the browser che
 ## Open-lot continuation — 1 November 2026
 
 `OpenLotBoard` adds area occupancy cards and plate admission to Operations; `ZoneSetup` adds capacity/state forms in Sites using the existing panels, semantic colours and controls. Checkout reuses VisitPanel. Polling preserves drafts/focus and requires explicit reload after remote capacity edits. Real mobile/desktop screenshots and six live journeys supplement the earlier mocked-layout evidence; see `OPEN_LOT_CAPACITY.md`.
+
+## Workflow judgement and polish — 4 November 2026
+
+Read `UI_UX_COMPARISON.md` for the general-market comparison with the previous frontend. The current design system is retained; Operations adds a unified parked-vehicle directory and puts metrics first, mobile rows stay compact, checkout shows progress, and membership lookup precedes a retained, explicitly opened creation form. Naming recommendation: Parkframe; the app branding remains Bayline pending a separate rebrand.

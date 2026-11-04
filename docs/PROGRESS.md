@@ -1,5 +1,33 @@
 # Progress
 
+## General-market UI/UX workflow polish — 4 November 2026
+
+### Delivered
+
+- Compared the previous frontend's dashboard/list patterns with the current design system. Verdict: retain the quiet navy/slate foundation and improve operator scanning/task access. See `UI_UX_COMPARISON.md`; this is design judgement, not a measured user trial.
+- Operations puts occupancy/shift context first and offers spaces or a unified parked-vehicle list. Search matches plates without requiring spaces and includes open-area names; status filtering, reset states and selected details work across bay/pool visits. Phone rows become compact cards.
+- Shared visit status/progress shows Admitted, Checkout, Payment and Exit using the actual server stage. Actions retain existing role and financial guards.
+- Memberships starts with lookup and pass records; an explicit sale action opens a form that preserves draft/retry state when hidden. Operations view switching also keeps mounted workflow state.
+- Reduced phone metric height, aligned desktop columns, restored panel gutters and made repeated vehicle selection focus details. Naming recommendation is Parkframe; no app-wide rebrand is applied.
+
+### Verification and review
+
+| Check | Result |
+|---|---|
+| Frontend unit/component suite | 128 passed |
+| Existing and new Chromium checks | 14 passed, including lookup/detail and membership disclosure at 390/768/1440px |
+| Frontend lint, app/browser TypeScript and production build | Passed |
+| Desktop column-alignment regression | Failed with automatic action width; passed after fixing the shared track |
+| React, TypeScript and general code review | Focus, gutter and alignment findings resolved |
+
+Browser fixtures are synthetic; PWA scenarios exercise actual service workers/storage. The previous frontend was read from source, not executed as an authenticated usability trial. No new backend integration result is claimed. The unrelated uncommitted offline server prototype is preserved and excluded from these frontend commits.
+
+Local services had stopped; the existing API/worker images were started without building the offline draft. The gateway alone is rebuilt for this UI. Fresh owner login, real visit lookup/progress, sale-draft preservation and 390px fit passed through the rebuilt gateway with zero business-write requests. Screenshots and logs remain ignored under `artifacts/tmp/ui-workflow/`.
+
+### Limits and next
+
+No backend feature, financial policy, locale/currency behavior or physical device support changes. Real operator task timing and full screen-reader/device acceptance remain future validation. Continue missing workflows using these patterns; resume and complete the offline journal separately. Full feature parity remains described in `FEATURE_PARITY.md`.
+
 ## Open-lot zones and capacity — 1 November 2026
 
 ### Delivered

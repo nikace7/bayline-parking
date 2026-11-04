@@ -29,6 +29,8 @@ Customer profile creation/search belongs to `backend/modules/accounts/customers.
 
 Open-lot configuration and board composition belong to `pages/ZoneSetup.tsx` and `pages/OpenLotBoard.tsx`. `sites/zones.py` owns setup/read queries; `parking/services.py` owns occupancy locks/guards. Billing reuses physical exit after acquiring the pool first. See `OPEN_LOT_CAPACITY.md` for ownership and migration details.
 
+`pages/ParkedVehicles.tsx` receives the existing scoped parked-visit list and owns its search/filter/detail selection UI. It reuses `GatePanels.VisitPanel` rather than issuing another directory query. `components/VisitStage.tsx` owns shared visit status/progress presentation. Preserve mounted views and membership sale state when hiding them; repeated View activation must refocus details.
+
 ## Rules for subsequent changes
 
 - Reuse the owning domain hook instead of issuing the same query from another page. Forward TanStack Query's `AbortSignal` to each request.

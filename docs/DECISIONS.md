@@ -2,6 +2,12 @@
 
 Product-level revisions live in `docs/BLUEPRINT.md` section 0. This log records implementation choices, why they were made, and what would reopen them.
 
+## Workflow-focused UI — 4 November 2026
+
+| # | Date | Decision | Why | Revisit when |
+|---|---|---|---|---|
+| D60 | 2026-11-04 | Keep the current quiet design system; add an all-parked-vehicles list alongside the space board, put metrics first, and default memberships to lookup with explicitly opened creation. Keep mounted workflows/drafts when views are hidden and share visit-status/progress vocabulary | User requested expert comparison with the previous UI and improvements for a general parking product. Dense scan/action patterns help operators without another theme rewrite | Observed operator tasks identify a measurable bottleneck or accessibility issue |
+
 ## Open-lot capacity — 1 November 2026
 
 | # | Date | Decision | Why | Revisit when |

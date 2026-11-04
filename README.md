@@ -7,6 +7,7 @@ Independent portfolio edition of a multi-tenant parking operations platform. Nor
 - Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
 - Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
 - Code ownership, review findings and maintenance conventions: [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md)
+- UI/UX comparison, workflow improvements and naming direction: [docs/UI_UX_COMPARISON.md](docs/UI_UX_COMPARISON.md)
 - UI design direction, screen coverage and verification: [docs/UI_DESIGN.md](docs/UI_DESIGN.md)
 - Real browser/API/database workflow checks: [docs/LIVE_WORKFLOW_CHECKS.md](docs/LIVE_WORKFLOW_CHECKS.md)
 - Walk-up customer profiles and migration notes: [docs/CUSTOMER_PROFILES.md](docs/CUSTOMER_PROFILES.md)

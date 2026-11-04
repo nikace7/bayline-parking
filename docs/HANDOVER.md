@@ -6,10 +6,18 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 
 ## Current state (4 November 2026)
 
+### Latest UI workflow polish
+
+- Work is on `codex/ui-workflow-polish`; the user's direction is a general parking product, not Nepal-specific branding. Read `UI_UX_COMPARISON.md` for the design verdict and Parkframe working-name recommendation. No app-wide rename is applied.
+- Retain the current quiet navy/slate design foundation. Operations now puts metrics/shift context first and adds a unified parked-vehicle view with search/status filters, mobile cards and the existing authorized visit panel. Memberships defaults to lookup; creation opens through an explicit action and stays mounted when hidden. Visit progress explains the current server stage.
+- Preserve mounted view/form state and retry identity, focus on every View activation, and focus return on details close. Shared `VisitStage` owns the status vocabulary. `ParkedVehicles` owns its local search/selection UI and receives existing scoped visit data; it does not create another API/cache owner.
+- Verified 128 frontend tests, 14 Chromium checks, frontend Biome, both TypeScript configurations and production build. Reviews resolved focus, spacing and grid-alignment issues. Synthetic browser checks are not new backend integration evidence.
+- Local demo services had stopped; started the existing API/worker images without rebuilding the unfinished offline backend. Only the gateway is rebuilt for this UI. Do not apply the offline draft migrations or reset data to test design.
+
 ### Current parity review and unfinished work
 
 - Read `FEATURE_PARITY.md` for the 4 November source comparison with the old backend, web and Flutter clients. Bayline is not yet a full replacement. BS/fiscal billing, QR/payment exceptions, richer membership/reporting, staff/site administration, password recovery, support/platform operations and production recovery remain gaps.
-- Work is on `codex/offline-cash-sync`. Uncommitted draft code is in `modules/offline`, core settings/URLs, parking/billing guards/services and initial offline tests. It is not a finished milestone: no completed browser journal/UI, generated contract update, reviewed end-to-end offline proof or published implementation is claimed. Preserve this work when resuming; do not reset the tree or count these draft routes as delivered.
+- The offline prototype began on `codex/offline-cash-sync` and is preserved locally while UI work proceeds. Uncommitted draft code is in `modules/offline`, core settings/URLs, parking/billing guards/services and initial offline tests. It is not a finished milestone: no completed browser journal/UI, generated contract update, reviewed end-to-end offline proof or published implementation is claimed. Preserve this work when resuming; do not reset the tree or count these draft routes as delivered.
 - Latest completed/published feature baseline remains `9e53abf` on `codex/open-lot-capacity`; its November 1 test counts below are historical, not a new green run on the draft working tree. Resume and verify the offline work before deploying it or claiming operational offline parity.
 
 ### Latest open-lot capacity milestone
