@@ -83,6 +83,9 @@ test("staff can sell and collect a member pass from a mobile browser", async ({
 			.getByRole("link", { name: "Members", exact: true })
 			.last(),
 	).toBeVisible();
+	await page
+		.getByRole("button", { name: "Sell a member pass", exact: true })
+		.click();
 	await page.getByRole("radio", { name: "Online account email" }).check();
 	await page.getByLabel("Customer email").fill("asha@example.test");
 	await page.getByLabel("Plate", { exact: true }).fill("बा २ प ३४५६");

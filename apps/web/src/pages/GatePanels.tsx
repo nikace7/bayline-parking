@@ -24,18 +24,11 @@ import { dueReservation, useStaffReservations } from "../app/reservations";
 import type { Bay, Location } from "../app/sites";
 import { Button } from "../components/Button";
 import { FormAlert } from "../components/Page";
-import { StatusBadge, type Tone } from "../components/StatusBadge";
 import { TextField } from "../components/TextField";
+import { VisitProgress, VisitStage } from "../components/VisitStage";
 import { VEHICLE_LABEL } from "../lib/labels";
 import { formatPaisa, parseRupees } from "../lib/money";
 import { formatClock, formatDuration, todayIn } from "../lib/time";
-
-const STAGE: Record<Visit["stage"], { tone: Tone; label: string }> = {
-	PARKED: { tone: "occupied", label: "Parked" },
-	CHECKOUT_PENDING: { tone: "warning", label: "Payment due" },
-	EXIT_READY: { tone: "available", label: "Ready to exit" },
-	EXITED: { tone: "neutral", label: "Exited" },
-};
 
 function PanelNote({
 	title,
@@ -357,9 +350,10 @@ export function VisitPanel({
 						Entered {formatClock(visit.data.enteredAt, location.timezone)}
 					</p>
 				</div>
-				<StatusBadge tone={STAGE[stage].tone}>{STAGE[stage].label}</StatusBadge>
+				<VisitStage stage={stage} />
 			</div>
 
+			<VisitProgress stage={stage} />
 			{failure && <FormAlert>{errorMessage(failure)}</FormAlert>}
 
 			{stage === "PARKED" && canCheckout && !quoted && (

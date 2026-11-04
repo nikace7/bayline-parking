@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "react-router";
 import { errorMessage } from "../api/client";
 import { useActiveRoles, useCurrentShift } from "../app/gate";
@@ -56,6 +56,8 @@ export function MembersPage() {
 function MembershipWorkspace({ location }: { location: Location }) {
 	const roles = useActiveRoles();
 	const canSell = roles.includes("OWNER") || roles.includes("MANAGER");
+	const [saleOpen, setSaleOpen] = useState(false);
+	const saleId = useId();
 	const canPay = roles.includes("OWNER") || roles.includes("CASHIER");
 	const shift = useCurrentShift();
 	const [search, setSearch] = useState("");
@@ -65,18 +67,27 @@ function MembershipWorkspace({ location }: { location: Location }) {
 	const payment = usePassPayment();
 	return (
 		<>
-			<p className="text-dense text-ink-muted">
-				{location.name} · Times use {location.timezone}. Passes activate after
-				payment.
-			</p>
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<p className="text-dense text-ink-muted">
+					{location.name} · Times use {location.timezone}. Passes activate after
+					payment.
+				</p>
+				{canSell && (
+					<Button
+						aria-expanded={saleOpen}
+						aria-controls={saleId}
+						onClick={() => setSaleOpen(!saleOpen)}
+					>
+						{saleOpen ? "Hide sale form" : "Sell a member pass"}
+					</Button>
+				)}
+			</div>
 			{canSell && (
-				<details open>
-					<summary className="mb-3 min-h-11 py-2 text-dense font-semibold text-brand">
-						Sell a member pass
-					</summary>
+				<div id={saleId} hidden={!saleOpen}>
 					<SaleForm location={location} />
-				</details>
+				</div>
 			)}
+
 			<form
 				className="filter-bar"
 				onSubmit={(event) => {

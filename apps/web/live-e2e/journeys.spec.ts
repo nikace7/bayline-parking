@@ -138,6 +138,9 @@ test("membership sale, payment, renewal and balanced cash close persist on Postg
 	await page
 		.getByRole("combobox", { name: "Location", exact: true })
 		.selectOption({ label: "North Gate Central" });
+	await page
+		.getByRole("button", { name: "Sell a member pass", exact: true })
+		.click();
 	await page.getByRole("radio", { name: "Online account email" }).check();
 	await page.getByLabel("Customer email").fill("asha@customer.test");
 	await page.getByLabel("Plate", { exact: true }).fill("BA 20 PA 2002");
@@ -257,6 +260,9 @@ test("staff create and settle a walk-up member without email or an online accoun
 	await page
 		.getByRole("combobox", { name: "Location", exact: true })
 		.selectOption({ label: "North Gate Central" });
+	await page
+		.getByRole("button", { name: "Sell a member pass", exact: true })
+		.click();
 	await page.getByText("Create a customer", { exact: true }).click();
 	await page
 		.getByLabel("Customer name", { exact: true })

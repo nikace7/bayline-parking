@@ -53,7 +53,7 @@ const ok = (data: unknown) =>
 	Promise.resolve({ data: { data }, response: new Response() });
 const paged = (data: unknown) =>
 	Promise.resolve({ data, response: new Response() });
-function open() {
+function open(showSale = true) {
 	render(
 		<MemoryRouter>
 			<QueryClientProvider
@@ -70,6 +70,11 @@ function open() {
 			</QueryClientProvider>
 		</MemoryRouter>,
 	);
+	if (
+		showSale &&
+		state.roles.some((role) => ["OWNER", "MANAGER"].includes(role))
+	)
+		fireEvent.click(screen.getByRole("button", { name: "Sell a member pass" }));
 }
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -80,6 +85,20 @@ beforeEach(() => {
 			page: { next: null, previous: null },
 		})) as never);
 	vi.mocked(api.POST).mockImplementation((() => ok(pass)) as never);
+});
+
+it("starts with pass lookup and preserves a sale draft when the form is hidden", async () => {
+	open(false);
+	expect(screen.getByLabelText("Search by plate")).toBeVisible();
+	expect(screen.getByLabelText("Price (NPR)")).not.toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Sell a member pass" }));
+	fireEvent.change(screen.getByLabelText("Price (NPR)"), {
+		target: { value: "1250" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: "Hide sale form" }));
+	expect(screen.getByLabelText("Price (NPR)")).not.toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Sell a member pass" }));
+	expect(screen.getByLabelText("Price (NPR)")).toHaveValue("1250");
 });
 
 it("sells a pass with exact paisa and location-local dates", async () => {

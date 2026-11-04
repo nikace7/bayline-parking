@@ -17,6 +17,7 @@ import { TextField } from "../components/TextField";
 import { formatClock, formatElapsed, todayIn } from "../lib/time";
 import { ArrivalPanel, EntryPanel, ShiftBar, VisitPanel } from "./GatePanels";
 import { OpenLotBoard } from "./OpenLotBoard";
+import { ParkedVehicles } from "./ParkedVehicles";
 
 function tileState(
 	bay: Bay,
@@ -43,7 +44,7 @@ export function OperationsPage() {
 			<PageHeader
 				id="operations-heading"
 				title="Operations"
-				description="A clear view of your parking spaces. Select a bay to manage an arrival or exit."
+				description="Manage arrivals, find parked vehicles and keep the exit moving."
 				actions={
 					location && (
 						<LocationSelect
@@ -96,6 +97,8 @@ function Gate({ location }: { location: Location }) {
 	const [notice, setNotice] = useState<string>();
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState("all");
+	const [view, setView] = useState<"spaces" | "vehicles">("spaces");
+	const [vehiclesOpened, setVehiclesOpened] = useState(false);
 	const canTakeCash = roles.includes("OWNER") || roles.includes("CASHIER");
 	const canManageGate = roles.includes("OWNER") || roles.includes("OPERATOR");
 	const canCheckout = canManageGate || roles.includes("CASHIER");
@@ -157,15 +160,7 @@ function Gate({ location }: { location: Location }) {
 					draft is preserved.
 				</p>
 			)}
-			<OpenLotBoard
-				occupancyUnavailable={bays.isError || visits.isError}
-				location={location}
-				visits={visits.data}
-				canManageGate={canManageGate}
-				canCheckout={canCheckout}
-				canTakeCash={canTakeCash}
-			/>
-			<dl className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+			<dl className="operations-metrics grid grid-cols-2 gap-3 xl:grid-cols-4">
 				<Metric
 					label="Parked"
 					value={visits.data.length}
@@ -188,161 +183,205 @@ function Gate({ location }: { location: Location }) {
 				/>
 			</dl>
 			{canTakeCash && <ShiftBar location={location} />}
-			<div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-				<div className="bay-board">
-					<div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5">
-						<div>
-							<h2 className="text-section font-semibold">Parking board</h2>
-							<p className="mt-1 text-meta text-ink-muted">
-								{location.name} · As of{" "}
-								{formatClock(asOf, location.timezone, true)}
-							</p>
-						</div>
-						<span className="rounded-full bg-inset px-3 py-1 text-meta font-medium text-brand">
-							{visibleBays.length} of {bays.data.length} bays
-						</span>
-					</div>
-					<div className="flex flex-wrap items-end gap-3 border-b border-line p-5">
-						<TextField
-							label="Search bays or plates"
-							placeholder="e.g. A01 or a vehicle plate"
-							value={search}
-							onChange={(event) => setSearch(event.target.value)}
-							className="min-w-0 flex-1 basis-48"
-						/>
-						<label className="flex min-w-0 flex-col gap-1.5 text-dense font-medium">
-							Bay status
-							<select
-								value={status}
-								onChange={(event) => setStatus(event.target.value)}
-								className="min-h-11 border border-control bg-surface px-3 font-normal"
-							>
-								<option value="all">All bays</option>
-								<option value="available">Available</option>
-								<option value="occupied">Occupied</option>
-								<option value="reserved">Reserved</option>
-								<option value="outOfService">Out of service</option>
-							</select>
-						</label>
-						{selectedBay && (
-							<a
-								className="min-h-11 py-3 text-dense font-medium text-brand underline xl:hidden"
-								href="#selected-bay"
-							>
-								Go to selected bay
-							</a>
-						)}
-					</div>
-					{visibleBays.length === 0 && (
-						<div className="empty-state">
-							<Grid />
-							<p>No bays match your filters.</p>
-							<Button
-								variant="secondary"
-								className="mt-4"
-								onClick={() => {
-									setSearch("");
-									setStatus("all");
-								}}
-							>
-								Clear filters
-							</Button>
-						</div>
-					)}
-					<ul aria-label={`Bays at ${location.name}`} className="board-grid">
-						{visibleBays.map((bay) => {
-							const visit = visitByBay.get(bay.id);
-							const isReserved =
-								bay.mode === "RESERVABLE" &&
-								dueReservation(reservations.data ?? [], bay.id, now) !==
-									undefined;
-							return (
-								<li key={bay.id}>
-									<BayTile
-										label={bay.label}
-										vehicleClass={bay.vehicleClass}
-										state={tileState(bay, visit, isReserved)}
-										duration={
-											visit &&
-											formatElapsed(visit.enteredAt, visits.dataUpdatedAt)
-										}
-										selected={bay.id === selectedBayId}
-										onSelect={() => select(bay.id)}
-									/>
-								</li>
-							);
-						})}
-					</ul>
-					<section
-						className="flex flex-wrap gap-2 border-t border-line px-5 py-3"
-						aria-label="Bay legend"
-					>
-						<StatusBadge tone="available">Available</StatusBadge>
-						<StatusBadge tone="occupied">Occupied</StatusBadge>
-						<StatusBadge tone="neutral">Reserved</StatusBadge>
-						<StatusBadge tone="warning">Out of service</StatusBadge>
-					</section>
-				</div>
-				<aside
-					id="selected-bay"
-					aria-label="Selected bay"
-					className="selected-panel"
+			<fieldset className="operations-switcher" aria-label="Operations view">
+				<Button
+					variant="secondary"
+					aria-pressed={view === "spaces"}
+					onClick={() => setView("spaces")}
 				>
-					{notice && (
-						<p
-							role="status"
-							className="rounded-control bg-available-bg p-3 text-dense text-available"
-						>
-							{notice}
-						</p>
-					)}
-					{!selectedBay && !notice && (
-						<div className="empty-state">
-							<Grid />
-							<h2 className="mb-2 font-semibold text-ink">
-								Ready when you are
-							</h2>
-							<p className="text-dense text-ink-muted">
-								Select a bay to admit a vehicle or check one out.
-							</p>
+					Parking spaces
+				</Button>
+				<Button
+					variant="secondary"
+					aria-pressed={view === "vehicles"}
+					onClick={() => {
+						setVehiclesOpened(true);
+						setView("vehicles");
+					}}
+				>
+					Parked vehicles ({visits.data.length})
+				</Button>
+				<span className="text-meta text-ink-muted">
+					Updated {formatClock(asOf, location.timezone, true)}
+				</span>
+			</fieldset>
+			{vehiclesOpened && (
+				<div hidden={view !== "vehicles"}>
+					<ParkedVehicles
+						location={location}
+						visits={visits.data}
+						asOf={visits.dataUpdatedAt}
+						canTakeCash={canTakeCash}
+						canCheckout={canCheckout}
+						canExit={canManageGate}
+					/>
+				</div>
+			)}
+			<div hidden={view !== "spaces"} className="space-y-6">
+				<OpenLotBoard
+					occupancyUnavailable={bays.isError || visits.isError}
+					location={location}
+					visits={visits.data}
+					canManageGate={canManageGate}
+					canCheckout={canCheckout}
+					canTakeCash={canTakeCash}
+				/>
+				<div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+					<div className="bay-board">
+						<div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5">
+							<div>
+								<h2 className="text-section font-semibold">Parking board</h2>
+								<p className="mt-1 text-meta text-ink-muted">
+									{location.name} · As of{" "}
+									{formatClock(asOf, location.timezone, true)}
+								</p>
+							</div>
+							<span className="rounded-full bg-inset px-3 py-1 text-meta font-medium text-brand">
+								{visibleBays.length} of {bays.data.length} bays
+							</span>
 						</div>
-					)}
-					{selectedBay && selectedVisit && (
-						<VisitPanel
-							key={selectedVisit.id}
-							visitId={selectedVisit.id}
-							location={location}
-							canTakeCash={canTakeCash}
-							canCheckout={canCheckout}
-							canExit={canManageGate}
-							onExited={(visit) => {
-								setNotice(`${visit.plate} left bay ${visit.bayLabel}.`);
-								setSelectedBayId(undefined);
-							}}
-						/>
-					)}
-					{selectedBay &&
-						!selectedVisit &&
-						canManageGate &&
-						(selectedBay.mode === "RESERVABLE" ? (
-							<ArrivalPanel
-								key={selectedBay.id}
-								bay={selectedBay}
-								location={location}
+						<div className="flex flex-wrap items-end gap-3 border-b border-line p-5">
+							<TextField
+								label="Search bays or plates"
+								placeholder="e.g. A01 or a vehicle plate"
+								value={search}
+								onChange={(event) => setSearch(event.target.value)}
+								className="min-w-0 flex-1 basis-48"
 							/>
-						) : (
-							<EntryPanel
-								key={selectedBay.id}
-								bay={selectedBay}
+							<label className="flex min-w-0 flex-col gap-1.5 text-dense font-medium">
+								Bay status
+								<select
+									value={status}
+									onChange={(event) => setStatus(event.target.value)}
+									className="min-h-11 border border-control bg-surface px-3 font-normal"
+								>
+									<option value="all">All bays</option>
+									<option value="available">Available</option>
+									<option value="occupied">Occupied</option>
+									<option value="reserved">Reserved</option>
+									<option value="outOfService">Out of service</option>
+								</select>
+							</label>
+							{selectedBay && (
+								<a
+									className="min-h-11 py-3 text-dense font-medium text-brand underline xl:hidden"
+									href="#selected-bay"
+								>
+									Go to selected bay
+								</a>
+							)}
+						</div>
+						{visibleBays.length === 0 && (
+							<div className="empty-state">
+								<Grid />
+								<p>No bays match your filters.</p>
+								<Button
+									variant="secondary"
+									className="mt-4"
+									onClick={() => {
+										setSearch("");
+										setStatus("all");
+									}}
+								>
+									Clear filters
+								</Button>
+							</div>
+						)}
+						<ul aria-label={`Bays at ${location.name}`} className="board-grid">
+							{visibleBays.map((bay) => {
+								const visit = visitByBay.get(bay.id);
+								const isReserved =
+									bay.mode === "RESERVABLE" &&
+									dueReservation(reservations.data ?? [], bay.id, now) !==
+										undefined;
+								return (
+									<li key={bay.id}>
+										<BayTile
+											label={bay.label}
+											vehicleClass={bay.vehicleClass}
+											state={tileState(bay, visit, isReserved)}
+											duration={
+												visit &&
+												formatElapsed(visit.enteredAt, visits.dataUpdatedAt)
+											}
+											selected={bay.id === selectedBayId}
+											onSelect={() => select(bay.id)}
+										/>
+									</li>
+								);
+							})}
+						</ul>
+						<section
+							className="flex flex-wrap gap-2 border-t border-line px-5 py-3"
+							aria-label="Bay legend"
+						>
+							<StatusBadge tone="available">Available</StatusBadge>
+							<StatusBadge tone="occupied">Occupied</StatusBadge>
+							<StatusBadge tone="neutral">Reserved</StatusBadge>
+							<StatusBadge tone="warning">Out of service</StatusBadge>
+						</section>
+					</div>
+					<aside
+						id="selected-bay"
+						aria-label="Selected bay"
+						className="selected-panel"
+					>
+						{notice && (
+							<p
+								role="status"
+								className="rounded-control bg-available-bg p-3 text-dense text-available"
+							>
+								{notice}
+							</p>
+						)}
+						{!selectedBay && !notice && (
+							<div className="empty-state">
+								<Grid />
+								<h2 className="mb-2 font-semibold text-ink">
+									Ready when you are
+								</h2>
+								<p className="text-dense text-ink-muted">
+									Select a bay to admit a vehicle or check one out.
+								</p>
+							</div>
+						)}
+						{selectedBay && selectedVisit && (
+							<VisitPanel
+								key={selectedVisit.id}
+								visitId={selectedVisit.id}
 								location={location}
+								canTakeCash={canTakeCash}
+								canCheckout={canCheckout}
+								canExit={canManageGate}
+								onExited={(visit) => {
+									setNotice(`${visit.plate} left bay ${visit.bayLabel}.`);
+									setSelectedBayId(undefined);
+								}}
 							/>
-						))}
-					{selectedBay && !selectedVisit && !canManageGate && (
-						<p className="text-dense text-ink-muted">
-							Only owners and operators can admit vehicles at the gate.
-						</p>
-					)}
-				</aside>
+						)}
+						{selectedBay &&
+							!selectedVisit &&
+							canManageGate &&
+							(selectedBay.mode === "RESERVABLE" ? (
+								<ArrivalPanel
+									key={selectedBay.id}
+									bay={selectedBay}
+									location={location}
+								/>
+							) : (
+								<EntryPanel
+									key={selectedBay.id}
+									bay={selectedBay}
+									location={location}
+								/>
+							))}
+						{selectedBay && !selectedVisit && !canManageGate && (
+							<p className="text-dense text-ink-muted">
+								Only owners and operators can admit vehicles at the gate.
+							</p>
+						)}
+					</aside>
+				</div>
 			</div>
 		</>
 	);
