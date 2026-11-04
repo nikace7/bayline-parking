@@ -2,6 +2,8 @@
 
 Reviewed: 28 October 2026. Scope: the local working copies, including the current `feat/m5-member-passes` branch of `parking_personal`. No application code was changed.
 
+> Historical review dated 28 October 2026. Membership UI, pagination, live workflow verification, independent profiles and open-lot capacity were subsequently delivered. For current feature status and remaining gaps, read [FEATURE_PARITY.md](FEATURE_PARITY.md), reviewed 4 November 2026.
+
 ## Decision
 
 **Use `parking_personal` as the engineering foundation, but use `parking-project` as the Nepal operations baseline.** The newer project has clearer transaction boundaries, stronger financial records and better automated verification. The existing project covers more of the work a Nepal parking operator actually performs: BS dates, fiscal-year billing, mobile printing, offline records, memberships, support and administration.

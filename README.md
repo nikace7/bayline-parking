@@ -3,6 +3,7 @@
 Independent portfolio edition of a multi-tenant parking operations platform. North Gate Parking and Riverside Parking are fictional organisations; all data is synthetic.
 
 - Specification: [docs/BLUEPRINT.md](docs/BLUEPRINT.md) (v1.1; the original v1.0 is kept at `02-parking-platform.md`)
+- Current comparison with the previous project: [docs/FEATURE_PARITY.md](docs/FEATURE_PARITY.md) (4 November 2026)
 - Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
 - Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
 - Code ownership, review findings and maintenance conventions: [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md)

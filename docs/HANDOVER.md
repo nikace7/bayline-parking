@@ -4,7 +4,13 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (1 November 2026)
+## Current state (4 November 2026)
+
+### Current parity review and unfinished work
+
+- Read `FEATURE_PARITY.md` for the 4 November source comparison with the old backend, web and Flutter clients. Bayline is not yet a full replacement. BS/fiscal billing, QR/payment exceptions, richer membership/reporting, staff/site administration, password recovery, support/platform operations and production recovery remain gaps.
+- Work is on `codex/offline-cash-sync`. Uncommitted draft code is in `modules/offline`, core settings/URLs, parking/billing guards/services and initial offline tests. It is not a finished milestone: no completed browser journal/UI, generated contract update, reviewed end-to-end offline proof or published implementation is claimed. Preserve this work when resuming; do not reset the tree or count these draft routes as delivered.
+- Latest completed/published feature baseline remains `9e53abf` on `codex/open-lot-capacity`; its November 1 test counts below are historical, not a new green run on the draft working tree. Resume and verify the offline work before deploying it or claiming operational offline parity.
 
 ### Latest open-lot capacity milestone
 
