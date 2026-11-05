@@ -31,6 +31,8 @@ Open-lot configuration and board composition belong to `pages/ZoneSetup.tsx` and
 
 `pages/ParkedVehicles.tsx` receives the existing scoped parked-visit list and owns its search/filter/detail selection UI. It reuses `GatePanels.VisitPanel` rather than issuing another directory query. `components/VisitStage.tsx` owns shared visit status/progress presentation. Preserve mounted views and membership sale state when hiding them; repeated View activation must refocus details.
 
+`pages/ReservationDirectory.tsx` owns reservation search/filter/row presentation from the existing location/day query. `ReservationsPage.tsx` owns scope, selected action, completion and focus return. Keep mutation forms mounted through terminal-data refresh, and preserve drafts in a hidden directory on query failure; only successful query state may expose cached records/actions. Tests cover cancellation callback ordering and denial → network failure → remount → recovery.
+
 ## Rules for subsequent changes
 
 - Reuse the owning domain hook instead of issuing the same query from another page. Forward TanStack Query's `AbortSignal` to each request.

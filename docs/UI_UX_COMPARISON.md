@@ -53,3 +53,17 @@ The current application still displays Bayline; this pass does not apply a repos
 Browser scenarios use synthetic API fixtures except the service-worker checks. They do not certify backend financial integration, physical devices, full screen-reader usability or performance under real operator load. Backend tests/contracts were not regenerated or rerun for this frontend pass because unrelated offline server work is incomplete. The last completed backend milestone's evidence remains in `OPEN_LOT_CAPACITY.md`.
 
 Next design work should follow real operator observation: measure plate-to-visit lookup, admission and checkout tasks; then refine whichever action requires excess scrolling or unclear choices. Build missing administration and reporting workflows using the same patterns instead of adding another visual theme.
+
+## Reservation continuation — 5 November 2026
+
+The next weakness was Reservations: a wide table required scanning every record and placed move/cancel forms below the entire list. The new directory applies the earlier verdict to this workflow.
+
+| Before | After |
+|---|---|
+| Date selection followed by an unfiltered table | Plate/customer/reference/bay search, reservation-state filter and explicit conflict toggle with scoped counts |
+| Wide table on phones | Single record presentation that wraps into phone cards and tablet rows; aligned desktop columns from 1280px |
+| Action form below all rows | Focused action panel before results; repeated clicks refocus it and closing restores a useful control |
+| No explicit treatment of a terminal refresh during a pending action | Mounted mutation form survives completion; terminal changes prevent another submission |
+| Error refresh could discard the form | Failed refresh hides records/actions while retaining the draft; successful refresh restores access to the directory |
+
+The directory uses the existing complete scoped query and mutations; no new API or duplicated data cache. The same calm palette, typography, controls and permission rules apply. Verified 137 frontend tests and 17 Chromium checks, including three new reservation widths, plus lint/typecheck/build. The real local gateway passed login, lookup/reset focus, mobile fit and logout without business writes. This extends frontend evidence, not backend financial integration or a measured operator study. Code reviews found and resolved completion/focus timing and stale-record visibility issues.

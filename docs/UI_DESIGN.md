@@ -47,3 +47,11 @@ Run `pnpm build`, then `pnpm --filter web test:pwa` to reproduce the browser che
 ## Workflow judgement and polish — 4 November 2026
 
 Read `UI_UX_COMPARISON.md` for the general-market comparison with the previous frontend. The current design system is retained; Operations adds a unified parked-vehicle directory and puts metrics first, mobile rows stay compact, checkout shows progress, and membership lookup precedes a retained, explicitly opened creation form. Naming recommendation: Parkframe; the app branding remains Bayline pending a separate rebrand.
+
+## Reservation directory — 5 November 2026
+
+Reservations follows the same lookup-first direction: date/time-zone context, plate/name/reference/bay search, status and conflict filters, then a compact directory. Below 1280px the four desktop columns become labelled rows; action buttons remain at least 44px high. Labels and status words carry meaning without relying on colour. Move/cancel panels sit before the results instead of below a long table and receive focus on each activation.
+
+Keep drafts mounted while filtering and during mutation/refetch completion. A terminal reservation disables repeat submission without prematurely removing the mutation observer. Failed refreshes hide the directory until a successful response while preserving its mounted draft; never show cached customer data after an authorization failure. Filter reset and completed actions focus search; closing an unchanged action returns to its original button when it still exists. Scope changes clear the action.
+
+Evidence: 137 frontend tests, 17 Chromium checks, lint, TypeScript and build passed. New browser cases cover 390/768/1440px, long names, column alignment, repeated action focus, filtered drafts and date reset. Local gateway sign-in/lookup/mobile/sign-out passed without business writes. Detailed limits and comparison are in `UI_UX_COMPARISON.md`.

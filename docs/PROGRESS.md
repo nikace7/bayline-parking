@@ -1,5 +1,14 @@
 # Progress
 
+## Reservation workflow polish — 5 November 2026
+
+- Added a location/day-scoped directory with whitespace-tolerant plate, customer, reference and bay lookup, status filtering, a bay-conflict toggle, visible result counts and filter reset. Desktop columns become labelled phone/tablet rows without horizontal table scrolling.
+- Move/cancel actions open above the results and focus the action panel, including repeated activation. Filtering preserves the selected form and draft. Close restores the initiating button or search; successful writes return to search because the row may disappear from the active filters. Date/location changes reset the active action.
+- Kept action forms mounted through terminal-status refreshes so cancellation confirmation survives the asynchronous mutation/refetch sequence. Remote terminal changes disable further submissions. Failed refreshes hide stale records/actions while keeping the draft mounted; results return only after a successful refresh, including across access denial, connection failure and page remount.
+- Verified **137 frontend tests**, **17 Chromium checks**, frontend Biome, both TypeScript configurations and production build. Tests cover search/filter combinations, permission controls, delayed cancellation completion, remote status changes, failed refresh recovery and 390/768/1440px layouts. Explicit bay-select labelling was corrected after browser checks identified its accessible-name ambiguity. React, TypeScript and general reviews completed with findings resolved.
+- Rebuilt only the local gateway. Fresh owner sign-in, actual reservation lookup/reset focus, 390px fit, API readiness and sign-out passed with no business writes. Browser mutation/data scenarios otherwise use synthetic fixtures; no new backend integration or live financial-flow claim. Local evidence is ignored under `artifacts/tmp/reservations-ui/` and `apps/web/test-results/`.
+- Branch: `codex/reservations-ui-polish`. The unfinished offline backend remains separate and uncommitted; it was neither rebuilt nor deployed. Branding remains Bayline, with Parkframe still the working-name recommendation.
+
 ## General-market UI/UX workflow polish — 4 November 2026
 
 ### Delivered

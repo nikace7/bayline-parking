@@ -4,7 +4,14 @@ Start here when picking up Bayline in a new session. Rewrite **Current state** a
 
 Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
 
-## Current state (4 November 2026)
+## Current state (5 November 2026)
+
+### Latest reservation UI continuation
+
+- Branch `codex/reservations-ui-polish` continues the published UI branch. Reservations now has scoped lookup, status/conflict filters, responsive rows and a focused action panel above results. See `UI_UX_COMPARISON.md` and the latest `PROGRESS.md` entry.
+- `ReservationDirectory` is presentation-only; the existing hook owns data. Keep action forms mounted until their mutation callback completes, even if the refreshed reservation becomes terminal. Failed query states hide the whole directory while preserving its mounted draft; do not expose stale records/actions on errors. Close restores focus after commit; completion/filter reset focuses search. Date/location changes clear the selection.
+- Verified 137 frontend tests, 17 Chromium checks, frontend Biome, both TypeScript configurations and production build. Reviews resolved callback ordering, focus, accessible select labelling and denied-cache visibility. Local gateway was rebuilt and fresh login/lookup/mobile/logout passed without business writes. Backend integration was not rerun and the offline prototype remains uncommitted and undeployed.
+- General-market design direction and Parkframe working-name recommendation remain; the app still displays Bayline. No rebrand was applied in this continuation.
 
 ### Latest UI workflow polish
 
@@ -95,6 +102,8 @@ Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DE
 - **Local credentials:** the November check verified the seeded owner's `DEMO_PASSWORD` from `.env`. An older September note about a separately chosen password is historical. Never print credentials, commit them or reset accounts to make tests pass.
 
 ## Next session
+
+Continue the user's chosen workstream: the latest request was UI/UX continuation. Observe real operator lookup/admission/checkout tasks before choosing another polish target; implement missing administration/reporting flows using the existing system. Parkframe remains a recommendation, not an applied rename. Preserve the unfinished offline files when branching or committing.
 
 1. Build registered-device/IndexedDB/server sync as one complete milestone before enabling offline parking or cash writes; see `docs/PWA.md`. Open lots and independent profiles are implemented and verified; reuse `pnpm test:live`. Define single-device capacity authority and provisional receipt policy before disconnected admissions.
 2. Scope remaining Nepal calendar/fiscal billing and financial exceptions with validated site requirements; account claiming/profile management remain separate identity work.
