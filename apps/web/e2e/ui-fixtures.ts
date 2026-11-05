@@ -36,7 +36,7 @@ const visits = bays.slice(0, 6).map((bay, index) => ({
 	enteredAt: new Date(Date.now() - (index + 1) * 1800000).toISOString(),
 	stage: "PARKED",
 }));
-const reservation = {
+export const reservation = {
 	id: "reservation-1",
 	reference: "K7M2Q9XA",
 	organisationName: "North Gate Parking",

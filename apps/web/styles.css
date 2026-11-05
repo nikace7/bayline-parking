@@ -347,6 +347,68 @@
       display: none;
     }
   }
+  .reservation-directory {
+    min-width: 0;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+  }
+  .reservation-columns {
+    display: none;
+  }
+  .reservation-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid var(--color-line);
+  }
+  .reservation-row[data-selected="true"] {
+    background: var(--color-inset);
+    box-shadow: inset 3px 0 var(--color-brand);
+  }
+  .reservation-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .reservation-row-actions:empty {
+    display: none;
+  }
+  .reservation-conflict-filter[aria-pressed="true"] {
+    border-color: var(--color-brand);
+    background: var(--color-inset);
+    color: var(--color-brand-strong);
+  }
+  .reservation-action-panel {
+    border-block: 1px solid var(--color-line);
+    background: var(--color-canvas);
+    padding: 20px;
+    scroll-margin-top: 20px;
+  }
+  @media (min-width: 640px) {
+    .reservation-row {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      padding-inline: 20px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .reservation-row,
+    .reservation-columns {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) 11rem;
+      gap: 20px;
+    }
+    .reservation-columns {
+      display: grid;
+      border-top: 1px solid var(--color-line);
+      background: var(--color-canvas);
+      padding: 12px 20px;
+      color: var(--color-ink-muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
   .table-scroll {
     overflow: auto;
     border: 1px solid var(--color-line);
