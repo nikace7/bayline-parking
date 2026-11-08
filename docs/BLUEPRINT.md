@@ -26,7 +26,7 @@
 
 ## 1. Start, scope and success
 
-Build in the user's workspace repository (on the original machine `C:/Users/khatr/OneDrive - Prime College/Desktop/Project/parking_personal`). Inspect existing state before resuming. Preserve sibling parking repositories, databases, credentials and portfolio content; this edition depends on none of them. Keep this file as `docs/BLUEPRINT.md` and maintain `docs/PROGRESS.md` and `docs/DECISIONS.md`.
+Build in the user's workspace repository. Inspect existing state before resuming. Preserve sibling parking repositories, databases, credentials and portfolio content; this edition depends on none of them. Keep this file as `docs/BLUEPRINT.md` and maintain `docs/PROGRESS.md` and `docs/DECISIONS.md`.
 
 Build a responsive working parking product for operators, cashiers, managers and customers. Use fictional **North Gate Parking** and **Riverside Parking** organisations to demonstrate isolation. Core workflows must persist in a real local database; illustrative data must not substitute for implementation.
 

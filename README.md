@@ -1,85 +1,114 @@
 # Bayline — Parking Operations
 
-Independent portfolio edition of a multi-tenant parking operations platform. North Gate Parking and Riverside Parking are fictional organisations; all data is synthetic.
+A multi-tenant parking operations app for car parks that take cash at the gate. Staff
+admit vehicles to bays, quote and take payment, print receipts, close cash shifts
+against counted cash and export collections reports. Customers can find a free bay,
+hold it and book it.
 
-- Specification: [docs/BLUEPRINT.md](docs/BLUEPRINT.md) (v1.1; the original v1.0 is kept at `02-parking-platform.md`)
-- Build status and verified results: [docs/PROGRESS.md](docs/PROGRESS.md)
-- Implementation decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
-- Session handover (current state and where to start): [docs/HANDOVER.md](docs/HANDOVER.md)
+Django and PostgreSQL on the back end, a Vite and React single-page app on the front,
+behind one Caddy gateway. North Gate Parking and Riverside Parking are fictional
+organisations, and all data is synthetic.
 
-## Stack
+![The gate screen: a bay map for North Gate Central with bay A04 selected, showing its billed time, NPR 200 charge, receipt and a Record exit button](docs/assets/readme/gate.png)
 
-Django 5.2 LTS + DRF on PostgreSQL 17 · Vite + React 19 single-page app · Caddy same-origin gateway · background work as PostgreSQL rows claimed by `manage.py worker` (no Redis or Celery). Report exports use ReportLab (PDF, with HarfBuzz shaping for Devanagari) and openpyxl (XLSX).
+*The gate screen from the seeded demo, signed in as the demo cashier, captured on
+8 November 2026.*
 
-## Requirements
+## Try it
 
-Node 24+, pnpm 10, Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker with Compose.
+Needs Docker with Compose, Node 24+, pnpm 10, Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
-## First run
-
-```bash
-pnpm setup:local
+```sh
+pnpm setup:local && pnpm db:seed && pnpm demo:up
 ```
 
-Creates `.env` with generated secrets (or adds any missing `DEMO_PASSWORD` to an existing one), installs dependencies, starts PostgreSQL on `127.0.0.1:54330` and applies migrations.
+Open http://localhost:4330 and sign in as `cashier@northgate.test` with the
+`DEMO_PASSWORD` that `setup:local` wrote to the gitignored `.env`. Choose
+**North Gate Central** as the location. To stop it, run `docker compose --env-file .env -f infra/compose.yaml down`.
 
-```bash
-pnpm db:seed
-```
+- `setup:local` creates `.env` with generated secrets, installs dependencies, starts
+  PostgreSQL on `127.0.0.1:54330` and applies migrations.
+- `db:seed` adds the demo data through the domain services, and rerunning it changes
+  nothing. That data is two organisations, three locations with tariffs, staff in
+  every role (`owner@`, `manager@`, `operator@`, `cashier@` and `auditor@northgate.test`,
+  plus `owner@riverside.test`), two customers (`asha@` and `bina@customer.test`),
+  a closed and an open cash shift, and reservations that include an overstay conflict
+  and a no-show.
+- `demo:up` builds and starts the containerised stack: the API, a background worker
+  and the gateway.
 
-Adds synthetic demo data through the domain services:
+Last run from a fresh clone on 8 November 2026 (Windows 11, Docker Desktop): setup,
+seed and the stack all came up, and the seeded gate showed 6 parked vehicles and 7
+free walk-in bays.
 
-- **Organisations:** North Gate Parking (two locations) and Riverside Parking (one). Each location has 12 walk-in and 6 reservable bays and car/motorbike tariffs.
-- **Staff:** `owner@northgate.test`, `manager@`, `operator@`, `cashier@`, `auditor@northgate.test` and `owner@riverside.test`. The operator and cashier are assigned to both North Gate locations.
-- **Customers:** `asha@customer.test` and `bina@customer.test`, with no staff access.
-- **North Gate Central cash day,** ending shortly before the seed ran: a shift with NPR 1,000 float and NPR 300 taken, closed with NPR 1,280 counted (NPR 20 short), then an open shift with visits ready to exit, awaiting cash and parked.
-- **Reservations:** Asha's vehicle is still parked after her booking ended, so Bina's next booking for that bay shows a conflict to relocate. Bina's earlier booking was a no-show.
+What to try:
 
-Every account signs in with `DEMO_PASSWORD` from `.env`. Rerunning changes nothing.
+- **Gate** (`/operations`): admit a vehicle, quote and confirm checkout, take cash,
+  then record the exit.
+- **Receipts**: each payment links to a receipt that prints on 80 or 58 mm paper.
+- **Shifts and reports** (`/shifts`, `/reports`): close a shift against counted cash,
+  and download collections and the vehicle log as PDF or XLSX. Reports need an owner,
+  manager or auditor account.
+- **Reservations** (`/reservations`): each day's bookings with overstay conflicts.
+- **Customers** (`/park`, `/account/reservations`): find free bays, hold one and
+  confirm it.
 
-```bash
-pnpm dev
-```
+For host development without containers (`pnpm dev`, Vite on the same port proxying
+to Django on `127.0.0.1:8330`), see [development](docs/DEVELOPMENT.md).
 
-Vite on http://localhost:4330 (proxying `/api` to Django on `127.0.0.1:8330`). Register an organisation at `/register`; the design tokens and components are at `/gallery`.
+## Tests and CI
 
-- **Gate:** signed in as a seeded operator or cashier, `/operations` runs the gate. Admit a vehicle to a bay, quote and confirm checkout, open a cash shift and take cash, then record the exit. Selecting a reservable bay checks in the reservation whose arrival window is open.
-- **Receipts:** each payment links to its receipt, which prints on 80 or 58 mm paper.
-- **Shifts and reports:** `/shifts` closes the cashier's shift against the counted cash. `/reports` shows collections and the vehicle log with PDF and XLSX downloads.
-- **Reservations:** `/reservations` shows each day's bookings with overstay conflicts, and owners and managers can move or cancel them.
-- **Customers:** `/park` lists locations and free bays for a time, holds a bay and confirms it, and `/account/reservations` shows a customer's bookings. Create a customer account at `/account/register`.
+| Suite | Size | Runs against |
+| --- | --- | --- |
+| Backend (pytest) | 610 tests in 56 files | A dedicated PostgreSQL test database, including concurrency tests |
+| Web (Vitest) | 13 files | jsdom |
+| Tariff vectors | Shared JSON fixtures | Run by both pytest and Vitest, so both sides compute the same fee |
 
-`pnpm dev` does not start the background worker. Run `uv run --env-file ../.env python manage.py worker` from `backend/` to sweep lapsed holds and no-shows; screens show them correctly either way.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs setup, lint,
+typecheck, unit and integration tests, the production build and a check that the
+committed OpenAPI contract matches the code. It runs on every pull request and every
+push to `main`. **The last run on `main` passed, on 15 September 2026.**
 
-To run the full containerised stack instead (Caddy on the same port, so stop `pnpm dev` first), including the worker:
+## Engineering decisions
 
-```bash
-pnpm demo:up
-```
+**Payment and exit are separate requests, so a retry cannot take cash twice.** Each
+gate action carries its own idempotency key and makes one change. If the network
+drops after the cash is captured, the client retries only the exit. The checkout
+quote is signed on the server with its cutoff time, and checkout recalculates the fee
+from the pinned tariff, so the browser never supplies an amount.
+([D29, D31](docs/DECISIONS.md))
 
-## Checks
+**Receipt numbers have no gaps.** Each location's counter row is upserted
+(`INSERT … ON CONFLICT DO UPDATE … RETURNING`) inside the cash capture transaction,
+last in the lock order. A capture that rolls back also rolls back its number, and a
+reprint records a numbered copy without issuing a new number. ([D33](docs/DECISIONS.md))
 
-| Command | What it runs |
-|---|---|
-| `pnpm lint` | Biome on the web app and scripts; Ruff check and format on the backend |
-| `pnpm typecheck` | TypeScript against the generated API types |
-| `pnpm test:unit` | Vitest, plus backend tests that need no database |
-| `pnpm test:integration` | pytest against a dedicated PostgreSQL test database (`TEST_DATABASE_URL`) |
-| `pnpm build` | Production SPA build |
-| `pnpm contracts:generate` | OpenAPI from Django → `contracts/openapi.yaml` → `apps/web/generated/schema.d.ts` |
-| `pnpm contracts:check` | Regenerates contracts and fails if committed ones differ |
+**Two customers cannot book the same bay.** A hold locks the bay, clears lapsed holds
+and missed arrivals, rechecks and inserts. A PostgreSQL exclusion constraint on
+overlapping blocking reservations is the final guard. Each account may keep at most
+two unconfirmed holds, so a script cannot hold every bay without paying.
+([D42, D44](docs/DECISIONS.md))
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `pnpm setup:local` and then lint, typecheck, unit and integration tests, build and `contracts:check` on every pull request and every push to `main`.
+Money is stored as integer paisa throughout.
 
-## Layout
+## Known limits
 
-```text
-apps/web/            Vite React SPA (src/, generated/ API types, styles.css tokens and print rules)
-backend/config/      Settings, URL routing, API envelope/errors, clock, health, seed_demo and worker commands
-backend/modules/     Django apps: `accounts` (M0, customers M4), `sites` (M1), `parking` (M2, reservations M4), `billing` (M2–M3), `reports` (M3, with embedded OFL fonts)
-contracts/           Generated OpenAPI schema
-fixtures/            Shared test vectors run by both pytest and Vitest (tariff calculator)
-infra/               Compose (db, api, worker, gateway), Caddyfile, gateway image
-scripts/             Local setup
-docs/                Blueprint, progress, decisions
-```
+- **Cash only.** Online payments, refunds and voids (milestone M6) are not built, so
+  there is no payment gateway integration.
+- **Built through milestone M4 of eight.** `main` has the foundation, sites and
+  tariffs, the cash gate journey, shifts, receipts, reports and reservations. Member
+  passes, offline devices and printer integration are planned in the
+  [specification](docs/BLUEPRINT.md) but are not on `main`.
+- **Printing is browser print CSS.** Receipts were laid out for 58 and 80 mm paper but
+  not tested on a physical printer.
+- **Local only.** There is no production deployment.
+
+## Documentation
+
+- [Development](docs/DEVELOPMENT.md): host setup, the worker and every check command
+- [Specification](docs/BLUEPRINT.md) (v1.1; the original v1.0 is `02-parking-platform.md`)
+- [Decisions](docs/DECISIONS.md) and [build log](docs/PROGRESS.md)
+
+## License
+
+No license has been chosen yet, so all rights are reserved.
