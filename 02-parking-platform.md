@@ -7,7 +7,7 @@
 
 ## 1. Start, scope and success
 
-Create a new repository at `<projects-root>/portfolio-recreations/parking-platform/`. On the original machine the projects root is `C:/Users/khatr/OneDrive - Prime College/Desktop/Project`; on another machine use the user's actual workspace. Inspect an existing destination before resuming it. Preserve existing parking repositories, databases, credentials and portfolio content. Copy this file into the new application's `docs/BLUEPRINT.md` and maintain `docs/PROGRESS.md`.
+Create a new repository at `<projects-root>/portfolio-recreations/parking-platform/`. Use the user's actual workspace. Inspect an existing destination before resuming it. Preserve existing parking repositories, databases, credentials and portfolio content. Copy this file into the new application's `docs/BLUEPRINT.md` and maintain `docs/PROGRESS.md`.
 
 Build a responsive working parking product for operators, cashiers, managers and customers. Use fictional **North Gate Parking** and **Riverside Parking** organisations to demonstrate isolation. Core workflows must persist in a real local database; illustrative data must not substitute for implementation.
 
