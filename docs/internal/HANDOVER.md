@@ -47,8 +47,6 @@ Verified results per milestone are in [PROGRESS.md](../PROGRESS.md), reasons in 
 - **Commits:**
   - Use conventional commits grouped by concern, typically accounts, sites, parking, worker/infra, tests, contracts, web, seed, docs.
   - Keep each commit green where the dependencies allow.
-  - End every commit message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-  - End PR bodies with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 - **Ask the user first before:**
   - pushing, opening a PR or merging;
   - enabling Auto-fix.
@@ -59,10 +57,10 @@ Verified results per milestone are in [PROGRESS.md](../PROGRESS.md), reasons in 
   - Never print or commit `.env`. `DEMO_PASSWORD` lives there.
   - The folder above this repository holds unrelated private files; do not open them.
 - **Config files:** don't edit lint or format configs such as `biome.json`. A config-protection hook blocks it; narrow lint paths or move files instead.
-- **Browser checks:** the agent's browser policy forbids typing passwords or creating accounts. Signed-in screens are covered by component tests with a mocked API, and PROGRESS lists accounts for a manual pass.
+- **Browser checks:** automated browser checks don't type passwords or create accounts. Signed-in screens are covered by component tests with a mocked API, and PROGRESS lists accounts for a manual pass.
 - **Finishing a milestone:**
   1. Run every check in "Run and verify" below.
-  2. Run an independent code-review agent and fix what it confirms.
+  2. Get an independent code review and fix what it confirms.
   3. Add a PROGRESS section with the same shape as the earlier ones:
      - Delivered;
      - Verification, a table of actual runs;
