@@ -323,7 +323,7 @@ Acceptance matrix started, not complete: P01 is covered for staff membership end
 - ~~`pnpm contracts:check` passes trivially until the generated files are committed.~~ Resolved: the generated contracts were committed at the end of M0, so the check now detects drift.
 - No Playwright/axe suite, 360px/768px/200% zoom captures or screenshots yet (M8).
 - Biome does not lint `apps/web/styles.css`: its CSS parser rejects Tailwind `@theme` without a `biome.json` change, which the user's config-protection hook blocks.
-- Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a OneDrive-synced folder, so `node_modules` and `.venv` are synced too.
+- Vitest takes about 40 seconds, mostly jsdom start-up; the repository sits in a cloud-synced folder, so `node_modules` and `.venv` are synced too.
 
 ## Next: M5 Member passes
 

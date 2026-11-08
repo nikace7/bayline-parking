@@ -2,7 +2,7 @@
 
 Start here when picking up Bayline in a new session. Rewrite **Current state** and **Next session** before ending every session. Update the rest when a convention changes.
 
-Verified results per milestone are in [PROGRESS.md](PROGRESS.md), reasons in [DECISIONS.md](DECISIONS.md) and the specification in [BLUEPRINT.md](BLUEPRINT.md) (v1.1).
+Verified results per milestone are in [PROGRESS.md](../PROGRESS.md), reasons in [DECISIONS.md](../DECISIONS.md) and the specification in [BLUEPRINT.md](../BLUEPRINT.md) (v1.1).
 
 ## Current state (15 September 2026)
 
@@ -167,7 +167,7 @@ infra/                       compose.yaml, Caddyfile, gateway image
 - **Temp files:** on Windows, Git Bash's `/tmp` is not Node's or Python's `C:\tmp`. Use the session scratchpad, or pipe output (`curl … | node -e …`).
 - **Seed timing:** seeded reservations are timed from the seed run. After about 35 minutes the overstay conflict clears (the waiting booking becomes a no-show). `pnpm demo:reset` is in the blueprint but not implemented, so a fresh database is the only way back.
 - **Line length:** Ruff allows 100 characters, and long comments are the usual failure.
-- **Slow Vitest:** about 40 seconds. The repository sits in a OneDrive-synced folder and jsdom start-up is slow.
+- **Slow Vitest:** about 40 seconds. The repository sits in a cloud-synced folder and jsdom start-up is slow.
 - **CRLF warnings:** Git warns about CRLF on new migration files; `.gitattributes` normalises them, so ignore the warning.
 - **Report downloads:** declaring binary responses makes openapi-fetch type bodies as strings. The client is typed for `application/json` only, and reports download through plain links.
 - **Vite HMR:** the websocket fails when the browser opens `localhost` while Vite listens on `127.0.0.1`. Reload the page after edits.
